@@ -126,9 +126,14 @@ func load_player_model(create_if_missing: bool = true) -> PlayerModel:
 			return fresh
 		return null
 	var text: String = FileAccess.get_file_as_string(path)
-	var parsed: Variant = JSON.parse_string(text)
+	# چرا JSON.parse_string نه؟ نسخه‌ی static موقع خطا ERR_PRINT می‌کند؛ ما خودمان
+	# مدیریت می‌کنیم (ADR-023: هیچ engine error مدیریت‌شده‌ای در لاگ/تست‌ها نماند).
+	var parser := JSON.new()
+	var parse_err: Error = parser.parse(text)
+	var parsed: Variant = parser.data if parse_err == OK else null
 	if not (parsed is Dictionary):
-		Log.warn(TAG, "فایل save خراب/قابل‌پارس نیست → پشتیبان‌گیری و شروع تازه")
+		Log.warn(TAG, "فایل save خراب است (%s) → پشتیبان‌گیری و شروع تازه"
+			% (parser.get_error_message() if parse_err != OK else "ریشه‌ی JSON آبجکت نیست"))
 		DirAccess.copy_absolute(path, path + ".corrupt")
 		return PlayerModel.create_new() if create_if_missing else null
 	var migrated: Dictionary = _migrate(parsed)
