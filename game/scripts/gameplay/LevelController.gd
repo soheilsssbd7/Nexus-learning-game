@@ -45,6 +45,14 @@ var _settle_elapsed: float = 0.0
 
 
 func _ready() -> void:
+	# ارجاع‌های گره‌ای را خودمان هم resolve می‌کنیم: LevelScene.tscn آن‌ها را با NodePath
+	# می‌دهد، اما اگر صحنه‌ای این‌ها را نداشت یا resolve نشد، سطح نباید نصفه بسازد.
+	if scales_root == null:
+		scales_root = get_node_or_null("Scales") as Node2D
+	if tray_root == null:
+		tray_root = get_node_or_null("Tray") as Node2D
+	if intro_label == null:
+		intro_label = get_node_or_null("Intro") as Label
 	if config.is_empty():
 		config = default_config()
 	if build_on_ready:
@@ -160,14 +168,12 @@ func _build_scale(scale_cfg: Dictionary) -> void:
 	for entry: Variant in _arr(scale_cfg, "left_orbs"):
 		var orb := _make_orb(entry as Dictionary)
 		if orb != null and scale.left_pan != null:
-			scale.left_pan.add_child(orb)
-			orb.position = scale.left_pan.slot_position(scale.left_pan.orbs.size(), 1)
+			# add_orb هم والد را درست می‌کند و هم relayout می‌گیرد (تکرار position لازم نیست)
 			scale.left_pan.add_orb(orb)
 	# ghost orbs روی چپ (Tier 3+): وزن مخفی، بدون نمایش عدد
 	for ghost: Variant in _arr(scale_cfg, "left_ghost_orbs"):
 		var g := _make_ghost(ghost as Dictionary)
 		if g != null and scale.left_pan != null:
-			scale.left_pan.add_child(g)
 			scale.left_pan.add_orb(g)
 
 
@@ -179,7 +185,7 @@ func _build_tray() -> void:
 		for i: int in range(count):
 			var orb := _make_orb(spec)
 			if orb != null:
-				root_node.add_child(orb)
+				_reparent(orb, root_node)
 				tray_orbs.append(orb)
 
 
@@ -261,12 +267,11 @@ func _on_orb_drag_began(orb: WeightOrb) -> void:
 		return
 	if orb.is_placed and orb.pan != null:
 		# برداشتن از کفه بلافاصله تعادل را عوض می‌کند (بازخورد آنی، §۳ GDD)
-		var previous_pan: BalancePan = orb.pan
-		previous_pan.remove_orb(orb)
-		add_child(orb)
+		orb.pan.remove_orb(orb)
+		_reparent(orb, self)
 	elif orb in tray_orbs:
 		# از سینی برداشته می‌شود: موقتاً فرزند ریشه تا درگ آزاد باشد
-		add_child(orb)
+		_reparent(orb, self)
 
 
 func _on_orb_drag_ended(orb: WeightOrb, world_pos: Vector2) -> void:
@@ -294,15 +299,23 @@ func _pan_at(world_pos: Vector2) -> BalancePan:
 func _return_to_tray(orb: WeightOrb) -> void:
 	if orb.pan != null and orb.is_placed:
 		orb.pan.remove_orb(orb)
-	if orb.get_parent() != (tray_root if tray_root != null else self):
-		var root_node: Node = tray_root if tray_root != null else self
+	var root_node: Node = tray_root if tray_root != null else self
+	if orb.get_parent() != root_node:
 		var from_global: Vector2 = orb.global_position
-		root_node.add_child(orb)
+		_reparent(orb, root_node)
 		orb.global_position = from_global
-		orb.create_tween().tween_property(orb, "position", orb.home_position, 0.18)
-	else:
-		orb.create_tween().tween_property(orb, "position", orb.home_position, 0.18)
+	orb.create_tween().tween_property(orb, "position", orb.home_position, 0.18)
 	_emit_orb_placed(orb, null, false)
+
+
+## تنها راه امن جابه‌جایی نود بین دو والد در Godot: اول remove، بعد add.
+func _reparent(node: Node, new_parent: Node) -> void:
+	if node == null or new_parent == null or node.get_parent() == new_parent:
+		return
+	var prev: Node = node.get_parent()
+	if prev != null:
+		prev.remove_child(node)
+	new_parent.add_child(node)
 
 
 func _emit_orb_placed(orb: WeightOrb, pan: BalancePan, placed: bool) -> void:
@@ -392,7 +405,6 @@ func place_on_right(orbs_to_place: Array[WeightOrb], scale_index: int = 0) -> in
 	for orb: WeightOrb in orbs_to_place:
 		if orb == null or orb.is_placed:
 			continue
-		scale.right_pan.add_child(orb)
 		if scale.right_pan.add_orb(orb):
 			placed_count += 1
 			_emit_orb_placed(orb, scale.right_pan, true)

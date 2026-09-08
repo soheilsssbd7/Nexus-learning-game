@@ -60,12 +60,18 @@ func add_orb(orb: WeightOrb) -> bool:
 		return false
 	if orbs.size() >= max_orbs:
 		return false
+	# از والد قبلی (سینی/کفه‌ی دیگر) جدا شود وگرنه Godot خطای «already has a parent» می‌دهد
+	var prev: Node = orb.get_parent()
+	if prev != null and prev != self:
+		prev.remove_child(orb)
 	var from_global: Vector2 = orb.global_position
 	orbs.append(orb)
 	orb.is_placed = true
 	orb.pan = self
 	if orb.get_parent() != self:
 		add_child(orb)
+	else:
+		orb.global_position = from_global
 	# ادامه‌ی بصری: اول همان‌جا که رها شد بنشین، بعد به اسلاتTween شود
 	orb.global_position = from_global
 	relayout(true)

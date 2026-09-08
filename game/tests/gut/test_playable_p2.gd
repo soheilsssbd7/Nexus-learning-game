@@ -236,12 +236,14 @@ func test_two_linked_scales_are_supported() -> void:
 		],
 	})
 	assert_eq(scene.scales.size(), 2, "Tier 4 دو ترازو دارد (GDD §۳ + ADR-029)")
-	_drag(scene.tray_orbs[0], scene.scales[1].right_pan.dish_position())
+	# a: چپ=3، b: چپ=4 → ۳ باید روی راستِ a و ۴ روی راستِ b بنشیند
+	_drag(scene.tray_orbs[0], scene.scales[0].right_pan.dish_position())
 	await get_tree().process_frame
 	assert_false(scene.is_won(), "تا هر دو ترازو متعادل نشده‌اند برد نیست")
-	assert_eq(scene.scales[1].calculate_tilt(), 0.0)
-	assert_ne(scene.scales[0].calculate_tilt(), 0.0)
-	_drag(scene.tray_orbs[1], scene.scales[0].right_pan.dish_position())
+	assert_eq(scene.scales[0].calculate_tilt(), 0.0, "ترازوی a متعادل است")
+	assert_ne(scene.scales[1].calculate_tilt(), 0.0, "ترازوی b هنوز نامتعادل است")
+	_drag(scene.tray_orbs[1], scene.scales[1].right_pan.dish_position())
 	await get_tree().process_frame
 	assert_true(scene.is_won(), "برد فقط وقتی هر دو ترازو متعادل باشد")
 	assert_eq(scene.scales[0].left_weight() + scene.scales[0].right_weight(), 6.0)
+	assert_eq(scene.scales[1].left_weight() + scene.scales[1].right_weight(), 8.0)

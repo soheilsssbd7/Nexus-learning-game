@@ -36,7 +36,8 @@ func test_display_never_reveals_the_number() -> void:
 
 func test_color_is_always_ghost_violet() -> void:
 	var g := _ghost(7.0)
-	assert_eq(g.fill_color(), Palette.ghost_fill(0.66), "Ghost Violet در کل بازی ثابت است (§۲ سند هنری)")
+	assert_eq(g.fill_color().to_html(false), Palette.GHOST_VIOLET.to_html(false),
+		"Ghost Violet در کل بازی ثابت است (§۲ سند هنری)")
 	assert_eq(g.orb_type, WeightOrb.OrbType.GHOST)
 	assert_true(g.is_ghost())
 

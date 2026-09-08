@@ -27,6 +27,10 @@ func test_palette_matches_art_bible_hexes() -> void:
 	assert_eq(Palette.GHOST_VIOLET.to_html(false), "b79ced")
 
 
+static func _hex(c: Color) -> String:
+	return c.to_html(false)
+
+
 func test_ghost_violet_is_constant_across_the_thermal_range() -> void:
 	var small := GhostOrb.new()
 	autofree(small)
@@ -38,9 +42,10 @@ func test_ghost_violet_is_constant_across_the_thermal_range() -> void:
 
 
 func test_thermal_maps_small_to_teal_and_large_to_gold() -> void:
-	assert_eq(Palette.thermal(Palette.THERMAL_MIN_VALUE), Palette.SOFT_TEAL)
-	assert_eq(Palette.thermal(Palette.THERMAL_MAX_VALUE), Palette.AELORIA_GOLD)
-	assert_eq(Palette.thermal(99.0), Palette.AELORIA_GOLD, "خارج از بازه باید clamp شود")
+	# مقایسه با hex ۸بیتی: lerp روی float دقیقاً برابر نمی‌شود و assert_eq روی Color شکننده است
+	assert_eq(_hex(Palette.thermal(Palette.THERMAL_MIN_VALUE)), _hex(Palette.SOFT_TEAL))
+	assert_eq(_hex(Palette.thermal(Palette.THERMAL_MAX_VALUE)), _hex(Palette.AELORIA_GOLD))
+	assert_eq(_hex(Palette.thermal(99.0)), _hex(Palette.AELORIA_GOLD), "خارج از بازه باید clamp شود")
 	var mid: Color = Palette.thermal(5.0)
 	assert_true(mid.r > Palette.SOFT_TEAL.r and mid.b < Palette.SOFT_TEAL.b,
 		"بینابین به سمت طلایی می‌رود، نه قرمز")
@@ -75,7 +80,9 @@ func test_text_color_rule_for_ui_surfaces() -> void:
 
 ## کنتراست WCAG با فرمول luminance (همان وزن‌ها؛ مستقل از داخلی‌جات Godot)
 static func _luma(c: Color) -> float:
-	return c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722
+	# WCAG روی luminance خطی تعریف شده، نه مقدار sRAW → to_linear() لازم است
+	var lin: Color = c.to_linear()
+	return lin.r * 0.2126 + lin.g * 0.7152 + lin.b * 0.0722
 
 
 static func _contrast(a: Color, b: Color) -> float:

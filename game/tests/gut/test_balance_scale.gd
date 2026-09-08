@@ -14,6 +14,7 @@ func before_each() -> void:
 	_scale = BalanceScaleScene.instantiate() as BalanceScale
 	add_child_autofree(_scale)
 	watch_signals(EventBus)
+	watch_signals(_scale)
 
 
 func _orb(p_value: float) -> WeightOrb:

@@ -81,6 +81,8 @@ func session_playtime_sec() -> float:
 
 func register_attempt_failed() -> void:
 	level_attempts += 1
+	# همه‌ی «تلاش ناموفق»ها از همین‌جا می‌گذراند تا شماره‌ی تلاش یک‌دست باشد (تسک ۱.۱)
+	EventBus.attempt_failed.emit(level_attempts)
 
 
 func register_hint_used() -> void:
