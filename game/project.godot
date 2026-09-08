@@ -17,8 +17,12 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-; ثبت autoloadها از تسک ۱.۱ این‌جا انجام می‌شود (EventBus, GameState, SaveSystem, ...).
-; تا زمانی که فایل اسکریپت وجود ندارد چیزی ثبت نکنید: autoload گم‌شده پروژه را می‌شکند.
+; ترتیب ثبت = وابستگی به زمان آماده‌سازی (docs/06 ADR-016). autoload تازه فقط وقتی
+; اضافه می‌شود که فایلش وجود داشته باشد (وگرنه پروژه بارگذاری نمی‌شود).
+EventBus="*res://scripts/autoload/EventBus.gd"
+FeatureFlags="*res://scripts/autoload/FeatureFlags.gd"
+Log="*res://scripts/autoload/Log.gd"
+; فازهای بعد: AudioManager (P7) → AnalyticsManager → NetworkClient → LevelLoader → DifficultyEngine (P9)
 
 [display]
 
