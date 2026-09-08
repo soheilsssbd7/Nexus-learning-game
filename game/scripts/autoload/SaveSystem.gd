@@ -49,6 +49,15 @@ func path_for(profile: String = "") -> String:
 	return "%s/%s/%s" % [PROFILES_ROOT, p, FILE_NAME]
 
 
+## پوشه‌ی حاوی مسیر داده را می‌سازد. (تست‌ها و مسیر مهاجرت هم همین را صدا می‌زنند تا
+## `FileAccess.open` هرگز null برنگرداند.)
+func ensure_dir(path: String) -> Error:
+	var dir_abs: String = ProjectSettings.globalize_path(path.get_base_dir())
+	if DirAccess.dir_exists_absolute(dir_abs):
+		return OK
+	return DirAccess.make_dir_recursive_absolute(dir_abs)
+
+
 func has_save(profile: String = "") -> bool:
 	return FileAccess.file_exists(path_for(profile))
 
@@ -74,12 +83,10 @@ func save_player_model(model: PlayerModel) -> Error:
 	var path: String = path_for()
 	var tmp_path: String = path + ".tmp"
 
-	var dir_abs: String = ProjectSettings.globalize_path(path.get_base_dir())
-	if not DirAccess.dir_exists_absolute(dir_abs):
-		var mk_err: Error = DirAccess.make_dir_recursive_absolute(dir_abs)
-		if mk_err != OK:
-			Log.error(TAG, "ساخت پوشه‌ی save ناموفق: %s" % error_string(mk_err))
-			return mk_err
+	var dir_err: Error = ensure_dir(path)
+	if dir_err != OK:
+		Log.error(TAG, "پوشه‌ی save ساخته نشد: %s" % error_string(dir_err))
+		return dir_err
 
 	var f := FileAccess.open(tmp_path, FileAccess.WRITE)
 	if f == null:

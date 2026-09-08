@@ -87,7 +87,9 @@ func test_missing_save_creates_fresh_profile() -> void:
 func test_corrupt_save_is_quarantined_not_fatal() -> void:
 	SaveSystem.profile_name = BROKEN_PROFILE
 	var path: String = SaveSystem.path_for()
+	assert_eq(SaveSystem.ensure_dir(path), OK, "پوشه‌ی پروفایل تست باید ساخته شود")
 	var f := FileAccess.open(path, FileAccess.WRITE)
+	assert_not_null(f, "باز کردن فایل برای نوشتن داده‌ی خراب")
 	f.store_string("{ this is not json ]")
 	f.close()
 	var recovered := SaveSystem.load_player_model()
@@ -100,7 +102,9 @@ func test_migration_fills_missing_fields_and_bumps_version() -> void:
 	# یک save نسخه‌ی ۰ که فقط دو فیلد دارد (تسک ۱.۳: فیلد جدید = مقدار پیش‌فرض)
 	SaveSystem.profile_name = TMP_PROFILE
 	var path: String = SaveSystem.path_for()
+	assert_eq(SaveSystem.ensure_dir(path), OK)
 	var f := FileAccess.open(path, FileAccess.WRITE)
+	assert_not_null(f)
 	f.store_string(JSON.stringify({
 		"schema_version": 0,
 		"display_name": "قدیمی",
