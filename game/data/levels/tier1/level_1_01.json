@@ -55,7 +55,7 @@
       "hint_id": "socratic_specific_01"
     }
   ],
-  "expected_solve_time_sec": 30,
+  "expected_solve_time_sec": 40,
   "difficulty_elo": 900,
   "solution_spec": {
     "intended": {

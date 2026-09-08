@@ -62,7 +62,7 @@ func _solve_from_spec(scene: LevelController, spec: Dictionary) -> void:
 	for entry: Variant in intended:
 		var value: float = float(entry)
 		var orb := _take_tray_orb(scene, value)
-		assert_not_null(orb, "سینی باید یک کره‌ی %g برای جوابِ ازپیش‌تعریف‌شده داشته باشد" % value)
+		assert_not_null(orb, "سینی باید یک کره‌ی %.1f برای جوابِ ازپیش‌تعریف‌شده داشته باشد" % value)
 		_drag(orb, pan.dish_position())
 
 

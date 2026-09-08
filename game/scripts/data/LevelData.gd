@@ -149,7 +149,7 @@ func validate() -> Array[String]:
 		errs.append("right_side باید target_value یا ghost_orbs داشته باشد")
 	if has_target and is_equal_approx(tolerance, 0.0) and ghosts == 0:
 		if not is_equal_approx(left_weight() - right_weight(), target_value):
-			errs.append("ناسازگاری: نیاز راست %g ≠ target_value %g"
+			errs.append("ناسازگاری: نیاز راست %.3f ≠ target_value %.3f"
 				% [left_weight() - right_weight(), target_value])
 
 	if hint_sequence.is_empty():
@@ -167,7 +167,7 @@ func validate() -> Array[String]:
 			for v: Variant in (intended as Array):
 				total += float(v)
 			if not is_zero_approx(total) and not is_equal_approx(total, left_weight() - right_weight()):
-				errs.append("solution_spec.intended با نیاز کفه‌ی راست نمی‌خواند (%g ≠ %g)"
+				errs.append("solution_spec.intended با نیاز کفه‌ی راست نمی‌خواند (%.3f ≠ %.3f)"
 					% [total, left_weight() - right_weight()])
 	return errs
 
@@ -249,7 +249,7 @@ func to_config_dict() -> Dictionary:
 
 
 func summary() -> String:
-	return "%s (tier %d، نیاز راست %g، %d کره در سینی، Elo %d)" % [
+	return "%s (tier %d، نیاز راست %.1f، %d کره در سینی، Elo %d)" % [
 		level_id, tier, required_right_weight(), available_count(), difficulty_elo]
 
 
