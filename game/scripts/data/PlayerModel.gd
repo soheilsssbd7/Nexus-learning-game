@@ -168,9 +168,9 @@ func to_dict() -> Dictionary:
 		"error_patterns": error_patterns.duplicate(true),
 		"levels_completed": Array(levels_completed),
 		"current_level": current_level,
-		"hint_usage_rate": hint_usage_rate,
-		"avg_time_to_solve_sec": avg_time_to_solve_sec,
-		"total_playtime_sec": total_playtime_sec,
+		"hint_usage_rate": SkillRating.quantize(hint_usage_rate),
+		"avg_time_to_solve_sec": SkillRating.quantize(avg_time_to_solve_sec),
+		"total_playtime_sec": SkillRating.quantize(total_playtime_sec),
 		"aria_transcript_log": aria_transcript_log.duplicate(true),
 	}
 

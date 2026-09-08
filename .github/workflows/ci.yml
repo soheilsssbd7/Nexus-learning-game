@@ -72,6 +72,10 @@ jobs:
           fi
           grep -Eq "Errors:[[:space:]]*[1-9]" gut.log && { echo "خطای engine/push_error در اجرا"; exit 1; } || true
 
+      - name: Annotate failures (قابل‌خواندن از API، بدون artifact)
+        if: failure()
+        run: python3 tools/ci_annotate.py gut.log --title "GUT"
+
       - name: Upload GUT log + junit
         if: always()
         uses: actions/upload-artifact@v4
@@ -92,8 +96,13 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install --quiet "gdtoolkit==4.5.0"
-      - name: gdlint (addons/ بررسی نمی‌شود)
+      - name: gdlint + content validation (log برای تشخیص)
         run: |
-          find game/scripts game/tests -name '*.gd' -print0 | xargs -0 -r gdlint
-      - name: Validate level/dialogue data
-        run: python3 tools/validate_levels.py
+          set -o pipefail
+          {
+            find game/scripts game/tests -name '*.gd' -print0 | xargs -0 -r gdlint
+            python3 tools/validate_levels.py
+          } 2>&1 | tee checks.log
+      - name: Annotate failures
+        if: failure()
+        run: python3 tools/ci_annotate.py checks.log --title "checks"

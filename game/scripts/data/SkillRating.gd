@@ -62,10 +62,19 @@ func apply_result(level_difficulty: float, did_succeed: bool, weighted_score: fl
 	return elo - before
 
 
+const FLOAT_PRECISION := 0.000001
+
+
+## round به ۶ رقم اعشار: JSON.stringify  دقت کامل double را چاپ نمی‌کند؛ بدون این کار
+## یک دور «ذخیره → بارگذاری» می‌تواند عدد را عوض‌شده نشان دهد (و تست‌های برابری را می‌شکند).
+static func quantize(v: float) -> float:
+	return snappedf(v, FLOAT_PRECISION)
+
+
 func to_dict() -> Dictionary:
 	return {
-		"elo": elo,
-		"confidence": confidence,
+		"elo": SkillRating.quantize(elo),
+		"confidence": SkillRating.quantize(confidence),
 		"attempts": attempts,
 		"last_seen": last_seen,
 	}
