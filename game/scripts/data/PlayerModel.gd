@@ -51,12 +51,19 @@ static func create_new(display: String = "کارآموز") -> PlayerModel:
 	return m
 
 
-## قالب `p_<12 hex>` (ADR-005). از UUID.v4 گرفته می‌شود تا کلاش نباشد.
+## قالب `p_<12 hex>` (ADR-005).
+## حریم‌خصوصی: عمداً از `OS.get_unique_id()`/IMEI/AAID استفاده **نمی‌شود** — انتقال
+## شناسه‌ی دستگاه از کودک ممنوع است (Families policy؛ ADR-009). آنتروپی فقط زمان و
+## تصادف فرایند است و شناسه هیچ معنایی بیرون از این نصب ندارد.
 static func generate_player_id() -> String:
-	var raw: String = UUID.v4().replace("-", "")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = Time.get_ticks_usec() ^ randi()
+	var raw: String = ""
+	for i: int in range(2):
+		raw += "%08x" % rng.randi()
 	if raw.length() < 12:
 		# هرگز نباید رخ دهد؛ fallback تا بازی هیچ‌وقت به خاطر id نشکند.
-		raw = "%012x" % (randi() * randi())
+		raw = "%012x" % (randi() * 31 + Time.get_ticks_msec())
 	return "p_" + raw.substr(0, 12)
 
 

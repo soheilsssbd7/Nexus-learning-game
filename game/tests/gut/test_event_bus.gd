@@ -27,7 +27,7 @@ func test_emit_from_other_script_is_received() -> void:
 	EventBus.orb_placed.emit({"value": 5.0, "side": 1})
 	assert_eq(probe.orb_payloads.size(), 1, "شنونده باید دقیقاً یک orb_placed بگیرد")
 	assert_eq(float(probe.orb_payloads[0].get("value", 0.0)), 5.0)
-	assert_eq(probe.balance.length(), 0, "هیچ سیگنال دیگری نباید emit شده باشد")
+	assert_eq(probe.balance.size(), 0, "هیچ سیگنال دیگری نباید emit شده باشد")
 
 
 func test_balance_changed_carries_weights() -> void:
