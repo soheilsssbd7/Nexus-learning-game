@@ -2,28 +2,73 @@
   "level_id": "tier1_level_01",
   "tier": 1,
   "world": "balance_realm",
-  "concept_tags": ["addition", "concrete_numbers"],
+  "concept_tags": [
+    "addition",
+    "concrete_numbers"
+  ],
   "narrative_intro": "اولین پل شکسته‌ی روستای Sunlit Meadow منتظر توست.",
   "left_side": {
     "fixed_orbs": [
-      { "type": "number", "value": 3 },
-      { "type": "number", "value": 5 }
+      {
+        "type": "number",
+        "value": 3
+      },
+      {
+        "type": "number",
+        "value": 5
+      }
     ]
   },
   "right_side": {
     "target_value": 8,
     "available_orbs": [
-      { "type": "number", "value": 1, "count": 10 },
-      { "type": "number", "value": 2, "count": 5 },
-      { "type": "number", "value": 5, "count": 3 }
+      {
+        "type": "number",
+        "value": 1,
+        "count": 10
+      },
+      {
+        "type": "number",
+        "value": 2,
+        "count": 5
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 3
+      }
     ]
   },
   "tolerance": 0,
+  "tolerance_strategy": "exact",
   "hint_sequence": [
-    { "trigger": "idle_45s", "hint_id": "gentle_nudge_01" },
-    { "trigger": "fail_3x", "hint_id": "socratic_operation_01" },
-    { "trigger": "fail_6x", "hint_id": "socratic_specific_01" }
+    {
+      "trigger": "idle_45s",
+      "hint_id": "gentle_nudge_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "socratic_operation_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "socratic_specific_01"
+    }
   ],
-  "expected_solve_time_sec": 40,
-  "difficulty_elo": 900
+  "expected_solve_time_sec": 30,
+  "difficulty_elo": 900,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        5,
+        2,
+        1
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
 }
