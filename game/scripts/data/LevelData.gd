@@ -222,9 +222,6 @@ func hint_id_for(trigger_prefix: String) -> String:
 # پل به موتور بازی — قرارداد ADR-028 (تغییر این شکل یعنی شکستن LevelController)
 # --------------------------------------------------------------------------
 func to_config_dict() -> Dictionary:
-	var left_orbs: Array[Dictionary] = []
-	left_orbs.append_array(left_fixed_orbs)
-	left_orbs.append_array(left_ghost_orbs)
 	return {
 		"level_id": level_id,
 		"tier": tier,
@@ -232,15 +229,20 @@ func to_config_dict() -> Dictionary:
 		"narrative_intro": narrative_intro,
 		"scales": [{
 			"id": "main",
-			"left_orbs": left_orbs,
-			"left_ghost_orbs": left_ghost_orbs,
+			# قاعده (ADR-028): کره‌ی روح **فقط** در کلید `*_ghost_orbs` می‌آید؛ اگر در
+			# `*_orbs` هم می‌آمد، LevelController دو بار روی کفه می‌گذاشتش (وزن دوبله).
+			"left_orbs": left_fixed_orbs.duplicate(),
+			"left_ghost_orbs": left_ghost_orbs.duplicate(),
+			# آرک‌تایپ ۲ («دو طرف نیمه‌پُر»): کفه‌ی راست هم می‌تواند از قبل پر باشد
+			"right_orbs": right_fixed_orbs.duplicate(),
+			"right_ghost_orbs": right_ghost_orbs.duplicate(),
 			"target_value": target_value,
 		}],
-		"available_orbs": available_orbs,
+		"available_orbs": available_orbs.duplicate(),
 		# افزوده‌ها برای فازهای ۴ و ۵ (LevelController آن‌ها را نمی‌خواند):
 		"world": world,
 		"concept_tags": Array(concept_tags),
-		"hint_sequence": hint_sequence,
+		"hint_sequence": hint_sequence.duplicate(),
 		"expected_solve_time_sec": expected_solve_time_sec,
 		"difficulty_elo": difficulty_elo,
 		"solution_spec": solution_spec,

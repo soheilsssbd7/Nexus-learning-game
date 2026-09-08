@@ -95,15 +95,14 @@ func test_each_tier1_level_is_playable_to_a_win() -> void:
 func test_wrong_move_is_counted_and_the_level_is_still_winnable() -> void:
 	_scene = _build("tier1_level_01")
 	GameState.level_attempts = 0
-	# حرکت غلط: دو تا ۲ (مجموع ۴ ≠ ۸) و صبر تا آستانه‌ی تلاش
-	_drag(_take_tray_orb(_scene, 2.0), _scene.scales[0].right_pan.dish_position())
+	# حرکت غلط: یک ۲ (راست=۲ ≠ ۸) و صبر تا آستانه‌ی تلاش
 	_drag(_take_tray_orb(_scene, 2.0), _scene.scales[0].right_pan.dish_position())
 	await get_tree().create_timer(0.25).timeout
-	assert_eq(GameState.level_attempts, 1, "چیدمان ناپایدارِ ساکن = یک تلاش، نه دو تا")
+	assert_eq(GameState.level_attempts, 1, "چیدمان ناپایدارِ ساکن = یک تلاش، نه بیشتر")
 	assert_signal_emit_count(EventBus, "attempt_failed", 1)
 	assert_false(_scene.is_won())
-	# همان سطح با جواب درست باید ببرَد
-	for value: float in [2.0, 5.0, 1.0]:
+	# همان سطح با ادامه‌ی چیدمان درست (۲+۵+۱) باید ببرد
+	for value: float in [5.0, 1.0]:
 		_drag(_take_tray_orb(_scene, value), _scene.scales[0].right_pan.dish_position())
 	await get_tree().process_frame
 	assert_true(_scene.is_won(), "اشتباه، سطح را قفل/خراب نمی‌کند")

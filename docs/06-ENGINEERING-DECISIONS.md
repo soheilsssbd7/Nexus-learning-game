@@ -290,9 +290,17 @@ artifact‌ها هم همچنان آپلود می‌شوند (برای انسا�
 `config` از همان الان قفل می‌شود و `default_config()` فاز ۲ دقیقاً همان شکل را تولید می‌کند:
 ```
 { level_id, tier, tolerance, narrative_intro,
-  scales: [ { id, left_orbs: [{type,value}], left_ghost_orbs: [...], target_value } ],
+  scales: [ { id,
+              left_orbs: [{type,value}],  left_ghost_orbs: [{type,hidden_value}],
+              right_orbs: [...],          right_ghost_orbs: [...] ,
+              target_value } ],
   available_orbs: [ {type, value, count} ] }
 ```
+**تصحیح در آغاز فاز ۳ (وقتی آرک‌تایپ ۲ «دو طرف نیمه‌پُر» اجرا شد): ** کلیدهای
+`right_orbs`/`right_ghost_orbs` اضافه شدند — بدون آن‌ها سطح‌هایی که کفه‌ی راستشان از
+قبل پر است ساخته نمی‌شدند (تست فاز ۳ همان را قرمز کرد). قاعده‌ی تازه: کره‌ی روح **فقط**
+در کلید `*_ghost_orbs` می‌آید و در `*_orbs` تکرار نمی‌شود، وگرنه LevelController وزنش را
+دو بار روی کفه می‌گذارد (تست `test_ghosts_live_only_in_the_ghost_keys`).
 **تصمیم:**
 - `type ∈ {number, ghost, negative}`؛ برای `ghost` کلید `hidden_value` و برای `negative` همان
   `value` (علامت را **نوع** تعیین می‌کند، نه داده → داده‌ی JSON هیچ‌وقت «-2» نمی‌شود).

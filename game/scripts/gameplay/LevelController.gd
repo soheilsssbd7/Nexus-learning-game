@@ -211,6 +211,15 @@ func _build_scale(scale_cfg: Dictionary) -> void:
 		var g := _make_ghost(ghost as Dictionary)
 		if g != null and scale.left_pan != null:
 			scale.left_pan.add_orb(g)
+	# آرک‌تایپ ۲: کفه‌ی راست هم می‌تواند از قبل کره داشته باشد (number/ghost/negative)
+	for entry: Variant in _arr(scale_cfg, "right_orbs"):
+		var orb := _make_orb(entry as Dictionary)
+		if orb != null and scale.right_pan != null:
+			scale.right_pan.add_orb(orb)
+	for ghost: Variant in _arr(scale_cfg, "right_ghost_orbs"):
+		var rg := _make_ghost(ghost as Dictionary)
+		if rg != null and scale.right_pan != null:
+			scale.right_pan.add_orb(rg)
 
 
 func _build_tray() -> void:

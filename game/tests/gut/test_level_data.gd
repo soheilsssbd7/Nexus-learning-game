@@ -4,6 +4,7 @@ extends GutTest
 # ===========================================================================
 
 const SAMPLE_PATH := "res://data/levels/tier1/level_1_01.json"
+const LEVEL_SCENE := "res://scenes/gameplay/LevelScene.tscn"
 
 
 func _read(path: String) -> String:
@@ -74,14 +75,51 @@ func test_to_config_dict_gives_the_adr028_contract() -> void:
 	assert_eq((scale.get("left_orbs") as Array).size(), 2)
 	assert_eq(scale.get("target_value"), 8.0)
 	assert_eq((cfg.get("available_orbs") as Array).size(), 3)
+	# آرک‌تایپ ۲ (docs/07 §۴): کفه‌ی راست هم می‌تواند از قبل کره داشته باشد
+	for key: String in ["right_orbs", "right_ghost_orbs"]:
+		assert_true(scale.has(key), "contract باید `%s` را داشته باشد" % key)
+	assert_eq((scale.get("right_orbs") as Array).size(), 0)
 	# افزوده‌های فاز ۴/۵ از همین‌جا عبور می‌کنند (LevelController آن‌ها را نمی‌خواند)
 	for key: String in ["hint_sequence", "difficulty_elo", "solution_spec", "concept_tags"]:
 		assert_true(cfg.has(key), "contract باید %s را هم رد کند" % key)
 
 
+func test_ghosts_live_only_in_the_ghost_keys() -> void:
+	# رگرسیون واقعی: اگر ghost هم در left_orbs و هم در left_ghost_orbs بیاید،
+	# LevelController وزنش را دو بار روی کفه می‌گذارد.
+	var lv := LevelData.from_dict({
+		"level_id": "tier3_level_02", "tier": 3,
+		"concept_tags": ["unknown_variable"],
+		"narrative_intro": "دیوارهای Ghostlight دو ردپای نورانی دارند؛ یکی را خودت پیدا کن.",
+		"left_side": {
+			"fixed_orbs": [{"type": "number", "value": 2}],
+			"ghost_orbs": [{"id": "x1", "type": "ghost", "hidden_value": 5}],
+		},
+		"right_side": {
+			"ghost_orbs": [{"id": "x2", "type": "ghost", "hidden_value": 1}],
+			"available_orbs": [{"type": "number", "value": 4, "count": 1}],
+		},
+		"hint_sequence": [{"trigger": "idle_45s", "hint_id": "gentle_nudge_01"}],
+	})
+	assert_eq(lv.validate().size(), 0, str(lv.validate()))
+	var scale: Dictionary = (lv.to_config_dict()["scales"] as Array)[0]
+	assert_eq((scale["left_orbs"] as Array).size(), 1, "شماردها در left_orbs")
+	assert_eq((scale["left_ghost_orbs"] as Array).size(), 1)
+	assert_eq((scale["right_ghost_orbs"] as Array).size(), 1)
+	for entry: Variant in (scale["left_orbs"] as Array):
+		assert_ne(str((entry as Dictionary).get("type", "")), "ghost", "ghost نباید دوباره اینجا بیاید")
+	var scene: LevelController = load(LEVEL_SCENE).instantiate() as LevelController
+	scene.attempt_settle_sec = 0.05
+	scene.config = lv.to_config_dict()
+	add_child_autofree(scene)
+	assert_eq(scene.scales[0].left_weight(), 7.0, "2 + مجهول ۵ (نه ۱۲ دوبله)")
+	assert_eq(scene.scales[0].right_weight(), 1.0, "مجهولِ سمت راست هم شمرده می‌شود")
+	assert_eq(scene.scales[0].calculate_tilt(), 0.0, "۷ در برابر ۱+۴ → متعادل")
+
+
 func test_config_dict_is_consumable_by_level_controller() -> void:
 	var lv: LevelData = LevelData.from_json_text(_read(SAMPLE_PATH), SAMPLE_PATH).get("level")
-	var scene: LevelController = load("res://scenes/gameplay/LevelScene.tscn").instantiate() as LevelController
+	var scene: LevelController = load(LEVEL_SCENE).instantiate() as LevelController
 	scene.attempt_settle_sec = 0.05
 	scene.config = lv.to_config_dict()
 	add_child_autofree(scene)

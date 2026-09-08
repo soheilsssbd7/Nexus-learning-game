@@ -96,7 +96,10 @@ func test_locks_open_in_order_as_progress_is_recorded() -> void:
 func test_completed_level_unlocks_the_next_one_through_eventbus() -> void:
 	_map = _build_map()
 	assert_true(_map.buttons[1].disabled)
-	# هر برد، `level_completed` را روی EventBus می‌گذارد؛ نقشه به همان وصل است
+	# برد = اول مدل ثبت می‌شود، بعد `level_completed` منتشر می‌شود؛ نقشه به رویداد
+	# وصل است (نه به polling) پس با همان یک سیگنال باز می‌شود.
+	GameState.active_model.mark_level_completed("tier1_level_01", 18.0, 0)
+	assert_true(_map.buttons[1].disabled, "بدون خبر، نقشه نباید خودش حدس بزند")
 	EventBus.level_completed.emit("tier1_level_01", {"attempts": 0})
 	await get_tree().process_frame
 	assert_false(_map.buttons[1].disabled, "نقشه بدون reload باز می‌شود")
