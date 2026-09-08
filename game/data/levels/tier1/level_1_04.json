@@ -1,0 +1,82 @@
+{
+  "level_id": "tier1_level_04",
+  "tier": 1,
+  "world": "balance_realm",
+  "concept_tags": [
+    "addition",
+    "equality",
+    "multi_step"
+  ],
+  "narrative_intro": "یک تخته‌ی دو واحدی از قبل روی سمت راست افتاده؛ بقیه را خودت بچین.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 7
+      },
+      {
+        "type": "number",
+        "value": 4
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 9,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 1,
+        "count": 8
+      },
+      {
+        "type": "number",
+        "value": 2,
+        "count": 5
+      },
+      {
+        "type": "number",
+        "value": 4,
+        "count": 3
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 2
+      }
+    ]
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "idle_45s",
+      "hint_id": "gentle_nudge_01"
+    },
+    {
+      "trigger": "fail_4x",
+      "hint_id": "socratic_specific_01"
+    }
+  ],
+  "expected_solve_time_sec": 45,
+  "difficulty_elo": 1020,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        4,
+        4,
+        1
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "remove_from_left": [
+        2
+      ]
+    }
+  }
+}
