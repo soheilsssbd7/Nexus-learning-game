@@ -1,0 +1,62 @@
+; Engine configuration file.
+; NEXUS — Balance Realm
+; Godot 4.7.2-stable (قفل‌شده — توضیح در README.md).
+;
+; این فایل دستی و مطابق docs/01-ARCHITECTURE.md §1 و docs/04-BUILD-PLAN.md تسک ۰.۲ نوشته شده.
+; تنظیمات عمداً حداقلی‌اند: autoloadها در فاز ۱ و تم/فونت در فاز ۶/۸ اضافه می‌شوند.
+
+config_version=5
+
+[application]
+
+config/name="NEXUS"
+config/description="Balance Realm — بازی آموزش ریاضی با ترازو (پروژه NEXUS)، موبایل‌محور"
+config/version="0.1.0"
+config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://icon.svg"
+
+[autoload]
+
+; ثبت autoloadها از تسک ۱.۱ این‌جا انجام می‌شود (EventBus, GameState, SaveSystem, ...).
+; تا زمانی که فایل اسکریپت وجود ندارد چیزی ثبت نکنید: autoload گم‌شده پروژه را می‌شکند.
+
+[display]
+
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+window/vsync/vsync_mode=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_2d=0
+
+[internationalization]
+
+locale/fallback=PackedStringArray("fa")
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[input]
+
+; اکشن‌های رزرو شده طبق تسک ۰.۲ — درگ عمداً در WeightOrb با _input_event هندل می‌شود
+; (هم لمس هم موس)، پس این‌ها فعلاً binding ندارند و فقط برای اتصال‌های آینده‌اند.
+drag_start={
+"deadzone": 0.5,
+"events": []
+}
+drag_end={
+"deadzone": 0.5,
+"events": []
+}
