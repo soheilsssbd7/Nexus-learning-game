@@ -25,7 +25,8 @@
 | ۰ | راه‌اندازی | ✅ | CI run `34183214543` سبز (۲۴ ثانیه): import + GUT + gdlint + اعتبارسنج محتوا |
 | ۱ | هسته: autoloadها و مدل داده | ✅ | CI `34184179791` سبز: **۵ اسکریپت / ۳۲ تست / ۳۲ PASS** روی Godot 4.7.2 headless؛ دام‌های Godot در ADR-026 ثبت و رفع شد |
 | ۲ | مکانیک ترازو | ✅ | CI `34187312720` (push) و `34187317175` (PR) سبز: **۱۱ اسکریپت / ۸۸ تست / ۸۸ PASS** روی Godot 4.7.2 headless، با گارد جدید «کشف تست» (files_on_disk=11) |
-| ۳..۱۲ | بقیه | ⬜ | — |
+| ۳ | سیستم داده‌ی سطح | ✅ | CI run `34188857587` (push) سبز: **۱۶ اسکریپت / ۱۲۷ تست / ۱۲۷ PASS** روی Godot 4.7.2 headless + `tools/validate_levels.py` (۵ سطح، ۵/۵ قابل‌حل با DP). چهار دور رفع خطا با L2 (سه خطای واقعی کد + یک دام فرمتی) — ببند بخش «فاز ۳» در §۵ |
+| ۴..۱۲ | بقیه | ⬜ | — |
 
 **بدهی بازِ فاز ۱:** «اجرای صحنه روی دستگاه» (بخش DoD ۰.۲/۲.۶ که فقط با L3 بسته می‌شود) —
 هنگام فاز ۱۰ با APK واقعی بسته خواهد شد.
@@ -158,10 +159,35 @@ ADR-033 (گارد کشف تست در CI). دام‌های تازه‌ی Godot 4.
 در فاز ۱۰ با پروفایل دستگاه بررسی می‌شود. **پلی‌تست انسانی** در فاز ۱۰ با APK واقعی انجام می‌شود
 (ADR-013 جای تست خودکار را در CI گذاشته است).
 
-### فاز ۳ — داده‌ی سطح
-۳.۱ `LevelData.gd` (پارسر §1 + اعتبارسنج درونی) · ۳.۲ `LevelLoader` autoload · ۳.۳ پنج فایل `tier1/level_1_0{1..5}.json` · ۳.۴ `WorldMap.tscn` با قفل سطوح.
-پشتیبان کیفیت: `tools/validate_levels.py` (✅ آماده) که **اثبات می‌کند هر سطح قابل‌حل است** و `hint_id`ها وجود دارند.
-DoD: `load_level("tier1_level_01")` صحنه‌ی قابل‌بازی می‌سازد؛ منحنی `difficulty_elo` افزایشی.
+### فاز ۳ — سیستم داده‌ی سطح ✅ (۹ کامیت، ۴ دور رفع خطا با L2)
+| تسک | خروجی | DoD (سند ۰۴) | شواهد | وضعیت |
+|---|---|---|---|---|
+| ۳.۱ `LevelData` | `scripts/data/LevelData.gd` (`from_dict`/`from_json_text`/`validate()`/`to_config_dict()`) | «JSON نمونه پارس می‌شود، تمام فیلدها صحیح می‌خوانند» | `test_level_data.gd` (۹ تست: هر ۱۴ فیلد، سازگاری int/float، قرارداد ADR-028، ۱۵ شکل خراب → ≥۱ خطا، JSON شکسته، ghost بدون target) | ✅ |
+| ۳.۲ `LevelLoader` | `scripts/autoload/LevelLoader.gd` + ثبت autoload | «`load_level("tier1_level_01")` صحنه‌ی قابل‌بازی را باز می‌کند» | `test_level_loader.gd` (۱۲ تست: `path_for`، کشف id از دیسک، کش + `clear_cache`، `level_load_failed` بدون crash، تزریق config به `LevelScene`، `first_unfinished_id`/`next_of`) | ✅ |
+| ۳.۳ پنج سطح Tier 1 | `data/levels/tier1/level_1_01..05.json` + `solution_spec` | «هر ۵ سطح قابل‌حل و قابل‌بازی‌اند» | DP در `validate_levels.py` (۵/۵) **و** `test_playable_p3.gd` (۴ تست: هر پنج سطح با جواب `intended` می‌بَرند، `level_completed` در مدل ثبت می‌شود، چیدمان ناپایدار دقیقاً یک `attempt_failed` و بعد همان سطح برد می‌کند) | ✅ |
+| ۳.۴ `WorldMap` | `scripts/ui/WorldMap.gd` + `scenes/main/WorldMap.tscn`، `run/main_scene`، `LevelResultBar` | «جریان کامل: منو → انتخاب سطح → بازی → برگشت به نقشه با سطح بعدی باز» | `test_world_map.gd` (۱۰ تست: اندازه‌ی لمسی ≥۴۸px، عدم هم‌پوشانی، ترتیب قفل‌ها، سطح قفل‌شده قابل‌کلیک نیست، جریان map→win→next→map) + `test_project_wiring.gd` (۴ تست سازماندهی پروژه) | ✅ |
+
+**تصمیم‌های ثبت‌شده در این فاز:** ADR-034 (زوجیت `level_id` ↔ نام فایل، که `validate_levels.py` دیکته می‌کند)،
+ADR-035 (الگوی `pending_config` + `change_scene_on_start` تا تست هرگز درخت خودش را نکنَد)،
+ADR-036 (`*.json` باید در **Non-Resource Files** پریست Android باشد — وگرنه داده روی دستگاه نیست)،
+ADR-037 (`target_value` = وزنی که بازیکن باید **اضافه** کند). چهار دام تازه به ADR-026 (بندهای ۱۴ تا ۱۷) اضافه شد.
+
+**چهار خطایی که فقط با L2 (اجرای واقعی) گرفته شدند — و هیچ‌کدام با gdlint/gdparse/وِلییدیتور پایتون:**
+۱) کامنت `#` در `project.godot` → autoload ثبت نشد و **چهار فایل تست اصلاً اجرا نشدند** (CI قرمزِ مبهم).
+۲) `%g` در فرمت رشته‌ی Godot → «String formatting error» و پیام واقعیِ تست گم شد.
+۳) کره‌های `right_side.fixed_orbs` هیچ‌وقت روی کفه‌ی راست گذاشته نمی‌شدند (آرک‌تایپ ۲ عملاً ساخته نمی‌شد)
+   و کره‌ی روح هم‌زمان در `left_orbs` و `left_ghost_orbs` بود → وزن دوبله.
+۴) دو تست از تست‌های من خودشان حساب غلط داشتند (نه کد) — اصلاح شدند تا رفتار درست توصیف شود.
+
+**انحراف‌ها/افزوده‌هایی که سند ۰۴ نداشت (صریح):** `LevelResultBar` (حلقه‌ی «بعدی/نقشه» بی آن صحنه‌ی
+نتیجه نداشت)، `game/tests/gut/test_project_wiring.gd` (نگهبان سازماندهی پروژه)، `hint_id`های ثابت در
+داده (فاز ۵ **باید** دقیقاً همین‌ها را در `data/dialogue/aria_templates.json` بسازد: `gentle_nudge_01`،
+`socratic_operation_01`، `socratic_specific_01`، `compare_sides_01`، `inventory_count_01`)، و
+`expected_solve_time_sec` سطح ۰۱ روی ۴۰ نشست تا با نمونه‌ی `03-DATA-SCHEMAS.md` §۱ یکی باشد.
+
+**باز ماند (عمداً):** هنر نقشه و تم → فاز ۸؛ پلکین/انیمیشن قفل‌ها → فاز ۶؛ `MainMenu.tscn` جای `run/main_scene`
+را در فاز ۶ (تسک ۶.۱) می‌گیرد؛ **بسته‌بندی JSON در پریست Android** (ADR-036) تسک فاز ۱۰ است؛ پلی‌تست انسانی
+این جریان روی دستگاه واقعی هم فاز ۱۰.
 
 ### فاز ۴ — موتور دشواری و مدل بازیکن
 ۴.۱ `SkillRating` (فرمول §3، clamp ۴۰۰..۲۰۰۰) · ۴.۲ `ErrorClassifier` (۴ نوع خطا، rule-based؛ با `solution_spec` از A2) · ۴.۳ `HintTimingSystem` (پارس trigger) · ۴.۴ اتصال به `LevelLoader` (نزدیک‌ترین `difficulty_elo`).

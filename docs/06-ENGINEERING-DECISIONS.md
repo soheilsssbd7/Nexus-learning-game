@@ -268,6 +268,21 @@ artifact‌ها هم همچنان آپلود می‌شوند (برای انسا�
 12. `assert_signal_emitted(obj, sig)` بدون `watch_signals(obj)` خودش fail می‌شود («is not being watched»).
 13. `get_signal_parameters()` وقتی سیگنال emit نشده `null` می‌دهد؛ انتسابش به `Array` تایپ‌شده
     `SCRIPT ERROR` می‌سازد و پیام fail اصلی را می‌پوشاند → اول گارد `is Array`.
+**دسته‌ی فاز ۳ (خروجی واقعی ۴ دور CI؛ سه‌تای اول دقیقاً «CI سبزِ توخالی» می‌ساختند):**
+14. `project.godot` یک فایل INI/ConfigFile است و کامنتش **فقط `;`** است. سه خط `#` که بالای
+    `LevelLoader=` گذاشتم باعث شد خودِ سطرِ autoload ثبت نشود → `Parse Error: Identifier
+    "LevelLoader" not declared` در چهار فایل تست، درحالی‌که `--import`، `gdlint` و
+    `validate_levels.py` همه سبز بودند. (بالای `run/main_scene` هم همین بود؛ یعنی ادعای
+    «F5 صحنه را باز می‌کند» در فاز ۲ عملاً بی‌آزمون مانده بود.) نگهبان: `test_project_wiring.gd`.
+15. `String % fmt` در Godot کاراکتر `%g` را **نمی‌شناسد**: `ERROR: String formatting error:
+    unsupported format character` و GUT آن را به‌شکل `<engine-0>Method/function failed.`
+    گزارش می‌کند که پیام اصلی تست را می‌پوشاند. از `%.3f` (یا `str()` و `+`) استفاده کن.
+16. `String.split()` در 4.7 `PackedStringArray` برمی‌گرداند، نه `Array[String]`؛
+    `var lines: Array[String] = text.split("\n")` = «Trying to assign a value of type
+    `PackedStringArray`» و کل اسکریپت بارگذاری نمی‌شود.
+17. `ProjectSettings.get_property_list()` آرایه‌ی `Dictionary` است (نه رشته)؛ برای پیمایش
+    `autoload/*` باید `str(prop.get("name",""))` را بررسی کنی، وگرنه «Unable to iterate on
+    value of type "Array[Dictionary]" with variable of type "String"».
 
 ### ADR-027 — بسته‌ی تصمیمات محصول (جلسه‌ی ۱ — مالک انتخاب کرد)
 1. **GDD:** سند GDD اصلی در ریپو نبود → ایجنت `docs/07-GDD-BALANCE-REALM.md` را از دل `00..04`
@@ -367,3 +382,66 @@ artifact‌ها هم همچنان آپلود می‌شوند (برای انسا�
 نام تستِ خط بالایی) چون سقف GitHub ۵۰ annotation برای هر check-run است و ۳۵ fail خط‌به‌خطا جا می‌ماند.
 **پیامد:** هر اسکریپت تستِ «اجرا نشدن» (parse/compile) حالا قرمز است؛ نه فقط fail. این گارد در فازهای
 ۷ و ۹ (تولید انبوه تست/سطح) ارزشش دوچندان می‌شود.
+
+### ADR-034 — نام فایل، منبع «وجود سطح» است؛ `level_id` داخل JSON باید با آن بخواند
+**زمینه:** `LevelLoader.levels_for_tier()` سطح‌ها را از **فهرست دیسک** کشف می‌کند و id را از مسیر
+می‌سازد (`data/levels/tier1/level_1_01.json` → `tier1_level_01`)، درحالی‌که `path_for()` مسیر را از
+id می‌سازد. دو آینه‌ی هم‌بار. `tools/validate_levels.py` هم شماره‌ی آخر نام فایل را با `level_id`
+مقایسه می‌کند. الگوی نام‌گذاری عمداً نامتقارن است: پوشه `tier<N>`، فایل `level_<N>_<NN>.json`.
+**تصمیم:** قرارداد سه‌تایی **بسته** است و هر سه‌جا یک regex را دارند (`^tier([1-5])_level_([0-9]{2})$`
+در `LevelLoader` و `LevelData`، `^tier[1-5]_level_\d{2}$` در ابزار پایتون): (۱) نام فایل، (۲) `level_id`
+داخل فایل، (۳) `path_for()`. اگر یکی نخواند، ابزار پایتون خطا می‌دهد و تست فاز ۳ هم («همه‌ی idهای
+کشف‌شده باید با `load_level` خوانده شوند و `validate()` خالی بدهند») همان را در CI می‌گیرد.
+**چرا:** «سطح گم‌شده» در موتور باید یک *خطای گزارش‌شده* باشد (`level_load_failed`) نه صفحه‌ی سفید؛
+این فقط وقتی ممکن است که تبدیل id↔مسیر یک تابع باشد، نه دو تابع مستقل که دستی هم‌گام نگه داشته می‌شوند.
+**پیامد:** افزودن سطح = یک فایل JSON با نام درست + شماره‌ی پشت‌سرهم؛ هیچ ثبت‌نام دستی (manifest) لازم
+نیست. در فاز ۷ (≈۵۰ سطح) همین ویژگی شرط لازمِ تولید انبوه است.
+
+### ADR-035 — `pending_config` + `change_scene_on_start=false`؛ تست هرگز صحنه‌ی خودش را نمی‌کَنَد
+**زمینه:** `LevelLoader.start_level()` باید صحنه را عوض کند، ولی در GUT اگر `change_scene_to_file()`
+اجرا شود، درختِ همان تست (و خود نودِ در حال اجرا) آزاد می‌شود و بقیه‌ی تست‌ها بی‌معنی/معلق می‌شوند —
+خطا هم به‌شکل timeout یا «object was freed» می‌آید و ریشه‌یابی‌اش سخت است.
+**تصمیم:** جداسازی «ساختن config» از «رفتن به صحنه»: `start_level()` همیشه config را در
+`pending_config` می‌گذارد و *اگر* `@export var change_scene_on_start` (پیش‌فرض `true`) روشن باشد
+`change_scene_to_file(LEVEL_SCENE_PATH)` را صدا می‌کند. `LevelController._ready` با
+`take_pending_config()` آن را برمی‌دارد و مصرف می‌کند (و `clear_pending_config()` در `before_each`
+تمیزش می‌کند تا به تست بعدی نچمد). برای صحنه‌ی بعد از برد هم همین الگو: `LevelResultBar` سیگنال
+`next_requested`/`map_requested` می‌دهد و تغییر صحنه تنها از `goto_map()`/`start_level()` انجام می‌شود؛
+`WorldMap.allow_scene_change` هم برای همان کار است.
+**چرا:** خواسته‌ی واقعی «صحنه عوض شود» را با خواسته‌ی «تست قابل‌تکرار باشد» نمی‌شود در یک تابع ادغام کرد؛
+پرچمِ export ارزان‌ترین مرز است. در عوض جریان واقعی (F5 → نقشه → سطح → بعدی) در بازی روشن است و در تست
+خاموش؛ و یک تست جدا (`test_project_wiring.gd`) ثابت می‌کند `main_scene` و صحنه‌ها load می‌شوند.
+**پیامد:** هر سیستم تازه‌ای که صحنه عوض می‌کند (فاز ۶: منو، پاز، داشبورد والدین) باید همین شکل را بگیرد:
+سیگنال + پرچم change_scene، نه `get_tree().change_scene_to_file()` مستقیم در منطق بازی.
+
+### ADR-036 — داده‌ی JSON در پریست خروجی Android: `*.json` در Non-Resource Files (اقدام فاز ۱۰)
+**زمینه:** سطوح از `res://data/levels/...` با `FileAccess` خوانده می‌شوند (نه به‌عنوان `.tres`). در
+ویرایشگر و در `--headless` این فایل‌ها روی فایل‌سیستم واقعی‌اند و خوانده می‌شوند؛ در خروجی Android تنها
+چیزی که داخل `PCK` می‌رود منابع import‌شده است، مگر الگوی «Non-Resource File Patterns» آن را بیاورد.
+نتیجه‌ی غفلت: بازی روی دستگاه **بدون هیچ سطحی** بالا می‌آید و `level_load_failed` می‌دهد، درحالی‌که CI
+و دسکتاپ کاملاً سبزند.
+**تصمیم:** در `game/export_presets.cfg` برای پریست Android (و iOS/دسکتاپ در صورت نیاز) خط
+`export/non_resource_files=PackedStringArray("*.json")` الزامی است؛ در `LevelLoader.LEVELS_ROOT` هم
+همین یادآوری نوشته شده. فاز ۱۰ (تسک ۱۰.۳/۱۰.۴) باید روی دستگاه واقعی بررسی کند که
+`DirAccess` همان پنج فایل را می‌بیند و `first_unfinished_id()` تهی نیست.
+**چرا:** این تنها ریسک «فقط روی دستگاه» فاز ۳ است؛ نوشتنش به‌عنوان تصمیم، جلوی یادتان‌رفتن را در
+فاز build می‌گیرد (به‌جای اینکه صرفاً یک کامنت در کد بماند).
+**پیامد:** اگر بعداً بخواهیم داده را encrypt/compress کنیم، همین‌جا عوض می‌شود: یا `FileAccess.open_encrypted_with_pass`
+یا تبدیل به `.tres` (که import می‌شود ولی ویرایش دستی JSON را از بین می‌برد — فعلاً JSON می‌ماند،
+ADR-006).
+
+### ADR-037 — `target_value` یعنی «وزنی که بازیکن باید به کفه‌ی راست **اضافه** کند»
+**زمینه:** `03-DATA-SCHEMAS.md` §۱ آن را «وزن هدف روی کفه‌ی راست» نوشته؛ در سطوحی که
+`right_side.fixed_orbs` دارند (آرک‌تایپ ۲، سطوح ۰۴ و ۰۵) این دو خوانش فرق می‌کند:
+مجموعِ کفه = `left_total`، ولی مقدارِ لازم از سینی = `left_total − right_fixed`.
+**تصمیم:** خوانش دوم معتبر است. `LevelData.validate()` می‌گوید
+`abs((left_weight() − right_weight()) − target_value) ≤ 1e-6` (وقتی `tolerance=0` و بدون ghost)،
+`tools/validate_levels.py` هم `left_total == target + right_fixed` را بررسی و DP را روی
+`need = left_total − right_fixed` حل می‌کند. `required_right_weight()` همان «نیازِ بازیکن» را می‌دهد.
+**چرا:** در موتور، برد از **تعادل دو کفه** می‌آید (`BalanceScale.is_balanced(tolerance)`)، پس
+`target_value` یک عدد نویسندهگی/اعتبارسنجی است، نه ورودی قضاوت؛ معنای «اضافه‌ای که باید بسازی» برای
+سطح‌سازی، DP و راهنماها (فاز ۵) مستقیم‌تر است. وقتی `fixed_orbs` راست خالی باشد (همه‌ی Tier 1 جز ۰۴/۰۵
+و تمام نمونه‌های سند) دو خوانش یکی‌اند — پس این تصمیم با `03` در تضاد عملی نیست، فقط ابهامش را رفع می‌کند.
+**پیامد:** تست `test_alternative_solutions_win_too` باید `pan.total_weight()` را با
+`right_weight() + required_right_weight()` بسنجد، نه با نیاز تنها. اگر روزی خواستیم «هدف، مجموع کفه»
+باشد، فقط همین ADR و دو خط validate/validator عوض می‌شوند.
