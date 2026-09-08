@@ -15,9 +15,9 @@ config/version="0.1.0"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
-# فاز ۲: قابل‌اجرا بودن هسته — با F5 همین صحنه باز می‌شود.
-# در فاز ۶ (تسک ۶.۱) به scenes/main/MainMenu.tscn تغییر می‌کند.
-run/main_scene="res://scenes/gameplay/LevelScene.tscn"
+# فاز ۳: جریان کامل «نقشه → انتخاب سطح → برد → بعدی/نقشه» با F5 اجرا می‌شود.
+# در فاز ۶ (تسک ۶.۱) MainMenu.tscn جای این را می‌گیرد.
+run/main_scene="res://scenes/main/WorldMap.tscn"
 
 [autoload]
 

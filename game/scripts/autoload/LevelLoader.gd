@@ -16,6 +16,8 @@ extends Node
 # ===========================================================================
 
 const TAG := "LevelLoader"
+# ⚠ پوشه‌ی داده در بیلد اندروید: فایل‌های `.json` دارایی import‌شده نیستند، پس preset
+# صادر کردن باید `*.json` را در «Non Resource Files» بگذارد (فاز ۱۰، تسک ۱۰.۲).
 const LEVELS_ROOT := "res://data/levels"
 const LEVEL_SCENE_PATH := "res://scenes/gameplay/LevelScene.tscn"
 const WORLD_MAP_PATH := "res://scenes/main/WorldMap.tscn"
