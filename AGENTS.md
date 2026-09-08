@@ -63,5 +63,5 @@
 - GDScript تایپ‌شده (`x: int`, `-> void`)؛ `class_name` برای مدل‌ها؛ **autoload فقط برای سرویس‌ها**.
 - سیگنال بین سیستم‌ها فقط از طریق `EventBus` (بدون ارجاع مستقیم صحنه‌ها به هم).
 - هیچ `print` بدون پیشوند ماژول؛ لاگ‌های دیباگ پشت `if OS.is_debug_build()` یا `Log.debug`.
-- فایل‌ها snake_case (طبق درخت `01`؛ نام صحنه‌ها PascalCase).
+- نام فایل اسکریپت‌ها **PascalCase** دقیقاً مطابق درخت `docs/01-ARCHITECTURE.md` §۲ (`EventBus.gd`, `WeightOrb.gd`)؛ فایل‌های تست `test_*.gd` snake_case.
 - کامنت‌های توضیحیِ «چرا» به فارسی، مستندسازی API به انگلیسی — همان چیزی که در `docs` هست.
