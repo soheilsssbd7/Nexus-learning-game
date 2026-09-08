@@ -3,7 +3,7 @@ extends GutTest
 # تسک ۲.۴ — NegativeOrb: وزن منفی + بالا کشیدن (DoD: «کم کردن از وزن کفه در تست»)
 # ===========================================================================
 
-const BalanceScaleScene := preload("res://scenes/gameplay/BalanceScale.tscn")
+const BalanceScaleScene: PackedScene = preload("res://scenes/gameplay/BalanceScale.tscn")
 
 var _scale: BalanceScale = null
 

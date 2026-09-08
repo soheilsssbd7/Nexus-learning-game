@@ -3,7 +3,7 @@ extends GutTest
 # تسک ۲.۳ — GhostOrb: وزن واقعی در محاسبه لحاظ شود، عدد هیچ‌جا نمایش داده نشود.
 # ===========================================================================
 
-const BalanceScaleScene := preload("res://scenes/gameplay/BalanceScale.tscn")
+const BalanceScaleScene: PackedScene = preload("res://scenes/gameplay/BalanceScale.tscn")
 
 var _scale: BalanceScale = null
 

@@ -16,10 +16,12 @@ extends Node
 const TAG := "SaveSystem"
 const FILE_NAME := "player_model.save"
 const PROFILES_ROOT := "user://profiles"
+## تک‌پروفایل MVP (تصمیم مالک، docs/06 ADR-027): مسیر پارامتریک است ولی پیش‌فرض «default».
+const DEFAULT_PROFILE := "default"
 ## فاصله‌ی بین «dirty شدن» و نوشتن واقعی — درگ‌ها زیاد write تولید می‌کنند.
 const DEBOUNCE_SEC := 1.0
 
-var profile_name: String = "default"
+var profile_name: String = DEFAULT_PROFILE
 var had_save_on_load: bool = false
 
 ## مدلی که آخرین بار بارگذاری/ساخته شد؛ Write‌های debounced از همین خوانده می‌شود تا

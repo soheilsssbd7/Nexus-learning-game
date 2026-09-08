@@ -6,7 +6,7 @@ extends GutTest
 # اتصال `_input_event` → همان API در test_level_controller پوشش داده شده است.
 # ===========================================================================
 
-const BalanceScaleScene := preload("res://scenes/gameplay/BalanceScale.tscn")
+const BalanceScaleScene: PackedScene = preload("res://scenes/gameplay/BalanceScale.tscn")
 
 var _scale: BalanceScale = null
 

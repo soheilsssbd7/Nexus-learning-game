@@ -13,8 +13,8 @@ extends Node2D
 # ===========================================================================
 
 const TAG := "LevelController"
-const BalanceScaleScene := preload("res://scenes/gameplay/BalanceScale.tscn")
-const WeightOrbScene := preload("res://scenes/gameplay/WeightOrb.tscn")
+const BalanceScaleScene: PackedScene = preload("res://scenes/gameplay/BalanceScale.tscn")
+const WeightOrbScene: PackedScene = preload("res://scenes/gameplay/WeightOrb.tscn")
 
 const TRAY_ORB_RADIUS := 40.0
 const TRAY_SPACING := 104.0

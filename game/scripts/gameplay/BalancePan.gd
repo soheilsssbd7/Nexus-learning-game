@@ -123,4 +123,4 @@ func _draw() -> void:
 	# کاسه
 	draw_arc(dish, pan_radius, 0.06 * TAU, 0.94 * TAU, 40, fill, 12.0)
 	draw_line(dish + Vector2(-pan_radius * 0.92, 0.0), dish + Vector2(pan_radius * 0.92, 0.0),
-		fill.lighten(0.18), 5.0)
+		fill.lightened(0.18), 5.0)

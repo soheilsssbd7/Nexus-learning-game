@@ -8,10 +8,11 @@ extends GutTest
 # ===========================================================================
 
 const PROFILE := "gut_p2_playable"
-const LevelSceneResource := preload("res://scenes/gameplay/LevelScene.tscn")
+const LevelSceneResource: PackedScene = preload("res://scenes/gameplay/LevelScene.tscn")
+## اسکیمای §۵ سند داده‌ها + فیلد داخلی score (تسک ۱.۳). error_count/error_type در
+## MVP از رویداد جداگانه‌ی error_occurred می‌آیند، نه از این payload.
 const REQUIRED_STAT_KEYS: Array[String] = [
-	"time_to_solve_sec", "attempts", "hints_used", "error_count",
-	"error_type", "score", "elo_delta",
+	"time_to_solve_sec", "attempts", "hints_used", "final_elo_delta", "score",
 ]
 
 var _scene: LevelController = null
@@ -125,7 +126,7 @@ func test_unstable_layout_counts_exactly_one_attempt_after_settling() -> void:
 	await get_tree().create_timer(0.3).timeout
 	assert_eq(GameState.level_attempts, 1, "۰.۸ ثانیه (اینجا ۰.۰۵) بی‌حرکتیِ نامتعادل = یک تلاش")
 	assert_signal_emit_count(EventBus, "attempt_failed", 1)
-	assert_eq(GameState.active_model.attempts_total, 1)
+	assert_eq(GameState.level_attempts, 1)
 
 
 func test_fast_consecutive_placements_are_not_each_an_attempt() -> void:

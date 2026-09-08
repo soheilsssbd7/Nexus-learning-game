@@ -219,7 +219,7 @@ func _draw() -> void:
 	var base_y: float = -pivot_offset.y
 	# پایه از سنگ Stone Grey (§۶ سند هنری)
 	draw_rect(Rect2(-64.0, base_y - 22.0, 128.0, 22.0), Palette.STONE_GREY, true)
-	draw_line(Vector2(0.0, base_y), pivot_offset, Palette.STONE_GREY.lighten(0.15), 14.0)
+	draw_line(Vector2(0.0, base_y), pivot_offset, Palette.STONE_GREY.lightened(0.15), 14.0)
 	# بازو از «نور جامد»
 	var angle: float = 0.0
 	if beam != null:

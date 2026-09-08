@@ -4,7 +4,7 @@ extends GutTest
 # اعداد انتظار دقیقاً از فرمول سند مشتق شده‌اند: clamp(diff/20, -1, 1) * 14
 # ===========================================================================
 
-const BalanceScaleScene := preload("res://scenes/gameplay/BalanceScale.tscn")
+const BalanceScaleScene: PackedScene = preload("res://scenes/gameplay/BalanceScale.tscn")
 const MAX_TILT: float = 14.0
 
 var _scale: BalanceScale = null
