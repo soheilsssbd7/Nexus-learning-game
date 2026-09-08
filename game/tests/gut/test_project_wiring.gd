@@ -26,9 +26,10 @@ func test_project_godot_has_no_hash_comments() -> void:
 
 func test_every_registered_autoload_exists_in_the_tree() -> void:
 	var keys: String = ""
-	for prop: String in ProjectSettings.get_property_list():
-		if prop.begins_with("autoload/"):
-			keys += prop.trim_prefix("autoload/") + "\n"
+	for prop: Dictionary in ProjectSettings.get_property_list():
+		var pname: String = str(prop.get("name", ""))
+		if pname.begins_with("autoload/"):
+			keys += pname.trim_prefix("autoload/") + "\n"
 	assert_gt(keys.length(), 0, "حداقل یک autoload ثبت شده باشد")
 	var expected: Array[String] = []
 	for name: String in keys.split("\n"):

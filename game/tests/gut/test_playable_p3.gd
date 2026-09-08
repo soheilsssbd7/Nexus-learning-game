@@ -134,6 +134,6 @@ func test_alternative_solutions_win_too() -> void:
 	for value: float in [2.0, 2.0, 2.0, 2.0, 2.0, 2.0]:
 		_drag(_take_tray_orb(_scene, value), pan.dish_position())
 	await get_tree().process_frame
-	assert_true(is_equal_approx(pan.total_weight(), lv.required_right_weight()),
-		"شش تا ۲ = نیاز کفه")
+	assert_true(is_equal_approx(pan.total_weight(), lv.right_weight() + lv.required_right_weight()),
+		"کفه = ثابتِ راست (۳) + نیاز بازیکن (۱۲)")
 	assert_true(_scene.is_won(), "جوابِ متفاوت از solution_spec هم برد است")

@@ -96,7 +96,7 @@ func test_ghosts_live_only_in_the_ghost_keys() -> void:
 			"ghost_orbs": [{"id": "x1", "type": "ghost", "hidden_value": 5}],
 		},
 		"right_side": {
-			"ghost_orbs": [{"id": "x2", "type": "ghost", "hidden_value": 1}],
+			"ghost_orbs": [{"id": "x2", "type": "ghost", "hidden_value": 3}],
 			"available_orbs": [{"type": "number", "value": 4, "count": 1}],
 		},
 		"hint_sequence": [{"trigger": "idle_45s", "hint_id": "gentle_nudge_01"}],
@@ -113,8 +113,15 @@ func test_ghosts_live_only_in_the_ghost_keys() -> void:
 	scene.config = lv.to_config_dict()
 	add_child_autofree(scene)
 	assert_eq(scene.scales[0].left_weight(), 7.0, "2 + مجهول ۵ (نه ۱۲ دوبله)")
-	assert_eq(scene.scales[0].right_weight(), 1.0, "مجهولِ سمت راست هم شمرده می‌شود")
-	assert_eq(scene.scales[0].calculate_tilt(), 0.0, "۷ در برابر ۱+۴ → متعادل")
+	assert_eq(scene.scales[0].right_weight(), 3.0, "مجهولِ سمت راست هم شمرده می‌شود")
+	assert_eq(scene.tray_orbs.size(), 1, "کره‌ی ۴ هنوز در سینی است")
+	assert_false(scene.is_won(), "قبل از گذاشتن کره، برد نیست")
+	# API قطعیِ فاز ۲ (بدون صف ورودی): ۴ → راست = ۷ = چپ
+	var pick: Array[WeightOrb] = [scene.tray_orbs[0]]
+	assert_eq(scene.place_on_right(pick), 1, "کره‌ی ۴ روی کفه‌ی راست می‌نشیند")
+	await get_tree().process_frame
+	assert_eq(scene.scales[0].right_weight(), 7.0)
+	assert_true(scene.is_won(), "تعادلِ مجهول‌ها = برد")
 
 
 func test_config_dict_is_consumable_by_level_controller() -> void:
