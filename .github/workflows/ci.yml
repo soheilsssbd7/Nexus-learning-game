@@ -60,24 +60,40 @@ jobs:
       - name: Run GUT test suite
         run: |
           set -o pipefail
-          ~/.cache/nexus-godot/godot --headless --path game \
+          GODOT=~/.cache/nexus-godot/godot
+          # گارد کشف تست (ADR-033): «CI سبز» بی‌معنی است اگر همه‌ی فایل‌های تست اجرا نشوند.
+          # تعداد فایل‌های test_*.gd روی دیسک باید با «Scripts» در خلاصه‌ی GUT برابر باشد؛
+          # در صورت نابرابری یک بار با فهرست صریح `-gtest` تلاش می‌شود و بعد خطا می‌گیریم.
+          found=$(find game/tests -name 'test_*.gd' -not -path '*/support/*' | wc -l)
+          $GODOT --headless --path game \
             -s addons/gut/gut_cmdln.gd \
             -gconfig=res://.gutconfig.json \
             -gexit 2>&1 | tee gut.log
           status=${PIPESTATUS[0]}
+          ran=$(grep -E '^Scripts' gut.log | tail -1 | grep -oE '[0-9]+' | head -1 || true)
+          ran=${ran:-0}
+          echo "GUT discovered scripts=$ran, files on disk=$found"
           if [ "$status" -ne 0 ]; then exit "$status"; fi
           # لایه‌ی احتیاط: اگر exit code منتقل نشد، لاگ را بخوان
           if grep -Eq "Failing Tests?:[[:space:]]*[1-9]" gut.log; then
             echo "GUT reported failing tests but exited 0"; exit 1
           fi
           grep -Eq "Errors:[[:space:]]*[1-9]" gut.log && { echo "خطای engine/push_error در اجرا"; exit 1; } || true
+          if [ "$ran" != "$found" ]; then
+            # تشخیص را به‌صورت annotation می‌فرستیم؛ لاگ CI از این سندباکس قابل‌خواندن نیست
+            ls game/tests/gut/ | sed 's|^|::notice::FILE |' | head -25
+            grep -E "test_" gut.log | sed 's|^|::notice::GUTLOG |' | head -25
+            echo "::error::GUT فقط $ran از $found فایل تست را اجرا کرد (کشف تست شکسته است)"
+            exit 1
+          fi
 
       - name: Test summary as notice (خوانا در تب Checks)
         if: always()
         run: |
           if [ -f gut.log ]; then
             msg=$(grep -E "^(Scripts|Tests|Passing Tests|Failing Tests|Errors|Time|Orphans)" gut.log | tr '\n' ' ' | tr -s ' ')
-            echo "::notice::GUT 4.7.2 ${msg:-no summary line found}"
+            files=$(find game/tests -name 'test_*.gd' -not -path '*/support/*' | wc -l)
+            echo "::notice::GUT 4.7.2 ${msg:-no summary line found} | files_on_disk=$files"
           fi
 
       - name: Annotate failures (قابل‌خواندن از API، بدون artifact)
