@@ -1,0 +1,37 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/LevelController.gd" id="1_controller"]
+
+## فاز ۲ (تسک ۲.۶): سطح hardcoded «3 + 5 = ؟». در فاز ۳ LevelLoader config را از JSON
+## `data/levels/tier1/*.json` می‌دهد و همین صحنه بدون تغییر باقی می‌ماند (ADR-028).
+[node name="LevelScene" type="Node2D"]
+script = ExtResource("1_controller")
+scales_root = NodePath("Scales")
+tray_root = NodePath("Tray")
+intro_label = NodePath("Intro")
+
+[node name="Sky" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.168627, 0.184314, 0.466667, 1)
+
+[node name="Intro" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 96.0
+offset_right = 1020.0
+offset_bottom = 264.0
+theme_override_font_sizes/font_size = 30
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3
+bidirectional = true
+
+[node name="Scales" type="Node2D" parent="."]
+position = Vector2(540, 900)
+
+[node name="Tray" type="Node2D" parent="."]
+position = Vector2(540, 1360)

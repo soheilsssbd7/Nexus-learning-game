@@ -15,6 +15,10 @@ config/version="0.1.0"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
+# فاز ۲: قابل‌اجرا بودن هسته — با F5 همین صحنه باز می‌شود.
+# در فاز ۶ (تسک ۶.۱) به scenes/main/MainMenu.tscn تغییر می‌کند.
+run/main_scene="res://scenes/gameplay/LevelScene.tscn"
+
 [autoload]
 
 ; ترتیب ثبت = وابستگی به زمان آماده‌سازی (docs/06 ADR-016). autoload تازه فقط وقتی
