@@ -231,8 +231,8 @@ func _layout_tray() -> void:
 	var per_row: int = maxi(1, TRAY_ROW_LENGTH)
 	for i: int in range(tray_orbs.size()):
 		var orb: WeightOrb = tray_orbs[i]
-		if orb == null or not is_instance_valid(orb) or orb.is_placed:
-			continue
+		if orb == null or not is_instance_valid(orb) or orb.is_placed or orb.is_dragging():
+			continue  # کره‌ی وسط درگ را هرگز «خانه» برنگردان
 		var col: int = i % per_row
 		var row: int = int(float(i) / float(per_row))
 		var pos := Vector2(
@@ -265,13 +265,12 @@ func total_placed() -> int:
 func _on_orb_drag_began(orb: WeightOrb) -> void:
 	if orb == null:
 		return
+	# والد را عوض نمی‌کنیم (جابه‌جایی والد وسط درگ، _exit_tree → افتادگی حالت درگ را
+	# داشت). به‌جایش top_level تا زمان رهاکردن،transform را از والد مستقل می‌کند.
+	orb.top_level = true
 	if orb.is_placed and orb.pan != null:
 		# برداشتن از کفه بلافاصله تعادل را عوض می‌کند (بازخورد آنی، §۳ GDD)
 		orb.pan.remove_orb(orb)
-		_reparent(orb, self)
-	elif orb in tray_orbs:
-		# از سینی برداشته می‌شود: موقتاً فرزند ریشه تا درگ آزاد باشد
-		_reparent(orb, self)
 
 
 func _on_orb_drag_ended(orb: WeightOrb, world_pos: Vector2) -> void:
@@ -279,6 +278,7 @@ func _on_orb_drag_ended(orb: WeightOrb, world_pos: Vector2) -> void:
 		return
 	var target := _pan_at(world_pos)
 	if target != null and target.add_orb(orb):
+		orb.top_level = false
 		_emit_orb_placed(orb, target, true)
 		_layout_tray()
 		return
@@ -300,8 +300,9 @@ func _return_to_tray(orb: WeightOrb) -> void:
 	if orb.pan != null and orb.is_placed:
 		orb.pan.remove_orb(orb)
 	var root_node: Node = tray_root if tray_root != null else self
+	var from_global: Vector2 = orb.global_position
+	orb.top_level = false
 	if orb.get_parent() != root_node:
-		var from_global: Vector2 = orb.global_position
 		_reparent(orb, root_node)
 		orb.global_position = from_global
 	orb.create_tween().tween_property(orb, "position", orb.home_position, 0.18)

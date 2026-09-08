@@ -32,7 +32,8 @@ func test_orb_carries_weight_and_label() -> void:
 	assert_eq(o.radius, 44.0)
 	assert_not_null(o._visual, "نود Visual از صحنه/کد باید پیدا شود")
 	assert_eq(o._visual.glyph, "3")
-	assert_eq(o._visual.fill, Palette.thermal(3.0), "رنگ از توابع thermal (§۶ سند هنری)")
+	assert_eq(o._visual.fill_color.to_html(false), Palette.thermal(3.0).to_html(false),
+		"رنگ از توابع thermal (§۶ سند هنری)")
 
 
 func test_decimal_weight_shows_one_decimal() -> void:
@@ -53,14 +54,14 @@ func test_drag_lifts_the_orb_and_release_drops_it() -> void:
 	o.begin_drag(from)
 	assert_true(o.is_dragging())
 	assert_eq(o.z_index, 100, "کره‌ی در حال درگ باید روی همه باشد")
-	assert_true(o._visual.lifted)
+	assert_gt(o._visual.highlight, 0.9, "هنگام درگ باید هایلایت/بالاآمدن داشته باشد")
 	assert_signal_emitted(o, "drag_began")
 	o.drag_to(from + Vector2(120.0, -60.0))
 	assert_eq(o.global_position, from + Vector2(120.0, -60.0) + o._grab_offset)
 	o.end_drag(o.global_position)
 	assert_false(o.is_dragging())
 	assert_eq(o.z_index, 0)
-	assert_false(o._visual.lifted)
+	assert_eq(o._visual.highlight, 0.0)
 	assert_signal_emitted(o, "drag_ended")
 
 

@@ -142,7 +142,13 @@ func test_balancing_the_scale_wins_the_level() -> void:
 	assert_true(_scene.is_won())
 	assert_eq(_scene.scales[0].calculate_tilt(), 0.0)
 	assert_signal_emit_count(EventBus, "level_completed", 1)
-	var params: Array = get_signal_parameters(EventBus, "level_completed", 0)
+	var params: Array = []
+	var sigs: Variant = get_signal_parameters(EventBus, "level_completed", 0)
+	if sigs is Array and not (sigs as Array).is_empty():
+		params = sigs as Array
+	assert_eq(params.size(), 2, "payload = (level_id, stats)")
+	if params.size() < 2:
+		return
 	assert_eq(params[0], "tier1_level_01")
 	var stats: Dictionary = params[1]
 	for key: String in REQUIRED_STAT_KEYS:
