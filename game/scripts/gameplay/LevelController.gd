@@ -124,15 +124,36 @@ func build() -> void:
 		return
 
 	_build_tray()
-	for scale: BalanceScale in scales:
-		scale.refresh(false)
+	_apply_scale_layout()
 	_built = true
+	# هر وضعیت settle که وسط ساخت روشن شده بی‌اعتبار است (کره‌های ثابتِ سطح)
+	_settle_pending = false
+	_settle_elapsed = 0.0
 	set_process(true)
 	GameState.begin_level(level_id, tier)
 	_layout_tray()
 
 
+## دو ترازو روی هم نمی‌افتند: برای Tier 4 (Twin Observatory) کنار هم با بازوی کوتاه‌تر.
+## عمداً `scale` نود را دست نمی‌زنیم تا هندسه‌ی `contains_point` در مختصات جهانی دقیق بماند.
+func _apply_scale_layout() -> void:
+	var n: int = scales.size()
+	for i: int in range(n):
+		var scale: BalanceScale = scales[i]
+		if not is_instance_valid(scale):
+			continue
+		if n > 1:
+			scale.arm_length = 140.0
+			scale.position = Vector2(-270.0 + 540.0 * float(i), -150.0)
+			if scale.left_pan != null:
+				scale.left_pan.pan_radius = 96.0
+			if scale.right_pan != null:
+				scale.right_pan.pan_radius = 96.0
+		scale.resync_geometry()
+
+
 func teardown() -> void:
+	_built = false
 	_won = false
 	_settle_pending = false
 	_settle_elapsed = 0.0
@@ -341,15 +362,15 @@ func _emit_orb_placed(orb: WeightOrb, pan: BalancePan, placed: bool) -> void:
 # تعادل → برد / تلاش (تسک ۲.۵)
 # --------------------------------------------------------------------------
 func _on_scale_weights(_scale: BalanceScale, _left: float, _right: float, _tilt: float) -> void:
-	if _won:
-		return
+	if _won or not _built:
+		return  # وسط ساختِ صحنه هنوز «سطح» تعریف نشده؛ برد معنی ندارد
 	if _all_balanced() and total_placed() > 0:
 		_win()
 
 
 func _on_scale_placement(orb: WeightOrb, placed: bool) -> void:
-	if _won or not placed or orb == null:
-		return
+	if _won or not placed or orb == null or not _built:
+		return  # چیدمان اولیه‌ی سطح «تلاش بازیکن» نیست
 	if not _all_balanced():
 		_settle_pending = true
 		_settle_elapsed = 0.0

@@ -212,6 +212,17 @@ func reset() -> void:
 	clear_pans()
 
 
+## بعد از تغییر arm_length/pan_radius (چیدمان چندترازویی) موقعیت کفه‌ها را بساز.
+func resync_geometry() -> void:
+	if left_pan != null:
+		left_pan.position = Vector2(-arm_length, 0.0)
+		left_pan.queue_redraw()
+	if right_pan != null:
+		right_pan.position = Vector2(arm_length, 0.0)
+		right_pan.queue_redraw()
+	refresh(false)
+
+
 # --------------------------------------------------------------------------
 # ظاهر placeholder: پایه + بازو (هنر نهایی فاز ۸، بدون تغییر در این منطق)
 # --------------------------------------------------------------------------

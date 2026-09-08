@@ -79,10 +79,16 @@ func test_text_color_rule_for_ui_surfaces() -> void:
 
 
 ## کنتراست WCAG با فرمول luminance (همان وزن‌ها؛ مستقل از داخلی‌جات Godot)
+static func _to_linear(v: float) -> float:
+	# WCAG روی luminance **خطی** تعریف شده و `Color.to_linear()` در Godot 4.7 وجود
+	# ندارد؛ تبدیل sRGB→lineary خودمان (docs/06 ADR-026: دام‌های نسخه).
+	if v <= 0.04045:
+		return v / 12.92
+	return pow((v + 0.055) / 1.055, 2.4)
+
+
 static func _luma(c: Color) -> float:
-	# WCAG روی luminance خطی تعریف شده، نه مقدار sRAW → to_linear() لازم است
-	var lin: Color = c.to_linear()
-	return lin.r * 0.2126 + lin.g * 0.7152 + lin.b * 0.0722
+	return _to_linear(c.r) * 0.2126 + _to_linear(c.g) * 0.7152 + _to_linear(c.b) * 0.0722
 
 
 static func _contrast(a: Color, b: Color) -> float:
