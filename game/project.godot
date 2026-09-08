@@ -22,6 +22,7 @@ config/icon="res://icon.svg"
 EventBus="*res://scripts/autoload/EventBus.gd"
 FeatureFlags="*res://scripts/autoload/FeatureFlags.gd"
 Log="*res://scripts/autoload/Log.gd"
+SaveSystem="*res://scripts/autoload/SaveSystem.gd"
 ; فازهای بعد: AudioManager (P7) → AnalyticsManager → NetworkClient → LevelLoader → DifficultyEngine (P9)
 
 [display]
