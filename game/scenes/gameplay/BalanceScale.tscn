@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/BalanceScale.gd" id="1_scale"]
+
+## ساختار درختی (Pivot/Beam/LeftPan/RightPan) در BalanceScale.build_children() ساخته می‌شود.
+## دلیل (docs/06 ADR-032): همان صحنه هم در ادیتور و هم در تست headless دقیقاً یک رفتار دارد؛
+## صحنه فقط «نقطه‌ی ترکیب» است و anchorهای دستی ندارد.
+[node name="BalanceScale" type="Node2D"]
+script = ExtResource("1_scale")

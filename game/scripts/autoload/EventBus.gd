@@ -18,6 +18,8 @@ signal orb_placed(orb_data: Dictionary)
 signal orb_removed(orb_data: Dictionary)
 ## مجموع وزن دو کفه عوض شد. BalanceScale بعد از هر Tween این را emit می‌کند.
 signal balance_changed(left_weight: float, right_weight: float)
+## نسخه‌ی چند-ترازویی: همان داده + شناسه‌ی ترازو (Tier 4 دو ترازو دارد — ADR-029).
+signal scale_state_changed(scale_id: String, left_weight: float, right_weight: float)
 ## بازیکن یک «تلاش» (placement یا press-to-check) انجام داد که تراز نبود.
 signal attempt_failed(attempt_index: int)
 
