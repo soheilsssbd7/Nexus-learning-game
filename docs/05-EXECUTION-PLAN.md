@@ -23,7 +23,7 @@
 | فاز | موضوع | وضعیت | شواهد |
 |---|---|---|---|
 | ۰ | راه‌اندازی | ✅ | CI run `34183214543` سبز (۲۴ ثانیه): import + GUT + gdlint + اعتبارسنج محتوا |
-| ۱ | هسته: autoloadها و مدل داده | 🟡 | ۸ commit؛ تست‌ها در CI؛ دام‌های واقعی Godot در ADR-026 ثبت و رفع شد |
+| ۱ | هسته: autoloadها و مدل داده | ✅ | CI `34184179791` سبز: **۵ اسکریپت / ۳۲ تست / ۳۲ PASS** روی Godot 4.7.2 headless؛ دام‌های Godot در ADR-026 ثبت و رفع شد |
 | ۲..۱۲ | بقیه | ⬜ | — |
 
 **بدهی بازِ فاز ۱:** «اجرای صحنه روی دستگاه» (بخش DoD ۰.۲/۲.۶ که فقط با L3 بسته می‌شود) —
@@ -124,7 +124,12 @@ L3 دستگاه/انسان (پایان هر فاز)  : APK از artifact CI، پ
 ### فاز ۱ — هسته‌ی معماری (EventBus / PlayerModel / SaveSystem / GameState)
 تسک‌ها: ۱.۱ `EventBus.gd` (۵ سیگنال + ثبت autoload) · ۱.۲ `PlayerModel.gd` (`Resource` + `to_dict/from_dict`) · ۱.۳ `SaveSystem.gd` (`user://player_model.save` + migration بر اساس `schema_version`) · ۱.۴ `GameState.gd`.
 خروجی جانبی من: `FeatureFlags.gd` (حلقه‌ی A5) و `Log.gd` (لاگ سطح‌دار) — ثبت در ADR-016.
-DoD: تست‌های `test_player_model.gd`, `test_save_system.gd` (شامل migration از نسخه‌ی ۰→۱) در CI سبز.
+DoD (✅ در CI): `test_player_model.gd` (round-trip عمیق + re-type شدن int پس از JSON)،
+`test_save_system.gd` (save→load یکسان، عدم‌بقای `.tmp`، save خراب قرنطینه می‌شود، مهاجرت v0→v1،
+`delete_all()`، و گارد «هیچ کلید PII در export والدین نباشد»)، `test_game_state.gd`
+(مقادیر نوشته‌شده در یک صحنه در صحنه‌ی دیگر خوانده می‌شود)، `test_event_bus.gd` (emit → شنونده).
+**افزوده‌های فاز ۱ که سند نداشت:** `Log.gd`، `FeatureFlags.gd`، `SaveSystem.ensure_dir()`،
+`SkillRating.quantize()` (پایداری اعشار در save)، و کانال تشخیص CI (ADR-025).
 
 ### فاز ۲ — مکانیک ترازو (مهم‌ترین فاز؛ عجله ممنوع)
 ۲.۱ `WeightOrb` (Area2D، درگ لمسی+موسی، enum نوع) · ۲.۲ `BalanceScale` (`calculate_tilt()` + Tween + emit) · ۲.۳ `GhostOrb` (وزن مخفی، بدون نمایش) · ۲.۴ `NegativeOrb` (حباب ضد-وزن، drift رو‌به‌بالا) · ۲.۵ Win detection در `LevelController` · ۲.۶ پلی‌تست «۳+۵=؟».
