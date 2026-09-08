@@ -31,6 +31,8 @@
 | 022 | مالکیت محاسبه‌ی Elo (SkillRating در برابر DifficultyEngine) | قطعی |
 | 023 | convention لاگ: `push_error` فقط برای خطای مدیریت‌نشده | قطعی |
 | 024 | رجیستری تدریجی autoloadها در `project.godot` | قطعی |
+| 025 | کانال تشخیص شکست CI: annotation به‌جای artifact/log | قطعی |
+| 026 | دام‌های Godot 4.7 که L1 نمی‌گیرد (UUID، length()، JSON، push_error) | قطعی |
 
 ---
 
@@ -223,3 +225,30 @@ MVP همان JSON ساده‌ی `03` §۲ (بدون PII → ریسک پایین)
 **تصمیم:** هر autoload در همان تسکی که فایلش ساخته می‌شود به `project.godot` اضافه می‌شود،
 با حفظ **ترتیب ADR-016**. لیست کامل نهایی ۱۰ autoload است؛ تا پایان فاز ۱ پنج‌تای اول ثبت شده.
 **پیامد:** هر commit قابل‌اجراست (اصل «main همیشه buildable» در `01` §۴ حفظ می‌شود).
+
+### ADR-025 — قابل‌تشخیص‌بودن CI در محیط‌های بسته
+**زمینه:** در این سندباکس (و هر محیط مشابه با allowlist شبکه) نه `gh run view --log`
+(`results-receiver.actions.githubusercontent.com`) و نه دانلود artifact
+(`*.blob.core.windows.net`) کار می‌کند؛ یعنی شکست CI بدون هیچ پیامی می‌ماند.
+**تصمیم:** هر دو job در `ci.yml` در حالت `if: failure()` اجراکننده‌ی
+`tools/ci_annotate.py <log>` هستند که خطاهای Godot/GUT را به `::error::` annotation تبدیل
+می‌کند. خواندن آن‌ها از API معمولی GitHub ممکن است:
+```bash
+gh api repos/<owner>/<repo>/commits/$(git rev-parse HEAD)/check-runs --jq '.check_runs[]|{id,name,conclusion}'
+gh api repos/<owner>/<repo>/check-runs/<id>/annotations --jq '.[]|"\(.annotation_level) L\(.start_line): \(.message)"'
+```
+artifact‌ها هم همچنان آپلود می‌شوند (برای انسان با دسترسی عادی).
+**پیامد:** حلقه‌ی بازخورد L2 در هر محیطی کار می‌کند؛ هیچ لاگ حساسی منتشر نمی‌شود.
+
+### ADR-026 — دام‌های Godot 4.7 (خروجی واقعی فاز ۱)
+این‌ها را gdparse/gdlint **نمی‌گیرند** (تایپ استاتیک ندارند)؛ هر بار که مورد تازه‌ای پیدا شد
+به همین فهرست اضافه کن تا تکرار نشود:
+1. کلاس جهانی `UUID` وجود ندارد (`Identifier "UUID" not declared`) → شناسه‌ی بازیکن با
+   `RandomNumberGenerator` ساخته می‌شود (و `OS.get_unique_id()` به‌دلیل سیاست Families ممنوع).
+2. روی typed array مثل `Array[Vector2]` متد `length()` نیست؛ فقط `size()`.
+3. `JSON.parse_string()` موقع خطا `ERR_PRINT` می‌کند → GUT آن را «Unexpected Error» و fail
+   می‌داند و در logcat دستگاه هم می‌نشیند. برای داده‌ی غیرمطمئن: `JSON.new()` + `parse()` +
+   `get_error_message()`.
+4. `DirAccess` پوشه را خودکار نمی‌سازد؛ `FileAccess.open` در آن صورت `null` می‌دهد
+   (پس هیچ‌وقت بدون `ensure_dir` نوشتن نکن).
+5. هر `push_error()` در مسیر «مدیریت‌شده» = تست قرمز (ADR-023).
