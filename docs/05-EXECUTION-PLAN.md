@@ -24,7 +24,8 @@
 |---|---|---|---|
 | ۰ | راه‌اندازی | ✅ | CI run `34183214543` سبز (۲۴ ثانیه): import + GUT + gdlint + اعتبارسنج محتوا |
 | ۱ | هسته: autoloadها و مدل داده | ✅ | CI `34184179791` سبز: **۵ اسکریپت / ۳۲ تست / ۳۲ PASS** روی Godot 4.7.2 headless؛ دام‌های Godot در ADR-026 ثبت و رفع شد |
-| ۲..۱۲ | بقیه | ⬜ | — |
+| ۲ | مکانیک ترازو | ✅ | CI `34187312720` (push) و `34187317175` (PR) سبز: **۱۱ اسکریپت / ۸۸ تست / ۸۸ PASS** روی Godot 4.7.2 headless، با گارد جدید «کشف تست» (files_on_disk=11) |
+| ۳..۱۲ | بقیه | ⬜ | — |
 
 **بدهی بازِ فاز ۱:** «اجرای صحنه روی دستگاه» (بخش DoD ۰.۲/۲.۶ که فقط با L3 بسته می‌شود) —
 هنگام فاز ۱۰ با APK واقعی بسته خواهد شد.
@@ -131,10 +132,31 @@ DoD (✅ در CI): `test_player_model.gd` (round-trip عمیق + re-type شدن 
 **افزوده‌های فاز ۱ که سند نداشت:** `Log.gd`، `FeatureFlags.gd`، `SaveSystem.ensure_dir()`،
 `SkillRating.quantize()` (پایداری اعشار در save)، و کانال تشخیص CI (ADR-025).
 
-### فاز ۲ — مکانیک ترازو (مهم‌ترین فاز؛ عجله ممنوع)
-۲.۱ `WeightOrb` (Area2D، درگ لمسی+موسی، enum نوع) · ۲.۲ `BalanceScale` (`calculate_tilt()` + Tween + emit) · ۲.۳ `GhostOrb` (وزن مخفی، بدون نمایش) · ۲.۴ `NegativeOrb` (حباب ضد-وزن، drift رو‌به‌بالا) · ۲.۵ Win detection در `LevelController` · ۲.۶ پلی‌تست «۳+۵=؟».
-افزوده‌های من (ADR-013): `test_playable_p2.gd` که با تزریق `InputEventScreenDrag` **واقعاً** یک سطح را تا برد پیش می‌برد؛ این جای «پلی‌تست دستی» را در CI می‌گیرد (و DoD واقعی‌تری می‌دهد).
-DoD: محاسبه‌ی tilt (۵ سناریو)، برد با tolerance، و «کره بیرون از کفه → برگشت به سینی» تست شود.
+### فاز ۲ — مکانیک ترازو ✅ (مهم‌ترین فاز؛ عجله ممنوع — ۱۳ کامیت، ۴ دور رفع خطا با L2)
+| تسک | خروجی | DoD (سند ۰۴) | شواهد | وضعیت |
+|---|---|---|---|---|
+| ۲.۱ `WeightOrb` | `gameplay/WeightOrb.gd` + `scenes/gameplay/WeightOrb.tscn` + `OrbVisual.gd` (نود فرزند برای انیمیشن) | Area2D قابل‌درگ با لمس و موس | `test_weight_orb.gd` (۱۱ تست: روتینگ `InputEventScreenTouch`/`InputEventMouseButton`، grab offset، قفل درگ، والد کفه) | ✅ |
+| ۲.۲ `BalanceScale` | `BalanceScale.gd` + `BalancePan.gd` (دو Area2D) + `BalanceScale.tscn` | «تست GUT برای `calculate_tilt()` با چند سناریوی وزن» | `test_balance_scale.gd` (۱۲ تست: فرمول `clamp((R−L)/20,−1,1)×14`، clamp لبه‌ها، tolerance، emit‌ها، افقی‌ماندن کفه‌ها بعد از Tween) | ✅ |
+| ۲.۳ `GhostOrb` | `GhostOrb.gd` (وزن = `hidden_value`، متن همیشه «؟») | وزن لحاظ شود، عدد نمایش داده نشود | `test_ghost_orb.gd` (۶ تست، از جمله نشت‌نکردن عدد در UI و `reveal()`) | ✅ |
+| ۲.۴ `NegativeOrb` | `NegativeOrb.gd` (وزن منفی + drift رو‌به‌بالا روی `Visual`) | کم‌کردن از وزن کفه در تست | `test_negative_orb.gd` (۷ تست: ۵−۲=۳، علامت از نوع نه داده، عدم drift روی کفه) | ✅ |
+| ۲.۵ Win detection | `LevelController.gd` (برد، تلاش، `level_completed` با stats کامل) | «LevelScene یک کره را روی کفه بگذارد و `level_completed` منتشر کند» | `test_playable_p2.gd` (۱۶ تست: برد، تلاشِ ۰.۸ ثانیه‌ای، «درگ میانی تلاش نیست»، برد فقط یک‌بار، چندراه‌حل، روح/ضد-وزن/دو ترازو در سطح) | ✅ |
+| ۲.۶ پلی‌تست «۳+۵=؟» | `scenes/gameplay/LevelScene.tscn` + `run/main_scene` + `default_config()` hardcode | صحنه در Godot باز و قابل‌بازی باشد | صحنه در CI `instantiate` و تا برد بازی می‌شود (نه فقط parse)؛ `F5` همان سطح را اجرا می‌کند | ✅ |
+
+**تصمیم‌های ثبت‌شده در این فاز:** ADR-028 (قرارداد `config` + قاعده‌ی برد/tolerance/تلاش)،
+ADR-029 (ترازوی ترکیبی‌پذیر + سیگنال `scale_state_changed`)، ADR-030 (پالت و هنر placeholder در کد)،
+ADR-031 (جای‌گذاری هندسی به‌جای overlap فیزیک)، ADR-032 (صحنه = نقطه‌ی ترکیب، درخت در کد)،
+ADR-033 (گارد کشف تست در CI). دام‌های تازه‌ی Godot 4.7 هم به ADR-026 اضافه شد (۸ مورد).
+
+**انحراف‌ها/افزوده‌هایی که سند ۰۴ نداشت (صریح):** `Palette.gd`، `OrbVisual.gd`، `BalancePan.gd`،
+`test_palette.gd` (قفل قانون «قرمز تهاجمی ممنوع» §۲ سند هنری)، `LevelController.resync/_apply_scale_layout`
+(چیدمان دو ترازو)، helper `GameState`→`EventBus.attempt_failed`، و `tools/ci_annotate.py` که حالا
+شکست‌ها را بسته‌ای (۱۲×۸ خط) به annotation تبدیل می‌کند — بدون آن ۳۵ fail قابل‌تشخیص نبودند.
+
+**باز ماند (عمداً):** هنر/فونت و تم واقعی → فاز ۸ (برچسب‌های فاز ۲ عمداً لاتین‌رقم‌اند؛ هدلس فونت فارسی
+ندارد)؛ طبقه‌بندی خطا و والوز‌کردن امتیاز → `ErrorClassifier`/`DifficultyEngine` فاز ۴ (در `_process`
+نقطه‌ی اتصال با کامنت مشخص شده)؛ HUD/گفت‌وگو → فاز ۵/۶؛ Orphans≈۸۰۰ در خلاصه‌ی GUT (بیشتر Tween)
+در فاز ۱۰ با پروفایل دستگاه بررسی می‌شود. **پلی‌تست انسانی** در فاز ۱۰ با APK واقعی انجام می‌شود
+(ADR-013 جای تست خودکار را در CI گذاشته است).
 
 ### فاز ۳ — داده‌ی سطح
 ۳.۱ `LevelData.gd` (پارسر §1 + اعتبارسنج درونی) · ۳.۲ `LevelLoader` autoload · ۳.۳ پنج فایل `tier1/level_1_0{1..5}.json` · ۳.۴ `WorldMap.tscn` با قفل سطوح.
