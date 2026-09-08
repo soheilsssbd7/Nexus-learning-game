@@ -17,7 +17,7 @@ func test_project_godot_has_no_hash_comments() -> void:
 		return
 	var text: String = f.get_as_text()
 	f.close()
-	var lines: Array[String] = text.split("\n")
+	var lines: PackedStringArray = text.split("\n")
 	for i: int in range(lines.size()):
 		var line: String = lines[i].strip_edges()
 		assert_false(line.begins_with("#"),
