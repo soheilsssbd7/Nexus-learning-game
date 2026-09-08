@@ -11,7 +11,6 @@ extends WeightOrb
 # می‌کند؛ همین استنتاج، هدف آموزشی Tier 3 است.
 # ===========================================================================
 
-const TAG := "GhostOrb"
 const PULSE_MIN_ALPHA := 0.42
 const PULSE_MAX_ALPHA := 0.78
 

@@ -152,7 +152,7 @@ func _input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 		elif _dragging:
 			end_drag()
 	elif event is InputEventScreenDrag or (event is InputEventMouseMotion and _dragging):
-		drag_to(current_world_pointer())
+		drag_to(pointer_world_pos())
 
 
 ## محل فعلی اشاره‌گر در مختصات جهان. `get_global_mouse_position()` برای لمس هم

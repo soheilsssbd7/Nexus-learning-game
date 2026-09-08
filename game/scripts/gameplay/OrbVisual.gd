@@ -76,7 +76,7 @@ func _body_color() -> Color:
 
 
 func _edge_color() -> Color:
-	return fill_color.lighten(0.30).lerp(Palette.CLOUD_WHITE, 0.25 + 0.35 * highlight)
+	return fill_color.lightened(0.30).lerp(Palette.CLOUD_WHITE, 0.25 + 0.35 * highlight)
 
 
 func _glyph_color() -> Color:
