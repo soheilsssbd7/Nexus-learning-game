@@ -39,6 +39,11 @@ func total_weight() -> float:
 	return BalanceScale._sum_weights(orbs)
 
 
+## BalanceScale بعد از هر تغییر وزن صدا می‌زند (رنگ کفه‌ی سنگین‌تر — §۶ سند هنری)
+func refresh_look() -> void:
+	queue_redraw()
+
+
 func is_empty() -> bool:
 	return orbs.is_empty()
 
