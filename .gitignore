@@ -1,0 +1,69 @@
+# ---------------------------------------------------------------------------
+# NEXUS — .gitignore
+# مطابق docs/00-START-HERE.md و docs/04-BUILD-PLAN.md تسک ۰.۱
+# نکته (فرض مستندشده، برای ریویو): فایل‌های *.import عمداً ignore می‌شوند طبق
+# سند؛ موتور Godot آن‌ها را در اولین باز کردن پروژه بازتولید می‌کند.
+# اگر بعداً نیاز شد تنظیمات import خاصی (مثلاً فشرده‌سازی بافت) تثبیت شود،
+# باید همین‌جا استثنا بدهیم و فایل‌ها را commit کنیم.
+# ---------------------------------------------------------------------------
+
+# --- Godot 4 ---------------------------------------------------------------
+.godot/
+imported/
+*.translation
+export_credentials.cfg
+
+# export_presets.cfg را commit می‌کنیم ولی هیچ رمز/کلید امضایی داخلش نباشد؛
+# رمزها در CI با فلگ‌های --keystore / --keystore-pass تزریق می‌شوند (تسک ۱۰.۴).
+*.tmp
+*.tmp.*
+android/build/
+android/gradle/
+android/.gradle/
+android/release/
+
+# --- تست / ابزار ----------------------------------------------------------
+*.results.xml
+gut.log
+.gut_editor_config.json
+
+# --- Node / بک‌اند ---------------------------------------------------------
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+npm-debug.log*
+
+# --- پایتون (اسکریپت‌های tools/) ------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- خروجی build ----------------------------------------------------------
+builds/
+*.apk
+*.aab
+*.exe
+*.pck
+!game/addons/**/*.png
+
+# --- محیط کار موقت ایجنت / فایل‌های محلی ---------------------------------
+.tmp/
+tmp/
+scratch/
+*.bak
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ابزار محلی (اسکریپت setup-godot و باینری Godot) — هرگز commit نشود
+.tools/
