@@ -72,6 +72,14 @@ jobs:
           fi
           grep -Eq "Errors:[[:space:]]*[1-9]" gut.log && { echo "خطای engine/push_error در اجرا"; exit 1; } || true
 
+      - name: Test summary as notice (خوانا در تب Checks)
+        if: always()
+        run: |
+          if [ -f gut.log ]; then
+            msg=$(grep -E "^(Scripts|Tests|Passing Tests|Failing Tests|Errors|Time|Orphans)" gut.log | tr '\n' ' ' | tr -s ' ')
+            echo "::notice::GUT 4.7.2 ${msg:-no summary line found}"
+          fi
+
       - name: Annotate failures (قابل‌خواندن از API، بدون artifact)
         if: failure()
         run: python3 tools/ci_annotate.py gut.log --title "GUT"
