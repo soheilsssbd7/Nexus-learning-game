@@ -32,6 +32,8 @@ func after_all() -> void:
 
 
 func before_each() -> void:
+	# ایزولاسیون: اگر تست دیگری start_level کرده باشد، نباید اینجا config بچکد
+	LevelLoader.clear_pending_config()
 	watch_signals(EventBus)
 	_scene = LevelSceneResource.instantiate() as LevelController
 	_scene.attempt_settle_sec = 0.05

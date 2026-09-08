@@ -28,7 +28,11 @@ FeatureFlags="*res://scripts/autoload/FeatureFlags.gd"
 Log="*res://scripts/autoload/Log.gd"
 GameState="*res://scripts/autoload/GameState.gd"
 SaveSystem="*res://scripts/autoload/SaveSystem.gd"
-; فازهای بعد: AudioManager (P7) → AnalyticsManager → NetworkClient → LevelLoader → DifficultyEngine (P9)
+# LevelLoader در فاز ۳ اضافه شد: باید **بعد** از SaveSystem/GameState باشد چون
+# LevelScene در _ready از آن config می‌گیرد و خود LevelScene شمارنده‌های GameState
+# را شروع می‌کند (docs/06 ADR-016).
+LevelLoader="*res://scripts/autoload/LevelLoader.gd"
+; فازهای بعد: AudioManager (P7) → AnalyticsManager → NetworkClient → DifficultyEngine (P9)
 
 [display]
 

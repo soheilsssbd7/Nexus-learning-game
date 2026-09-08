@@ -31,6 +31,10 @@ signal tray_changed(tray_count: int, placed_count: int)
 ## §۳ سند GDD: «تلاش» وقتی شمرده می‌شود که یک چیدمانِ ناپایدار ~۰.۸ ثانیه بماند
 @export var attempt_settle_sec: float = 0.8
 @export var build_on_ready: bool = true
+## حلقه‌ی تسک ۳.۴ (برد → بعدی/نقشه). فاز ۶ HUD این را جایگزین می‌کند.
+@export var result_bar_enabled: bool = true
+
+var result_bar: LevelResultBar = null
 
 var level_id: String = ""
 var tier: int = 1
@@ -54,7 +58,18 @@ func _ready() -> void:
 	if intro_label == null:
 		intro_label = get_node_or_null("Intro") as Label
 	if config.is_empty():
+		# تسک ۳.۲: LevelLoader.start_level() سطح تازه را این‌جا «صف» می‌کند. مصرفِ یک‌باره
+		# است، پس اگر کسی start_level نکرده (تست‌های فاز ۲، F5 مستقیم) همان config
+		# پیش‌فرض فاز ۲ ساخته می‌شود و صفحه‌ی سفید هیچ‌وقت رخ نمی‌دهد.
+		config = LevelLoader.take_pending_config()
+	if config.is_empty():
 		config = default_config()
+	if result_bar_enabled and result_bar == null:
+		result_bar = LevelResultBar.new()
+		result_bar.name = "ResultBar"
+		result_bar.controller = self
+		result_bar.allow_scene_change = LevelLoader.change_scene_on_start
+		add_child(result_bar)
 	if build_on_ready:
 		build()
 
