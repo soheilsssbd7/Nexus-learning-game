@@ -9,7 +9,10 @@
 
 # --- Godot 4 ---------------------------------------------------------------
 .godot/
+*.import
 imported/
+test-results.xml
+game/test-results.xml
 *.translation
 export_credentials.cfg
 

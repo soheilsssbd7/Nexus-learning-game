@@ -1,0 +1,99 @@
+name: CI
+
+# NEXUS — خط لوله‌ی اصلی (docs/04-BUILD-PLAN.md تسک ۰.۵)
+#   ۱) Godot headless: ایمپورت پروژه (اگر حتی یک .tscn/.gd خراب باشد اینجا می‌شکند) + تست‌های GUT
+#   ۲) gdlint (gdtoolkit قفل‌شده) روی game/scripts و game/tests
+#   ۳) اعتبارسنج داده‌ی محتوا: قابل‌حل‌بودن سطوح، ارجاع hint_id، قانون طلایی
+#
+# ریپو خصوصی است → دقیقه‌ی CI محدود: کش باینری Godot + concurrency (لغو runهای منسوخ).
+# ساخت APK/AAB عمداً اینجا نیست؛ `android-export.yml` (فاز ۱۰) دستی اجرا می‌شود.
+
+on:
+  push:
+    branches: [main, develop, "arena/**"]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  godot-tests:
+    name: Godot import + GUT (headless)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore Godot cache
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/nexus-godot
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+
+      - name: Download Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.cache/nexus-godot
+          curl -sSL --retry 3 --max-time 300 \
+            -o ~/.cache/nexus-godot/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          (cd ~/.cache/nexus-godot && unzip -qo godot.zip)
+          mv -f ~/.cache/nexus-godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/.cache/nexus-godot/godot
+          chmod +x ~/.cache/nexus-godot/godot
+          rm -f ~/.cache/nexus-godot/godot.zip
+          ~/.cache/nexus-godot/godot --version
+
+      - name: Import project
+        run: ~/.cache/nexus-godot/godot --headless --path game --import
+
+      - name: Run GUT test suite
+        run: |
+          set -o pipefail
+          ~/.cache/nexus-godot/godot --headless --path game \
+            -s addons/gut/gut_cmdln.gd \
+            -gconfig=res://.gutconfig.json \
+            -gexit 2>&1 | tee gut.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          # لایه‌ی احتیاط: اگر exit code منتقل نشد، لاگ را بخوان
+          if grep -Eq "Failing Tests?:[[:space:]]*[1-9]" gut.log; then
+            echo "GUT reported failing tests but exited 0"; exit 1
+          fi
+          grep -Eq "Errors:[[:space:]]*[1-9]" gut.log && { echo "خطای engine/push_error در اجرا"; exit 1; } || true
+
+      - name: Upload GUT log + junit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: |
+            gut.log
+            game/test-results.xml
+          if-no-files-found: ignore
+
+  static-checks:
+    name: gdlint + content validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --quiet "gdtoolkit==4.5.0"
+      - name: gdlint (addons/ بررسی نمی‌شود)
+        run: |
+          find game/scripts game/tests -name '*.gd' -print0 | xargs -0 -r gdlint
+      - name: Validate level/dialogue data
+        run: python3 tools/validate_levels.py
