@@ -166,7 +166,8 @@ func _make_clip(state: String) -> Animation:
 func _add_color_track(anim: Animation, state: String, t0: float, t1: float) -> void:
 	var idx: int = anim.add_track(Animation.TYPE_VALUE)
 	anim.track_set_path(idx, "Body/Core:self_modulate")
-	anim.track_set_interp_mode(idx, Animation.INTERPOLATION_LINEAR)
+	# نام درست در Godot 4: `track_set_interpolation_type` (نه `track_set_interp_mode`)
+	anim.track_set_interpolation_type(idx, Animation.INTERPOLATION_LINEAR)
 	var col: Color = _core_color(state)
 	var dim: Color = Color(col.r, col.g, col.b, 0.55)
 	anim.track_insert_key(idx, t0, dim)

@@ -55,7 +55,8 @@ func _ready() -> void:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.max_lines_visible = MAX_LINES
-	label.ellipsis_at = Label.LABEL_ELLIPSIS_AT_END
+	# «…» را Label خودش با `clip_text` + سقف خط می‌زند؛ Godot 4 روی Label هیچ enum
+	# ellipsis ندارد (این روی TextServer/RichTextLabel است) — پس عمداً چیزی ست نمی‌کنیم.
 	label.clip_text = true
 	label.add_theme_font_size_override("font_size", MIN_FONT_SIZE)
 	label.add_theme_color_override("font_color", Palette.CLOUD_WHITE)
