@@ -27,7 +27,8 @@
 | ۲ | مکانیک ترازو | ✅ | CI `34187312720` (push) و `34187317175` (PR) سبز: **۱۱ اسکریپت / ۸۸ تست / ۸۸ PASS** روی Godot 4.7.2 headless، با گارد جدید «کشف تست» (files_on_disk=11) |
 | ۳ | سیستم داده‌ی سطح | ✅ | CI run `34188857587` (push) سبز: **۱۶ اسکریپت / ۱۲۷ تست / ۱۲۷ PASS** روی Godot 4.7.2 headless + `tools/validate_levels.py` (۵ سطح، ۵/۵ قابل‌حل با DP). چهار دور رفع خطا با L2 (سه خطای واقعی کد + یک دام فرمتی) — ببند بخش «فاز ۳» در §۵ |
 | ۴ | موتور دشواری و مدل بازیکن | ✅ | CI سبز: **۲۲ اسکریپت / ۱۸۸ تست / ۱۸۸ PASS** (۳ دور رفع خطا) روی Godot 4.7.2 headless (شامل شبیه‌سازی ۳۰ سطحی و اتصال روی صحنه‌ی واقعی) + `validate_levels.py` (۵/۵) |
-| ۵..۱۲ | بقیه | ⬜ | — |
+| ۵ | همراه Aria (دیالوگ، آواتار، جعبه‌ی گفت‌وگو) | ✅ | CI run `34326354282` سبز: **۲۷ اسکریپت / ۲۲۹ تست / ۲۲۹ PASS** روی Godot 4.7.2 headless + `validate_levels.py` (۵ سطح، ۵/۵ قابل‌حل، ۱۸ قالب دیالوگ). شش دور رفع خطا که همگی فقط با اجرای واقعی گرفته شدند — §«فاز ۵» در همین سند |
+| ۶..۱۲ | بقیه | ⬜ | — |
 
 **بدهی بازِ فاز ۱:** «اجرای صحنه روی دستگاه» (بخش DoD ۰.۲/۲.۶ که فقط با L3 بسته می‌شود) —
 هنگام فاز ۱۰ با APK واقعی بسته خواهد شد.
@@ -232,9 +233,53 @@ ADR-040 («ساده‌تر» یعنی **تمرینِ مجدّدِ ساده‌ت�
 دکمه ندارد (فاز ۶)؛ و `DifficultyEngine` عمداً چیزی ذخیره نمی‌کند — رتبه‌ها در `PlayerModel`
 زندگی می‌کنند، پس بعد از راه‌اندازی دوباره، streak صفر است (تصمیمِ باز: اگر آزاردهنده بود، ADR جدید).
 
-### فاز ۵ — Aria
-۵.۱ `DialogueTemplate` · ۵.۲ ≥ ۱۵ `hint_id` × ≥ ۲ variant (فارسی، بدون افشای جواب — چک خودکار در `tools/`) · ۵.۳ `AriaController` (انتخاب چرخشی، نه تصادفی) · ۵.۴ `Aria.tscn` با ۶ حالت `AnimationPlayer` · ۵.۵ `DialogueBox.tscn` · ۵.۶ stub `LiveAIProvider` پشت `FeatureFlags.LIVE_AI_ENABLED=false`.
-DoD: بدون هیچ درخواست شبکه؛ هر ۶ state از کد؛ تست «تکرار نشدن یک variant پشت‌سرهم».
+### فاز ۵ — Aria ✅ (۹ کامیت، ۶ دور رفع خطا با CI)
+| تسک | خروجی | DoD (سند ۰۴) | شواهد | وضعیت |
+|---|---|---|---|---|
+| ۵.۱ `DialogueTemplate` | `scripts/ai/DialogueTemplate.gd`: پارسرِ بدون-crash + اعتبارسنج §۴ (`from_dict`/`index_from_text`/`load_file`/`match_error`/`count_variants`) | «بارگذاری فایل نمونه، جستجو بر اساس `hint_id`» | `test_dialogue_templates.gd` (۱۲ تست: `{"hints": 3}`، `[]`، فایل ناموجود، واریانت یک‌تایی، بازه‌ی Tier، نوع ناشناخته، سقف ۲۲۰ نویسه، `hint_id` تکراری، چرخش با cursor منفی/بزرگ) | ✅ |
+| ۵.۲ محتوای دیالوگ | `data/dialogue/aria_templates.json`: **۱۸ قالب × ۲ واریانت = ۳۶ متن فارسی**، پوشش کامل `error_type × tier ۱-۲` + هر پنج `hint_id` که فاز ۳ صدا می‌زند | «هیچ رشته‌ای عدد جواب را ندارد (چک خط‌به‌خط)» | چک **خودکار** در `tools/validate_levels.py` (از فاز ۳ همان‌جا بود، پس ابزار جدا لازم نشد): صفر رقم ASCII/فارسی، طول ≤ ۲۲۰، ≥ ۱۵ قالب، و مقایسه‌ی سطح‌به‌سطح با `solution/target_value`; `test_dialogue_templates.gd` هم فایل واقعی را با همان معیارها می‌سنجد | ✅ |
+| ۵.۳ `AriaController` | `scripts/ai/AriaController.gd`: listener روی `hint_requested`/`error_detected`، انتخاب قالب با `match_error`، **چرخشی** با `_cursor[hint_id]`، emit `hint_shown(hint_id, level_id, text)` + `aria_state_changed` | «بازی با خطاهای عمدی: واکنش زمانی و محتوایی درست» (دستی → به فاز ۱۰/۱۱ منتقل) | `test_aria_controller.gd` (۱۰ تست): دو فراخوانی پشت‌سرهمِ یک قالب دو متن **متفاوت** می‌دهند و سوم برمی‌گردد؛ خطای تکراری بعد از `ERROR_HINT_EVERY_FAILS=2` راهنمای بعدی + متنِ خطا، و دفعه‌ی اول فقط حالت `thinking` (بی‌متن ⇒ بی‌سروصدا برای کودک)؛ `help_requested` بدون صفرکردنِ cursor؛ روتینگ شش state روی یک نود `aria_state_changed` | ✅ |
+| ۵.۴ `Aria.tscn` | `scenes/characters/Aria.tscn` + `scripts/characters/{AriaAvatar,AriaCrystal,AriaCore}.gd`: چندوجهی نیمه‌شفافِ `_draw`-محور، بدونه صورت، bobbing، شش clipِ placeholderِ ساخته‌شده در کد | «هر ۶ state از کد قابل‌فراخوانی و قابل‌تفکیک» | `test_aria_avatar.gd` (۷ تست): `play_state()` برای هر شش state، **شش رنگ هسته‌ی متمایز روی نود زنده**، مدت‌های متمایز، `idle` لوپ / `celebrating` یک‌بار، پالس `encouraging` = ۱.۰→۱.۱۵→۱.۰ در ۰.۴s (§۳ عیناً)، حالت ناشناخته بی‌صدا رد، و `build_placeholder_clips=false` (شبیه‌سازی فاز ۸) که منطق را نمی‌شکند | ✅ |
+| ۵.۵ `DialogueBox.tscn` | `scripts/ui/DialogueBox.gd` + صحنه: فونت ۲۴px، RTL، wrap هوشمند، سقف ۳ خط + `clip_text`، حاشیه ۲۴px، فید ۰.۲s، `mouse_filter = IGNORE` | «متن کوتاه و بلند بدون overflow» | `test_dialogue_box.gd` (۶ تست): عرض کادر ≤ عرض صفحه برای ۲۰ و ۱۶۰ نویسه (+ ادعای «بلند واقعاً می‌پیچد»)؛ واکنش به `hint_shown`؛ متن تهی ⇒ کادر خالی نمی‌ماند؛ `.tscn` به همان کلاس اینستانشیت می‌شود؛ و **تست زنجیره‌ی واقعی**: `hint_requested` → قالب فایل → کنترلر → جعبه، با ادعای «متنِ نمایش‌داده‌شده عیناً یکی از واریانت‌های فایل است و رقم ندارد» | ✅ |
+| ۵.۶ `LiveAIProvider` (stub) | `scripts/ai/LiveAIProvider.gd` + `context_for()`؛ `FeatureFlags.LIVE_AI_ENABLED := false` و `live_ai_allowed()` که `with_provider()` را قفل می‌کند | «هیچ فراخوانی واقعی API؛ بازی کاملاً آفلاین» | `test_live_ai_provider.gd` (۵ تست): flag خاموش ⇒ provider هرگز وصل نمی‌شود؛ `get_dynamic_response()` تهی برمی‌گرداند؛ و **نگهبان اجرایی**: هیچ `.gd` در `game/scripts` و `game/scenes` نام یک API شبکه (`HTTPClient`/`HTTPRequest`/`WebSocketPeer`/`URIScheme`/`curl `/`fetch(`/`DuckDuckGo`) را نمی‌برد — کامنت‌ها حذف می‌شوند تا توضیحِ قانون، قانون نشود | ✅ |
+
+**تصمیم‌های ثبت‌شده در این فاز:** ADR-041 (چرخش = cursor داخل کنترلر، نه در `HintTimingSystem`؛
+payload سه‌تایی `hint_shown`)، ADR-042 (متن خطا از قالبِ `hint_id`ِ **دوم** می‌آید و بعد از هر
+۳ تلاشِ ناموفق همان راهنما تکرار می‌شود؛ به همین دلیل `from_dict` نوع خطای ناشناخته را رد می‌کند)،
+ADR-043 (هنر placeholder: هندسه در `_draw`، clipها در `_ready`، صحنه فقط ریشه + اسکریپت؛ `hide_now`
+فوری و `hide_soft` ملایم)، ADR-044 (آفلاین‌بودن به‌شکلِ تستِ اجرایی درآمده، نه ادعا).
+
+**شش خطایی که فقط با اجرای واقعی گرفته شدند (نه gdlint/gdparse/validator):**
+۱) `JSON.parse_string` هر عددی را **float** می‌دهد؛ `mn is int` روی داده‌ی معتبر همیشه false بود،
+   پس کل فایل «بازه Tier نامعتبر» می‌خورد و نمایه تهی می‌شد ⇒ پنج تستِ بی‌ربط هم افتادند.
+۲) GUT هر `ERROR` موتور را «unexpected» می‌شمارد: JSON عمداً خراب (`{ this is not json`) یک
+   `ERROR: Parse JSON failed` چاپ می‌کند و `Timer` با `wait_time <= 0` یک «Time should be greater
+   than zero» ⇒ تست اول با JSONِ درستِ بدشکل بازنویسی شد و دومی با کفِ ۱ ثانیه (حالت «بماند»
+   هرگز `start()` نمی‌کند، پس رفتار عوض نمی‌شود).
+۳) دو API که در ۴.۷ وجود ندارند: `Label.ellipsis_at` (enum روی `TextServer` است) و
+   `Animation.track_set_interp_mode` (درستش `track_set_interpolation_type`) — gdparse فقط پارس
+   می‌کند، پس خطای «not found» فقط در load وقت می‌افتد و `DialogueBox.tscn` کامپایل نمی‌شد.
+۴) `GutTest` یک Node است نه CanvasItem ⇒ `get_viewport_rect()` نداشت؛ از
+   `get_tree().root.get_visible_rect().size` استفاده شد.
+۵) `layout_mode`/`anchors_preset` (ویژه‌ی ویرایشگر) در `.tscn` باعث شد `load()` نودِ Nil بدهد؛
+   صحنه به «ریشه + اسکریپت» کوچک شد و UI در `_ready` ساخته می‌شود (همان الگوی `LevelResultBar`).
+۶) یک تستِ بد از من: رنگ هسته را **بعد از** لوپ با تک‌تک stateها می‌سنجید (یعنی رنگ آخرین حالت)
+   ⇒ پنج شکست الکی. ضمناً نگهبانِ فاز ۴ که assert می‌کرد «`aria_templates.json` هنوز وجود ندارد»
+   با بستن فاز باید معکوس می‌شد؛ حالا وجودش را تأیید می‌کند و همان ادعای اصلی (نردبان راهنما
+   بی‌نیاز از فایل کار می‌کند) سر جایش است.
+
+**انحراف‌ها/افزوده‌هایی که سند ۰۴ نداشت (صریح):** قانون طلایی §۴ در این فاز **سخت‌گیرانه‌تر**
+شد: نه‌فقط «عدد جواب نهایی» بلکه **هر رقمی** در هر متن راهنما ممنوع است (چک خودکار در `tools/`
+و در GUT)؛ شماره‌ی سطوح و Tier هم از متن‌ها بیرون ماند، چون «سطح ۳» عملاً راهنمایی ضمنی است.
+متنِ راهنما دیگر از `HintTimingSystem` نمی‌آید: آن سیستتم فقط `hint_id` می‌دهد (تفکیک مسئولیت،
+ADR-041). `DialogueBox` هم عمداً خودش قالب نمی‌خواند، فقط `hint_shown` را می‌شنود.
+
+**بدهی به فازهای بعد:** هیچ صحنه‌ای هنوز `Aria.tscn` + `DialogueBox.tscn` + `AriaController` را در
+HUD سطح instantiate نمی‌کند (عمداً به فاز ۶ موکول شد تا HUD با تم و چیدمان واقعی بسازد؛ منطق و
+سیگنال‌ها از الان آماده‌اند)؛ clipها placeholder‌اند و فاز ۸ باید همان شش نام را در `Aria.tscn`
+بگذارد (`build_placeholder_clips = false` تنها تغییر لازم است)؛ DoD دستی ۵.۳ («بازی با خطاهای
+عمدی») در فاز ۱۰ با APK واقعی و در فاز ۱۱ با کودک بسته می‌شود؛ رنگ‌های هسته از `Palette`‌اند و
+اگر فاز ۸ تم‌ها را عوض کرد، فقط `CORE_COLORS` ویرایش می‌شود.
 
 ### فاز ۶ — UI/UX
 ۶.۱ `MainMenu` · ۶.۲ `Onboarding` (آواتار + آموزش عملی) · ۶.۳ `PauseMenu`/`SettingsMenu` (resume کامل، اسلایدر صدا، زبان) · ۶.۴ `HUD` (دکمه‌ی راهنما + پیشرفت) · ۶.۵ `ParentDashboard` + parent-gate ریاضی (نمودار تسلط، زمان، `aria_transcript_log`).
