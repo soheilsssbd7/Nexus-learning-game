@@ -13,8 +13,9 @@ extends Node2D
 # ===========================================================================
 
 const TAG := "WorldMap"
-## قانون دست‌رسپذیری §۲ سند هنری: حداقل ۴۸dp؛ روی بوم ۱۰۸۰×۱۹۲۰ این یعنی ~۱۲۸px.
-const NODE_SIZE := Vector2(136.0, 136.0)
+## قانون دست‌رسپذیری §۷ سند هنری: حداقل ۴۸dp؛ بوم ۱۰۸۰px روی ۳۶۰dp ⇒ هر dp = 3px ⇒ ۱۴۴px.
+## (قبلاً ۱۳۶ بود؛ `UIKit.audit_touch_targets` همین را در فاز ۶ گرفت — ADR-049.)
+const NODE_SIZE := Vector2(144.0, 144.0)
 const TOP_Y: float = 300.0
 const BOTTOM_Y: float = 1560.0
 const MEANDER_X: float = 190.0

@@ -10,7 +10,7 @@ extends Control
 
 const TAG := "LevelResultBar"
 const BAR_SIZE := Vector2(760.0, 150.0)
-const BUTTON_SIZE := Vector2(340.0, 112.0)
+const BUTTON_SIZE := Vector2(340.0, 148.0)  # ارتفاع ≥ کفِ لمسی ۱۴۴px (§۷، ADR-049)
 
 signal next_requested(level_id: String)
 signal map_requested
