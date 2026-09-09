@@ -1,0 +1,19 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/characters/AriaAvatar.gd" id="1_avatar"]
+[ext_resource type="Script" path="res://scripts/characters/AriaCrystal.gd" id="2_body"]
+[ext_resource type="Script" path="res://scripts/characters/AriaCore.gd" id="3_core"]
+
+[node name="Aria" type="Node2D"]
+script = ExtResource("1_avatar")
+
+[node name="Body" type="Node2D" parent="."]
+script = ExtResource("2_body")
+z_index = 5
+
+[node name="Core" type="Node2D" parent="Body"]
+script = ExtResource("3_core")
+z_index = 6
+
+[node name="Anim" type="AnimationPlayer" parent="."]
+root_node = NodePath("..")
