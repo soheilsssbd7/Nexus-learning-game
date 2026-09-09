@@ -55,6 +55,9 @@ TRIGGER_RE = re.compile(r"^(idle_\d+s|fail_\d+x|help_requested|first_wrong_attem
 LEVEL_ID_RE = re.compile(r"^tier[1-5]_level_\d{2}$")
 ELO_JUMP_LIMIT = 120
 MAX_HINT_LEN = 220
+MIN_HINT_TEMPLATES = 15
+ERROR_TYPES_ALL = {"wrong_operation", "sign_flip_on_subtraction", "forgets_both_sides",
+                     "computation_error", "idle"}
 MAX_DP_WIDTH = 400_000  # گام‌های ۱/۱۰۰ واحد؛ بزرگ‌تر از این = بررسی دستی
 
 
@@ -178,6 +181,19 @@ def load_hints(errs: list[str]) -> dict[str, dict]:
                 errs.append(f"{hid}: text_variants[{j}] خالی است")
             elif len(t) > MAX_HINT_LEN:
                 errs.append(f"{hid}: text_variants[{j}] بیش از {MAX_HINT_LEN} نویسه (ریسک سرریز DialogueBox — تسک ۵.۵)")
+    # تسک ۵.۲ (DoD): «حداقل ۱۵ hint_id برای پوشش تمام ترکیب‌های error_type × tier ۱-۲»
+    if len(out) < MIN_HINT_TEMPLATES:
+        errs.append(f"aria_templates.json: {len(out)} قالب هست ولی حداقل {MIN_HINT_TEMPLATES} لازم است (§4/تسک ۵.۲)")
+    covered = set()
+    for h in out.values():
+        ets = h.get("applies_to_error_types") or []
+        mn = h.get("min_tier") if isinstance(h.get("min_tier"), int) else 9
+        mx = h.get("max_tier") if isinstance(h.get("max_tier"), int) else 0
+        if mn <= 2 and mx >= 1:  # پوشش tier ۱ یا ۲
+            covered.update(ets)
+    missing = sorted(ERROR_TYPES_ALL - covered)
+    if missing:
+        errs.append(f"aria_templates.json: این نوع خطا برای Tier ۱-۲ هیچ قالبی ندارد: {missing}")
     return out
 
 
