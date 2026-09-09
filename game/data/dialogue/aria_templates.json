@@ -1,0 +1,185 @@
+{
+  "hints": [
+    {
+      "hint_id": "gentle_nudge_01",
+      "applies_to_error_types": ["idle"],
+      "min_tier": 1,
+      "max_tier": 5,
+      "text_variants": [
+        "هر وقت آماده بودی، یک کره را امتحان کن. می‌توانی همیشه دوباره جابه‌جایش کنی.",
+        "فکر می‌کنی یک ایده داری؟ همین حالا امتحانش کن؛ ترازو قضاوتت نمی‌کند.",
+        "هی عجله‌ای نیست. کافیه یک وزنه برداری و بگذاری روی یک کفه."
+      ]
+    },
+    {
+      "hint_id": "socratic_operation_01",
+      "applies_to_error_types": ["wrong_operation"],
+      "min_tier": 1,
+      "max_tier": 3,
+      "text_variants": [
+        "هوم... الان داری به کفه‌ای اضافه می‌کنی که خودش سنگین‌تر است. اگر به‌جای اضافه کردن، یکی از همان طرف برداری چی می‌شه؟",
+        "بیا با هم نگاه کنیم: کدام کفه پایین‌تر رفته؟ برای بالا آوردنش باید چه کار کنیم؟"
+      ]
+    },
+    {
+      "hint_id": "socratic_specific_01",
+      "applies_to_error_types": ["wrong_operation", "computation_error"],
+      "min_tier": 1,
+      "max_tier": 3,
+      "text_variants": [
+        "تقریباً رسیدی! یک کره کم است یا یکی زیاد؟ با یک جابه‌جایی کوچک امتحانش کن.",
+        "فاصله‌ی دو کفه کم شده. حالا لازم نیست یک وزنه‌ی بزرگ بیایی؛ یکی کوچک کافی است."
+      ]
+    },
+    {
+      "hint_id": "compare_sides_01",
+      "applies_to_error_types": ["wrong_operation", "computation_error"],
+      "min_tier": 1,
+      "max_tier": 4,
+      "text_variants": [
+        "قبل از گذاشتن کره، اول دو کفه را با هم مقایسه کن: کدام سنگین‌تر است و چقدر؟",
+        "به جای حساب کردن در سر، ترازو را نگاه کن: میله کج است یا صاف؟"
+      ]
+    },
+    {
+      "hint_id": "inventory_count_01",
+      "applies_to_error_types": ["computation_error"],
+      "min_tier": 1,
+      "max_tier": 4,
+      "text_variants": [
+        "بیا ببینیم در کیفت چه چیزی داری؛ هر کره‌ای که روی کفه نمی‌گذاری، همان‌جا می‌ماند.",
+        "یک بار کره‌های سینی را بشمار. کدام‌ها هستند که هنوز استفاده نشده‌اند؟"
+      ]
+    },
+    {
+      "hint_id": "sign_flip_01",
+      "applies_to_error_types": ["sign_flip_on_subtraction"],
+      "min_tier": 1,
+      "max_tier": 4,
+      "text_variants": [
+        "به نظر می‌رسد علامت یک کره کار را خراب کرده. اگر همان کره را از طرف دیگر حساب کنیم چی می‌شه؟",
+        "بعضی وزنه‌ها «کم می‌کنند» نه اینکه اضافه کنند. کره‌ی حبابی دقیقاً همین کار را می‌کند."
+      ]
+    },
+    {
+      "hint_id": "both_sides_01",
+      "applies_to_error_types": ["forgets_both_sides"],
+      "min_tier": 1,
+      "max_tier": 5,
+      "text_variants": [
+        "یادت باشد تعادل یعنی هر دو طرف. چیزی که از یک کفه برمی‌داری، از کفه‌ی دیگر هم باید کم شود.",
+        "فقط یک طرف را تکان دادی. اگر همان کار را روی طرف دیگر هم بکنی، چه اتفاقی می‌افتد؟"
+      ]
+    },
+    {
+      "hint_id": "one_move_at_a_time_01",
+      "applies_to_error_types": ["computation_error", "idle"],
+      "min_tier": 1,
+      "max_tier": 3,
+      "text_variants": [
+        "یک حرکت، یک نگاه. کره بگذار و ببین میله چطور جابه‌جا می‌شود؛ بعد تصمیم بگیر.",
+        "لازم نیست همه‌چیز را یک‌بار بچینی. یکی بگذار، تعادل را ببین، بعد برو سراغ بعدی."
+      ]
+    },
+    {
+      "hint_id": "smallest_first_01",
+      "applies_to_error_types": ["computation_error", "wrong_operation"],
+      "min_tier": 2,
+      "max_tier": 5,
+      "text_variants": [
+        "وقتی فاصله کم است، با کوچک‌ترین کره شروع کن. کره‌های بزرگ آخر کار نگهشان.",
+        "اول چیزهای ریز را بچین؛ جای کره‌ی بزرگ هنوز باز است."
+      ]
+    },
+    {
+      "hint_id": "bubble_peek_01",
+      "applies_to_error_types": ["computation_error", "idle"],
+      "min_tier": 3,
+      "max_tier": 5,
+      "text_variants": [
+        "آن کره‌های کدر که عدد نشان نمی‌دهند هم وزن دارند. می‌توانی رویشان بگذاری تا ببینی چه شکلی‌اند.",
+        "کره‌ی روح را بردار و روی کفه بگذار؛ همان لحظه عددش را می‌بینی، اما اگر برداری دوباره مخفی می‌شود."
+      ]
+    },
+    {
+      "hint_id": "negative_weight_01",
+      "applies_to_error_types": ["sign_flip_on_subtraction", "wrong_operation"],
+      "min_tier": 3,
+      "max_tier": 5,
+      "text_variants": [
+        "کره‌ی ضدوزن، کفه را سبک می‌کند نه سنگین. اگر آن را با یک وزنه‌ی معمولی قاطی کرده باشی، حساب برعکس می‌شود.",
+        "این یکی توی کیس «کم کردن» است. یک بار تنها روی یک کفه بگذارش و نگاه کن چه می‌شود."
+      ]
+    },
+    {
+      "hint_id": "twin_pans_01",
+      "applies_to_error_types": ["forgets_both_sides", "wrong_operation"],
+      "min_tier": 4,
+      "max_tier": 5,
+      "text_variants": [
+        "دو ترازو یعنی دو شرط. تا وقتی یکی صاف است و دیگری کج، کار تمام نشده.",
+        "اول ترازوی دوم را نگاه کن؛ اگر آن یکی خراب است، درست کردنِ این یکی کافی نیست."
+      ]
+    },
+    {
+      "hint_id": "plan_before_placing_01",
+      "applies_to_error_types": ["computation_error", "idle"],
+      "min_tier": 4,
+      "max_tier": 5,
+      "text_variants": [
+        "قبل از گذاشتن، توی سینی سه‌تا را با هم جمع کن. اگر جوابش به کفه رسید، بعد بچین.",
+        "یک بار در سر بساز، بعد روی کفه بگذار؛ این‌طور کره‌ها وسط کار تمام نمی‌شوند."
+      ]
+    },
+    {
+      "hint_id": "patience_01",
+      "applies_to_error_types": ["idle"],
+      "min_tier": 1,
+      "max_tier": 5,
+      "text_variants": [
+        "فکر کردن هم بخشی از بازی است. هر وقت خواستی، من اینجام.",
+        "عجله لازم نیست. ترازو فرار نمی‌کند؛ یک نفس بگیر و دوباره نگاهش کن."
+      ]
+    },
+    {
+      "hint_id": "try_the_other_one_01",
+      "applies_to_error_types": ["wrong_operation", "computation_error"],
+      "min_tier": 2,
+      "max_tier": 5,
+      "text_variants": [
+        "اگر این کره جواب نداد، همان را بگذار سر جایش و یکی دیگر را امتحان کن. هیچ‌کدام از این‌ها گم نمی‌شوند.",
+        "یک انتخاب دیگر هم روی میز هست. این یکی را بردار و جایش بگذار."
+      ]
+    },
+    {
+      "hint_id": "check_your_own_balance_01",
+      "applies_to_error_types": ["forgets_both_sides", "computation_error"],
+      "min_tier": 2,
+      "max_tier": 5,
+      "text_variants": [
+        "الان دو کفه را با هم ببین، نه یکی را تنها. کدام بالا مانده؟",
+        "میله صاف نشده؛ یعنی هنوز یک طرف سنگین‌تر است. آن طرف را سبک کن یا این طرف را سنگین."
+      ]
+    },
+    {
+      "hint_id": "almost_there_01",
+      "applies_to_error_types": ["idle", "computation_error"],
+      "min_tier": 1,
+      "max_tier": 5,
+      "text_variants": [
+        "خیلی نزدیک شده‌ای؛ این تغییرِ کوچکِ میله یعنی داری درست می‌روی.",
+        "یک قدم دیگر. همان کاری که الان جواب داد را ادامه بده."
+      ]
+    },
+    {
+      "hint_id": "start_from_left_01",
+      "applies_to_error_types": ["wrong_operation", "idle"],
+      "min_tier": 2,
+      "max_tier": 4,
+      "text_variants": [
+        "از کفه‌ای شروع کن که کره‌هایش را خودت نمی‌چینی؛ آن یکی قطعه‌ی پازل است.",
+        "اول ببین طرف ثابتِ ترازو چه می‌گوید، بعد برای طرف دیگر تصمیم بگیر."
+      ]
+    }
+  ]
+}
