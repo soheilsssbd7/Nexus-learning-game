@@ -25,7 +25,9 @@ func test_every_schema_field_is_read() -> void:
 	assert_eq(lv.tier, 1)
 	assert_eq(lv.world, "balance_realm")
 	assert_eq(lv.concept_tags.size(), 2)
-	assert_true(lv.concept_tags.has("addition"))
+	# ADR-039: کلید مهارت باید با `docs/07-GDD-BALANCE-REALM.md` §۴ هم‌نام باشد، پس
+	# «addition» شد «addition_basic» — نمونه‌ی §۱ سند ۰۳ فقط *ساختار* را تعریف می‌کند.
+	assert_true(lv.concept_tags.has("addition_basic"), str(lv.concept_tags))
 	assert_gt(lv.narrative_intro.length(), 10)
 	assert_eq(lv.left_fixed_orbs.size(), 2)
 	assert_eq(lv.left_weight(), 8.0, "3 + 5")
