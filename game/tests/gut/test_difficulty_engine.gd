@@ -160,25 +160,41 @@ func test_apply_level_result_updates_every_tag_of_the_level() -> void:
 	var before: float = _model.skill_elo("addition_basic")
 	var outcome: Dictionary = DifficultyEngine.apply_level_result(cfg, true)
 	_near(float(outcome["score"]), 1.0, "بدون راهنما و با یک تلاش = امتیاز کامل", EPS)
-	# expected_success(1000, 900) = 0.7597 → delta = 32*(1-0.7597) = 7.688
-	_near(float(outcome["elo_delta"]), 7.6881, "", 0.01)
+	# عدد را از خودِ SkillRating می‌گیریم (نه از محاسبه‌ی دستی): موتور باید همان
+	# فرمول را به‌کار ببرد؛ اگر روزی K یا منحنی انتظار عوض شد، این تست «رابطه» را
+	# می‌سنجد نه یک عددِ یخ‌زده در متن تست.
+	var probe := SkillRating.new()
+	probe.elo = SkillRating.ELO_START
+	var expected_delta: float = probe.apply_result(float(cfg["difficulty_elo"]), true, 1.0)
+	assert_gt(expected_delta, 0.0, "سطح آسان‌تر از رتبه = سودِ مثبت اما کوچک")
+	assert_lt(expected_delta, SkillRating.K_FACTOR, "هرگز به سقف K نمی‌رسد (فاصله ۱۰۰ Elo)")
+	_near(float(outcome["elo_delta"]), expected_delta,
+		"deltaِ موتور = deltaِ SkillRating برای همان (difficulty, score)", 0.001)
 	assert_gt(_model.skill_elo("addition_basic"), before)
 	assert_gt(_model.skill_elo("concrete_numbers"), SkillRating.ELO_START,
 		"همه‌ی tags یک سطح به‌روز می‌شوند (§۴.۴)")
 	assert_eq(_model.skills.size(), 2)
 	assert_eq(DifficultyEngine.results_size(), 1, "هر نتیجه یک بار ثبت می‌شود")
-	_near(float(_model.skills["addition_basic"].elo), before + 7.6881, "", 0.02)
+	_near(float(_model.skills["addition_basic"].elo), before + expected_delta, "", 0.001)
 
 
 func test_hints_shrink_the_gain_and_reset_the_streak() -> void:
 	var cfg: Dictionary = LevelLoader.load_config("tier1_level_01")
 	GameState.hints_used_this_level = 3
 	GameState.level_attempts = 1
+	# اول یک بردِ تمیز، تا «سقفِ سودِ همین لحظه» معلوم شود
+	var clean: Dictionary = DifficultyEngine.apply_level_result(cfg, true)
+	GameState.hints_used_this_level = 3
 	var outcome: Dictionary = DifficultyEngine.apply_level_result(cfg, true)
 	_near(float(outcome["score"]), 0.7, "§۳ نکته: سه راهنما = ۰.۷", EPS)
-	# سطح آسانِ حل‌شده با سه راهنما «مهارت» نیست: رتبه بالا نمی‌رود
-	assert_lt(float(outcome["elo_delta"]), 0.0)
+	# §۵ «وزن‌دهی» یعنی سودِ کوچک‌تر، نه تنبیه: سطح آسانِ حل‌شده با سه راهنما
+	# همچنان کمی بالا می‌رود (K=32 و انتظار ~۰.۶۴)، اما زیرِ بردِ تمیز می‌ماند.
+	assert_gt(float(outcome["elo_delta"]), 0.0, "رتبه سقوط نمی‌کند")
+	assert_lt(float(outcome["elo_delta"]), float(clean["elo_delta"]),
+		"سه راهنما سودِ همان سطح را می‌خورد")
 	assert_eq(DifficultyEngine.no_hint_streak(), 0, "راهنما streak را می‌شکند")
+	# سه بردِ پشت‌سرهمِ بی‌راهنما = مجوز «یک پله پرش» (§۵) — بردِ تمیزِ بالا که
+	# قبل از این راهنماها بود بشکننده‌ی streak حساب شد، پس شمارش از صفر است.
 	GameState.hints_used_this_level = 0
 	DifficultyEngine.apply_level_result(cfg, true)
 	DifficultyEngine.apply_level_result(cfg, true)

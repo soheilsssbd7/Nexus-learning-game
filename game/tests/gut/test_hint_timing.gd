@@ -107,18 +107,21 @@ func test_first_wrong_attempt_then_the_fail_ladder() -> void:
 
 
 func test_the_last_ladder_step_repeats_every_two_extra_fails() -> void:
+	# تکرار را با شمارشِ emit می‌سنجیم: `fired_count()` شمارنده‌ی hint_idهای **متفاوت**
+	# است (برای گزارش والدین) و یک متنِ تکراری را دو بار نمی‌شمارد.
 	var sys := _make_sys(_steps([{"trigger": "fail_3x", "hint_id": "socratic_specific_01"}]))
 	for i: int in range(2):
 		GameState.register_attempt_failed()
-	assert_eq(sys.fired_count(), 0, "آستانه‌ی سطح هنوز نیامده")
+	assert_signal_emit_count(EventBus, "hint_requested", 0, "آستانه‌ی سطح هنوز نیامده")
 	GameState.register_attempt_failed()
-	assert_eq(sys.fired_count(), 1, "سه تلاش = پله‌ی اول")
+	assert_signal_emit_count(EventBus, "hint_requested", 1, "سه تلاش = پله‌ی اول")
 	GameState.register_attempt_failed()
-	assert_eq(sys.fired_count(), 1, "یک تلاشِ اضافه کافی نیست")
+	assert_signal_emit_count(EventBus, "hint_requested", 1, "یک تلاشِ اضافه کافی نیست")
 	GameState.register_attempt_failed()
 	GameState.register_attempt_failed()
-	assert_eq(sys.fired_count(), 2, "هر %d تلاشِ اضافه، همان پله تکرار می‌شود"
-		% HintTimingSystem.ESCALATION_FAILS)
+	assert_signal_emit_count(EventBus, "hint_requested", 2,
+		"هر %d تلاشِ اضافه، همان پله تکرار می‌شود" % HintTimingSystem.ESCALATION_FAILS)
+	assert_eq(sys.fired_count(), 1, "همه‌ی این‌ها یک متن بودند: پله‌ی آخرِ خسته‌کننده")
 
 
 func test_request_help_walks_the_ladder() -> void:
@@ -199,9 +202,19 @@ func test_no_hint_file_needed_yet_and_no_network() -> void:
 	# فاز ۴ نباید به `aria_templates.json` (فاز ۵) وابسته شود؛ فقط id رد می‌کند
 	assert_true(FileAccess.file_exists("res://data/levels/tier1/level_1_01.json"))
 	for id: String in LEVEL_IDS:
-		var sys := _make_sys(LevelLoader.load_config(id))
+		var cfg: Dictionary = LevelLoader.load_config(id)
+		var sys := _make_sys(cfg)
 		assert_true(sys.is_armed(), "%s پارس می‌شود" % id)
+		var has_idle: bool = false
+		for s: Dictionary in HintTimingSystem.parse_steps(cfg):
+			if str(s.get("kind", "")) == "idle":
+				has_idle = true
 		sys.tick(60.0)
-		assert_eq(sys.fired_count(), 1, "%s: یک پله‌ی idle، بدون هیچ فایل دیالوگی" % id)
+		# سطح ۰۵ نردبانش را با «تلاشِ اول» باز می‌کند (بی‌حرکتی برایش پله ندارد)، پس
+		# قاعده این است: هر سطح حداکثر یک پله‌ی زمانی دارد و همان یک‌بار شلیک می‌شود.
+		assert_eq(sys.fired_count(), 1 if has_idle else 0,
+			"%s: فقط پله‌ی idle با زمان جلو می‌رود، بدون هیچ فایل دیالوگی" % id)
 		_sys = null
 		sys.queue_free()
+	assert_false(FileAccess.file_exists("res://data/dialogue/aria_templates.json"),
+		"فاز ۵ هنوز فایل دیالوگ نساخته — موتور نباید منتظرش بماند")

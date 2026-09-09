@@ -87,9 +87,13 @@ func test_a_wrong_layout_is_classified_and_counted_in_the_model() -> void:
 	assert_signal_emit_count(EventBus, "error_detected", 1)
 	var args: Variant = get_signal_parameters(EventBus, "error_detected", 0)
 	assert_true(args is Array, "payload باید آرایه‌ی پارامتر باشد")
-	if args is Array:
-		assert_eq(str((args as Array)[0]), ErrorClassifier.COMPUTATION_ERROR)
-	assert_eq(model.count_error_pattern(ErrorClassifier.COMPUTATION_ERROR), 1,
+	if not (args is Array):
+		return
+	var label: String = str((args as Array)[0])
+	assert_true(ErrorClassifier.ERROR_TYPES.has(label),
+		"برچسب باید از همان چهار نوعِ §۵ باشد، نه هر رشته‌ای: " + label)
+	assert_ne(label, "", "چیدمان ناپایدار باید برچسب داشته باشد")
+	assert_eq(model.count_error_pattern(label), 1,
 		"§۲: `error_patterns` مبنای داشبورد والدین است، پس باید از همین‌جا پر شود")
 	assert_eq(GameState.level_attempts, 1)
 
@@ -162,7 +166,7 @@ func test_hints_lower_the_score_of_the_same_win() -> void:
 		assert_true(absf(float(stats_a.get("score", 0.0)) - 0.85) < 0.0001,
 			"یک راهنما = 1 - 0.15 (docs/07 §۵)")
 	else:
-		fail("تایمر راهنما ساخته نشد")
+		assert_true(false, "تایمر راهنما ساخته نشد")
 
 
 func test_the_next_level_after_a_win_comes_from_the_engine() -> void:

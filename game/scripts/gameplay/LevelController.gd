@@ -33,6 +33,12 @@ signal tray_changed(tray_count: int, placed_count: int)
 @export var build_on_ready: bool = true
 ## حلقه‌ی تسک ۳.۴ (برد → بعدی/نقشه). فاز ۶ HUD این را جایگزین می‌کند.
 @export var result_bar_enabled: bool = true
+## نردبان راهنما (تسک ۴.۳): تایمر بی‌حرکتی/شمارش تلاش روی همین سطح. خاموش‌کردنش
+## صحنه را به رفتار فاز ۳ برمی‌گرداند (بدون هیچ راهنمای خودکار).
+@export var hint_timing_enabled: bool = true
+## طبقه‌بندی خطا (تسک ۴.۲). kill-switch: با false هیچ `error_detected` publish نمی‌شود
+## و شمارش تلاش دست‌نخورده می‌ماند — «تلاش» مستقل از برچسب خطاست.
+@export var error_classification_enabled: bool = true
 
 var result_bar: LevelResultBar = null
 var hint_timing: HintTimingSystem = null
