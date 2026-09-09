@@ -44,6 +44,9 @@ ALLOWED_WORLDS = {"balance_realm"}
 # مفهوم‌های مجاز (گسترش‌دادنی با سند GDD؛ هر مقدار تازه باید اینجا ثبت شود تا
 # در PlayerModel.skills هم معنی‌دار باشد — تسک ۴.۴).
 ALLOWED_CONCEPTS = {
+    # کلیدهای مهارتِ docs/07 §۴ (معیار خروج Tier) — همان‌ها که در PlayerModel.skills
+    # می‌نشینند، پس اسمشان در داده و در GDD یکی است (docs/06 ADR-039).
+    "addition_basic", "subtraction_negative",
     "addition", "concrete_numbers", "subtraction", "negative_numbers", "debt",
     "unknown_variable", "ghost_algebra", "two_dimensional", "system_balance",
     "word_problem", "multi_step", "fractions", "balance_both_sides", "equality",

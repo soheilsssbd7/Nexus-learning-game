@@ -58,15 +58,16 @@ func _make_button(label: String, at: Vector2) -> Button:
 func _on_level_won(_stats: Dictionary) -> void:
 	visible = true
 	if _next_button != null:
-		var next_id: String = LevelLoader.next_of(controller.level_id) if controller != null else ""
+		var next_id: String = LevelLoader.pick_next_from(controller.level_id) if controller != null else ""
 		_next_button.visible = not next_id.is_empty()
 
 
-## سطح بعدی در همان ترتیب روایی؛ اگر Tier تمام شده باشد به نقشه برمی‌گردد.
+## سطح بعدی را `LevelLoader` می‌پرسد — از فاز ۴ به بعد `DifficultyEngine`
+## پاسخ می‌دهد (Elo + قوانین §۵)؛ اگر چیزی نمانده باشد به نقشه برمی‌گردد.
 func advance() -> void:
 	if controller == null:
 		return
-	var next_id: String = LevelLoader.next_of(controller.level_id)
+	var next_id: String = LevelLoader.pick_next_from(controller.level_id)
 	if next_id.is_empty():
 		goto_map()
 		return

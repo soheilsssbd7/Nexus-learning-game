@@ -29,7 +29,7 @@ const COMPUTATION_ERROR := "computation_error"
 const IDLE := "idle"
 
 ## انواعِ خطای واقعی (idle عمداً بیرون است: بی‌حرکتی، خطای محاسباتی نیست)
-const ERROR_TYPES: PackedStringArray = [
+const ERROR_TYPES: Array[String] = [
 	WRONG_OPERATION, SIGN_FLIP_ON_SUBTRACTION, FORGETS_BOTH_SIDES, COMPUTATION_ERROR,
 ]
 

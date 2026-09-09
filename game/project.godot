@@ -32,7 +32,11 @@ SaveSystem="*res://scripts/autoload/SaveSystem.gd"
 ; LevelScene در _ready از آن config می‌گیرد و خود LevelScene شمارنده‌های GameState
 ; را شروع می‌کند (docs/06 ADR-016). ⚠ کامنت این فایل فقط با ; مجاز است (ADR-026 بند ۱۴).
 LevelLoader="*res://scripts/autoload/LevelLoader.gd"
-; فازهای بعد: AudioManager (P7) → AnalyticsManager → NetworkClient → DifficultyEngine (P9)
+; DifficultyEngine در فاز ۴: **بعد** از LevelLoader (کاندیدها را با DirAccess از او
+; می‌خواند) و بعد از GameState/SaveSystem (رتبه را در مدل می‌نویسد). seam ورودی‌اش
+; LevelLoader.next_selector است (docs/06 ADR-035/038).
+DifficultyEngine="*res://scripts/autoload/DifficultyEngine.gd"
+; فازهای بعد: AudioManager (P7) → AnalyticsManager (P10) → NetworkClient (P9)
 
 [display]
 

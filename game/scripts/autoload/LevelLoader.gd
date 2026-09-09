@@ -222,6 +222,21 @@ func first_unfinished_id(model: PlayerModel = null) -> String:
 	return ""
 
 
+## Seam فاز ۴ (ADR-035): `DifficultyEngine` در `_ready` این callable را ست می‌کند تا
+## «سطح بعدی» از رتبه‌ی بازیکن بیاید، نه از ترتیب فایل‌ها. تهی = رفتار خطی (فاز ۳).
+var next_selector: Callable = Callable()
+
+
+## «بعدی» برای ResultBar: اگر موتور تطبیق وصل باشد نظر او، وگرنه ترتیب روایی.
+## ⚠ وقتی selector پاسخ تهی می‌دهد واقعاً «بعدی نیست» است (پایان Tier) و نباید به
+## ترتیب خطی برگردیم؛ فقط وقتی selector نامعتبر است به `next_of` می‌افتیم.
+func pick_next_from(level_id: String) -> String:
+	if next_selector.is_valid():
+		var chosen: Variant = next_selector.call(level_id)
+		return chosen if chosen is String else next_of(level_id)
+	return next_of(level_id)
+
+
 ## سطح بعدی در ترتیب روایی (قفل روایت GDD §۵؛ تطبیق Elo واقعی فاز ۴ است).
 func next_of(level_id: String) -> String:
 	var ids: Array[String] = level_ids()

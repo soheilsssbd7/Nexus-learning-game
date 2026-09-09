@@ -35,6 +35,7 @@ signal tray_changed(tray_count: int, placed_count: int)
 @export var result_bar_enabled: bool = true
 
 var result_bar: LevelResultBar = null
+var hint_timing: HintTimingSystem = null
 
 var level_id: String = ""
 var tier: int = 1
@@ -64,6 +65,10 @@ func _ready() -> void:
 		config = LevelLoader.take_pending_config()
 	if config.is_empty():
 		config = default_config()
+	if hint_timing_enabled and hint_timing == null:
+		hint_timing = HintTimingSystem.new()
+		hint_timing.name = "HintTiming"
+		add_child(hint_timing)
 	if result_bar_enabled and result_bar == null:
 		result_bar = LevelResultBar.new()
 		result_bar.name = "ResultBar"
@@ -118,6 +123,44 @@ func is_won() -> bool:
 	return _won
 
 
+## state فعلیِ کفه‌ها، به‌شکل داده‌ی خام (ADR-028) — همان چیزی که ErrorClassifier
+## می‌خواند. عمداً «نمای صافِ dict» است تا لایه‌ی `ai/` به گره‌های صحنه وابسته نشود.
+func pan_snapshot(scale_index: int = 0) -> Dictionary:
+	var out := {"left": [], "right": []}
+	if scale_index < 0 or scale_index >= scales.size():
+		return out
+	var scale: BalanceScale = scales[scale_index]
+	if scale == null:
+		return out
+	for side: String in ["left", "right"]:
+		var pan: BalancePan = scale.left_pan if side == "left" else scale.right_pan
+		var entries: Array = []
+		if pan != null:
+			for orb: WeightOrb in pan.orbs:
+				if orb == null:
+					continue
+				entries.append({"type": _orb_type_name(orb), "value": orb.value,
+					"weight": orb.weight()})
+		out[side] = entries
+	return out
+
+
+## برچسب خطای همین لحظه ("" یعنی چیزی برای طبقه‌بندی نیست).
+func classify_current_error(scale_index: int = 0) -> String:
+	var snap: Dictionary = pan_snapshot(scale_index)
+	return ErrorClassifier.classify(config, snap["left"], snap["right"], scale_index)
+
+
+static func _orb_type_name(orb: WeightOrb) -> String:
+	match orb.orb_type:
+		WeightOrb.OrbType.GHOST:
+			return "ghost"
+		WeightOrb.OrbType.NEGATIVE:
+			return "negative"
+		_:
+			return "number"
+
+
 # --------------------------------------------------------------------------
 # ساخت / تخلیه
 # --------------------------------------------------------------------------
@@ -131,6 +174,9 @@ func build() -> void:
 	tolerance = float(config.get("tolerance", 0.0))
 	if intro_label != null:
 		intro_label.text = str(config.get("narrative_intro", ""))
+	# نردبان راهنمای همین سطح (تسک ۴.۳) از همان config خوانده می‌شود
+	if hint_timing != null:
+		hint_timing.configure(config)
 
 	for scale_cfg: Variant in _arr(config, "scales"):
 		_build_scale(scale_cfg as Dictionary)
@@ -420,16 +466,24 @@ func _process(delta: float) -> void:
 		return
 	# خودِ GameState سیگنال attempt_failed را با شماره‌ی تلاش publish می‌کند (تسک ۱.۱)
 	GameState.register_attempt_failed()
-	# فاز ۴ (تسک ۴.۲): اینجا ErrorClassifier صدا زده می‌شود تا نوع خطا را بدهد.
-	# EventBus.error_detected.emit(classifier.classify(...))
+	# تسک ۴.۲: چه نوع خطایی؟ (کاملاً rule-based — هیچ درخواست شبکه/AI اینجا نیست)
+	if error_classification_enabled:
+		var error_type := classify_current_error()
+		if not error_type.is_empty():
+			EventBus.error_detected.emit(error_type)
+			if GameState.active_model != null:
+				GameState.active_model.bump_error_pattern(error_type)
 
 
 func _win() -> void:
 	_won = true
 	_settle_pending = false
 	var time_sec: float = maxf(0.5, GameState.elapsed_level_sec())
-	# score/elo_delta در فاز ۴ از ErrorClassifier + DifficultyEngine می‌آیند.
-	var stats: Dictionary = GameState.build_level_stats(1.0, 0.0, time_sec)
+	# تسک ۴.۴/۴.۲: رتبه **قبل از** publish به‌روز می‌شود تا payload همان score و
+	# final_elo_delta واقعی را ببرد (ADR-038؛ شنودِ level_completed دو بار اعمال می‌کرد).
+	var outcome: Dictionary = DifficultyEngine.apply_level_result(config, true)
+	var stats: Dictionary = GameState.build_level_stats(
+		float(outcome.get("score", 1.0)), float(outcome.get("elo_delta", 0.0)), time_sec)
 	if GameState.active_model != null:
 		GameState.active_model.mark_level_completed(level_id, time_sec, GameState.hints_used_this_level)
 		GameState.commit_playtime()
