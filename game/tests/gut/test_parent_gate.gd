@@ -59,7 +59,7 @@ func test_persian_and_arabic_digits_are_accepted_and_junk_is_not() -> void:
 	assert_eq(ParentGate.normalize_digits("چهل و دو"), "")
 	var gate := _make(4)
 	var answer: int = int(ParentGate.make_question(4)["answer"])
-	assert_watch_signals(gate)
+	watch_signals(gate)
 	# با همان رقم‌های فارسی بنویس ⇒ قبول (صفحه‌کلید فارسی Android لاتین تولید نمی‌کند)
 	assert_true(gate.submit(Loc.digits(str(answer))), "پاسخ فارسی باید کار کند")
 	assert_signal_emitted(gate, "passed")
@@ -67,7 +67,7 @@ func test_persian_and_arabic_digits_are_accepted_and_junk_is_not() -> void:
 
 func test_three_wrong_answers_lock_the_session() -> void:
 	var gate := _make(9)
-	assert_watch_signals(gate)
+	watch_signals(gate)
 	for i: int in range(ParentGate.MAX_ATTEMPTS):
 		assert_false(gate.submit("1"))
 		assert_eq(gate.attempts, i + 1)

@@ -75,7 +75,7 @@ func test_the_avatar_options_match_the_art_bible_and_the_storage_range() -> void
 
 func test_tapping_a_swatch_updates_the_preview_and_persists_immediately() -> void:
 	var onb := _make()
-	assert_watch_signals(onb)
+	watch_signals(onb)
 	var chip: Button = onb.skin_buttons[3]
 	chip.pressed.emit()
 	assert_eq(onb.preview.skin_tone, 3, "پیش‌نمایش همان لحظه عوض می‌شود")
@@ -151,7 +151,7 @@ func test_a_wrong_move_in_the_tutorial_is_not_counted_as_an_attempt() -> void:
 
 func test_finish_records_the_visit_and_skip_only_works_on_the_avatar_step() -> void:
 	var onb := _make()
-	assert_watch_signals(onb)
+	watch_signals(onb)
 	assert_false(onb.is_done_recorded())
 	onb.show_step(Onboarding.STEP_SCALE)
 	onb.skip_to_end()

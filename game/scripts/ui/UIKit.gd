@@ -255,7 +255,7 @@ static func audit_touch_targets(root: Node, out: Array[String] = []) -> Array[St
 				effective = ctrl.custom_minimum_size
 			if not touch_floor(effective):
 				out.append("%s: %s × %s < %s (کفِ لمسی §۷)" % [
-					root.get_path().to_string(), str(effective.x), str(effective.y),
+					str(root.get_path()), str(effective.x), str(effective.y),
 					str(MIN_TOUCH_PX)])
 		audit_touch_targets(child, out)
 	return out

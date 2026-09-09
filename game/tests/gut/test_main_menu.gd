@@ -68,7 +68,7 @@ func test_first_run_sends_the_child_to_onboarding() -> void:
 	menu.refresh()
 	assert_eq(menu.primary_action(), "onboarding")
 	assert_eq(menu.primary_button.text, Loc.t("onboarding.start"))
-	assert_watch_signals(menu)
+	watch_signals(menu)
 	menu.play()
 	assert_signal_emitted_with_parameters(menu, "play_requested", ["onboarding"],
 		"اولین اجرا نباید مستقیم وسط یک سطح پرتاب شود")
@@ -120,7 +120,7 @@ func test_continue_reopens_the_unfinished_level() -> void:
 
 func test_the_other_buttons_route_without_touching_the_tree() -> void:
 	var menu := _make()
-	assert_watch_signals(menu)
+	watch_signals(menu)
 	menu.goto_map()
 	menu.goto_settings()
 	menu.goto_parent_dashboard()
@@ -135,7 +135,7 @@ func test_the_other_buttons_route_without_touching_the_tree() -> void:
 
 func test_pressing_a_button_uses_the_same_actions() -> void:
 	var menu := _make()
-	assert_watch_signals(menu)
+	watch_signals(menu)
 	var quit_button: Button = menu.get_node("Buttons/menu_quit") as Button
 	assert_not_null(quit_button, "نام گره از کلید Loc ساخته می‌شود تا تست بتواند پیدایش کند")
 	if quit_button == null:
@@ -172,7 +172,7 @@ func test_the_map_can_go_back_to_the_menu() -> void:
 	assert_not_null(back, "§۶.۱: بازگشتِ دوطرفه — نقشه نباید بن‌بست باشد")
 	if back == null:
 		return
-	assert_watch_signals(map)
+	watch_signals(map)
 	back.pressed.emit()
 	assert_signal_emitted(map, "menu_requested")
 	assert_true(UIKit.audit_touch_targets(map).is_empty(),

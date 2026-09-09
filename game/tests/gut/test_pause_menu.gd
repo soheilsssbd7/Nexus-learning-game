@@ -58,7 +58,7 @@ func test_the_scene_instantiates_and_starts_closed() -> void:
 func test_open_freezes_the_tree_and_resume_unfreezes_it() -> void:
 	var controller := _level()
 	var menu := _pause(controller)
-	assert_watch_signals(menu)
+	watch_signals(menu)
 	menu.open(controller)
 	assert_true(get_tree().paused, "pause واقعی، نه فقط منوی روی صحنه")
 	assert_true(GameState.is_paused)
@@ -153,7 +153,7 @@ func test_paused_time_is_not_billed_to_the_parent_dashboard() -> void:
 
 func test_settings_open_over_the_pause_and_keep_time_frozen() -> void:
 	var menu := _pause(null)
-	assert_watch_signals(menu)
+	watch_signals(menu)
 	menu.open(null)
 	menu.open_settings()
 	assert_signal_emitted(menu, "settings_requested")
@@ -168,7 +168,7 @@ func test_settings_open_over_the_pause_and_keep_time_frozen() -> void:
 
 func test_navigation_buttons_signal_and_do_not_break_the_tree() -> void:
 	var menu := _pause(null)
-	assert_watch_signals(menu)
+	watch_signals(menu)
 	menu.goto_map()
 	menu.quit_to_menu()
 	assert_signal_emitted(menu, "map_requested")

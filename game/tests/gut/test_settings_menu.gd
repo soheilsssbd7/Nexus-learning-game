@@ -64,7 +64,7 @@ func test_the_widgets_show_what_is_stored() -> void:
 
 func test_moving_a_slider_changes_the_bus_and_the_file() -> void:
 	var menu := _make()
-	assert_watch_signals(menu)
+	watch_signals(menu)
 	menu.music_slider.value = 0.0
 	assert_almost_eq(float(SettingsStore.get_value("music_volume")), 0.0, 0.001)
 	var music_bus: int = SettingsStore.bus_index(SettingsStore.BUS_MUSIC)
@@ -144,7 +144,7 @@ func test_the_parent_kill_switch_is_not_in_the_child_menu() -> void:
 func test_close_in_embedded_mode_only_hides() -> void:
 	var menu := _make()
 	menu.embedded = true
-	assert_watch_signals(menu)
+	watch_signals(menu)
 	menu.close()
 	assert_signal_emitted(menu, "closed")
 	assert_true(is_instance_valid(menu), "overlay سوارشده را free نمی‌کنیم (PauseMenu به آن ارجاع دارد)")

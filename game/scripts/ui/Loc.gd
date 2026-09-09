@@ -125,7 +125,7 @@ static func text_direction() -> int:
 
 
 static func alignment() -> int:
-	return Control.TEXT_ALIGNMENT_RIGHT if is_rtl() else Control.TEXT_ALIGNMENT_LEFT
+	return HORIZONTAL_ALIGNMENT_RIGHT if is_rtl() else HORIZONTAL_ALIGNMENT_LEFT
 
 
 ## رقم‌های ASCII درون یک متن را به رقم فارسی می‌برود (در هر زبان RTL).

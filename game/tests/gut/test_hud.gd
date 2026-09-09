@@ -126,6 +126,11 @@ func test_a_level_without_hints_does_no_harm() -> void:
 	var hud: HUD = scene.hud
 	if hud == null:
 		return
+	# نردبان را برمی‌داریم تا مسیر **fallback** سنجیده شود؛ اگر نردبان بماند،
+	# `request_help()` از داده‌ی اصلیِ ساخته‌شده در `build()` شلیک می‌کند و تست
+	# دارد رفتارِ درستِ نردبان را به‌عنوان «نباید» حساب می‌کند.
+	scene.hint_timing = null
+	hud.controller.hint_timing = null
 	scene.config = {"level_id": "tier1_level_09", "tier": 1, "scales": []}
 	hud.refresh_progress()
 	GameState.hints_used_this_level = 0
