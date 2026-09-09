@@ -97,12 +97,16 @@ func test_unknown_key_is_refused_loudly() -> void:
 
 func test_toggle_writes_through_to_the_difficulty_engine() -> void:
 	SettingsStore.load_from(_path)
-	# نقطهٔ شروعِ قطعی: ادعای تست این است که «toggle به‌تنهایی موتور را عوض نمی‌کند»،
-	# پس موتور باید آگاهانه روشن باشد؛ وگرنه نتیجه به ترتیب اجرای فایل‌ها وابسته است.
+	# نقطهٔ شروعِ قطعی (بی‌وابستگی به ترتیب اجرای فایل‌ها) و ادعای **درست**: `toggle` فقط
+	# ذخیره را عوض می‌کند و موتور تا `apply_gameplay_flags()` دست‌نخورده می‌ماند.
+	# نوشتهٔ قبلی (`assert_false(موتور)`) دقیقاً همین رفتارِ درست را رد می‌کرد ✗ و فقط
+	# وقتی سبز بود که تستِ قبلی موتور را خاموش کرده باشد — یعنی تست، تصادف را سنجید.
 	DifficultyEngine.adaptive_selection = true
 	assert_true(bool(SettingsStore.get_value("adaptive_selection")))
+	var engine_before: bool = bool(DifficultyEngine.adaptive_selection)
 	assert_true(SettingsStore.toggle("adaptive_selection"))
-	assert_false(bool(DifficultyEngine.adaptive_selection), "پیش از apply، موتور دست‌نخورده است")
+	assert_eq(bool(DifficultyEngine.adaptive_selection), engine_before,
+		"تنها toggle موتور را عوض نمی‌کند؛ اثرش با apply دیده می‌شود")
 	SettingsStore.apply_gameplay_flags()
 	assert_false(bool(DifficultyEngine.adaptive_selection),
 		"والد «پیشرفت خودکار» را خاموش کرد ⇒ موتور واقعاً خاموش می‌شود")

@@ -13,7 +13,8 @@ GitHub (artifact/log در محیط‌های sandboxed ممکن نیست) از ط
       run: python3 tools/ci_annotate.py gut.log --title "GUT"
 
 قوانین استخراج: خطاهای Godot/GUT، خط‌های `at line`، خلاصه‌ی نتایج، و هر
-خطِ «✖/✗/FAIL/error» — حداکثر ۱۲ مورد، بریده‌شده به ۹۰۰ نویسه.
+خطِ «✖/✗/FAIL/error» — حداکثر MAX_ANNOTATIONS بسته، هر بسته MAX_LEN نویسه (و جزئیات
+خطا از خط‌های بعد از `[Failed]` هم برداشته می‌شود).
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ import argparse
 import re
 import sys
 
-MAX_ANNOTATIONS = 12
+MAX_ANNOTATIONS = 16  # GitHub تا ۵۰ annotation برای هر check-run نگه می‌دارد
 MAX_LEN = 2400
 LINES_PER_ANNOTATION = 8
 ## وقتی هیچ خطای شناختی نیست: چند خط آخر لاگ را بفرست (قدیم MAX_ANNOTATIONS بود → NameError)
@@ -55,6 +56,25 @@ def _context_for(lines: list[str], idx: int) -> list[str]:
     return out
 
 
+def _trailing(lines: list[str], idx: int, limit: int = 5) -> list[str]:
+    """جزئیاتی که GUT **بعد از** خطِ `[Failed]` می‌نویسد.
+
+    بی‌این، انوتیشن فقط `- test_the_widgets_show_what_is_stored / Unexpected Errors:`
+    را می‌داد و هیچ‌کس نمی‌فهمید کدام ERROR مقصر است؛ یعنی یک دور CI کامل برای
+    «خواندنِ خطا» سوخت ✓ (خطای واقعیِ همین فاز، همین بود: سه دور برای دو سطر.)
+    """
+    out: list[str] = []
+    j = idx + 1
+    while j < len(lines) and len(out) < limit:
+        nxt = lines[j].strip()
+        if not nxt or nxt.startswith("[Passed]") or nxt.startswith("----") \
+                or re.match(r"^\*\s+test_", nxt):
+            break
+        out.append(nxt)
+        j += 1
+    return out
+
+
 def annotate(text: str, title: str, path: str) -> int:
     lines = text.splitlines()
     picked: list[tuple[int, str]] = []
@@ -67,6 +87,15 @@ def annotate(text: str, title: str, path: str) -> int:
                 if ctx not in [c for _, c in picked]:
                     picked.append((i + 1, ctx))
             picked.append((i + 1, s))
+            if s.endswith(":") and "error" in s.lower():
+                for nxt in _trailing(lines, i):
+                    picked.append((i + 1, nxt))
+            elif s.startswith("SCRIPT ERROR") or s.startswith("ERROR:"):
+                # Godot محل خطا را در خطِ **بعد** می‌نویسد: `at: f (res://x.gd:12)` ✗ بدون
+                # آن «یک چیز crash کرد» هیچ آدرسی ندارد.
+                for nxt in _trailing(lines, i, limit=1):
+                    if nxt.startswith("at:"):
+                        picked.append((i + 1, nxt))
     # خط‌های «at line N» را با fail قبلی ادغام کن تا آدرس فایل/خط مشخص بماند
     merged: list[tuple[int, str]] = []
     for lineno, s in picked:
