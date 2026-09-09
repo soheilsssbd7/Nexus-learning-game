@@ -43,10 +43,12 @@ const LOOPING: Array[String] = [STATE_IDLE, STATE_THINKING, STATE_CONCERNED]
 
 var current_state: String = ""
 var _player: AnimationPlayer = null
+var _core: CanvasItem = null
 
 
 func _ready() -> void:
 	_player = get_node_or_null("Anim") as AnimationPlayer
+	_core = get_node_or_null("Body/Core") as CanvasItem
 	if _player == null:
 		Log.warn(TAG, "AnimationPlayer ندارد؛ حالت‌ها فقط ثبت می‌شوند")
 	if build_placeholder_clips and _player != null:
@@ -78,6 +80,11 @@ func play_state(state: String) -> bool:
 	if not STATES.has(state) or not has_state(state):
 		return false
 	current_state = state
+	# رنگ هسته را صراحتاً هم ست می‌کنیم: clipها placeholder‌اند (ADR-043) و فاز ۸ آن‌ها را
+	# بازنویسی می‌کند؛ §۳ می‌گوید «تنها هسته رنگ عوض می‌کند»، پس این خط تضمین می‌دهد
+	# تفکیک‌پذیریِ بصری هیچ‌وقت به salute بودن clipها وابسته نباشد.
+	if _core != null:
+		_core.self_modulate = _core_color(state)
 	# 0.18 = blend کوتاه؛ §۳ «تغییر حالت نباید پرش داشته باشد»
 	_player.play(state, 0.18)
 	return true
@@ -86,6 +93,16 @@ func play_state(state: String) -> bool:
 func _on_state_requested(state: String) -> void:
 	if not play_state(state):
 		Log.debug(TAG, "حالت ناشناخته‌ی `%s` نادیده گرفته شد" % state)
+
+
+## رنگ هسته‌ی یک حالت (§۳) — تنها نقطه‌ی تعریف، پس آواتار و تست یک عدد می‌بینند.
+static func core_color_for(state: String) -> Color:
+	var c: Variant = CORE_COLORS.get(state, Palette.AELORIA_GOLD)
+	return c as Color if c is Color else Palette.AELORIA_GOLD
+
+
+func core_modulate() -> Color:
+	return _core.self_modulate if _core != null else Color.WHITE
 
 
 func _core_color(state: String) -> Color:

@@ -218,5 +218,6 @@ func test_no_hint_file_needed_yet_and_no_network() -> void:
 			"%s: فقط پله‌ی idle با زمان جلو می‌رود، بدون هیچ فایل دیالوگی" % id)
 		_sys = null
 		sys.queue_free()
-	assert_false(FileAccess.file_exists("res://data/dialogue/aria_templates.json"),
-		"فاز ۵ هنوز فایل دیالوگ نساخته — موتور نباید منتظرش بماند")
+	# فاز ۵ فایل را ساخت؛ نگهبانِ معکوس: نردبان راهنما باز هم **بی‌نیاز** از آن کار می‌کند
+	assert_true(FileAccess.file_exists("res://data/dialogue/aria_templates.json"),
+		"فاز ۵ قالب‌ها را رسانده است")

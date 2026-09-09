@@ -26,13 +26,22 @@ func test_no_game_script_mentions_a_network_api() -> void:
 	for path: String in _gd_files(SCRIPTS_ROOT):
 		if path.ends_with("live_ai_provider.gd"):
 			continue  # خودِ placeholder تنها جایی است که این واژه‌ها مجازند
-		var text: String = _read(path)
+		var text: String = _strip_comments(_read(path))
 		scanned += 1
 		for token: String in NETWORK_TOKENS:
 			if text.contains(token):
 				hits.append("%s → %s" % [path, token])
 	assert_gt(scanned, 20, "اسکن باید کل کد بازی را پوشش بدهد")
 	assert_true(hits.is_empty(), "کد بازی نباید هیچ API شبکه‌ای را ببیند: %s" % str(hits))
+
+
+## کامنت‌ها حذف می‌شوند: «در کامنت نوشتنِ اسم یک API» جرم نیست، ولی در کد بودنش هست.
+func _strip_comments(text: String) -> String:
+	var out: Array[String] = []
+	for line: String in text.split("\n"):
+		var cut: int = line.find("#")
+		out.append(line if cut < 0 else line.substr(0, cut))
+	return "\n".join(out)
 
 
 func _gd_files(root_path: String) -> Array[String]:

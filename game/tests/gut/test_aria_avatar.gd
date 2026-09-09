@@ -47,27 +47,24 @@ func test_all_six_states_exist_and_are_playable_from_code() -> void:
 
 
 func test_states_are_visually_distinguishable() -> void:
+	# §۳: «فقط رنگ هسته عوض می‌شود» → تفکیک‌پذیری را روی خودِ نود می‌سنجیم (نه کیفریم‌های
+	# clip)، چون clipها placeholder‌ی کد هستند و فاز ۸ جابه‌جا می‌شوند (ADR-043).
 	_aria = _make()
 	var p := _player(_aria)
 	var colors := {}
 	var durations := {}
-	var track_counts := {}
+	var looped := {}
 	for state: String in AriaAvatar.STATES:
+		assert_true(_aria.play_state(state), state + " قابل‌فراخوانی است")
+		colors[str(_aria.core_modulate())] = state
 		var anim: Animation = p.get_animation(state)
 		assert_not_null(anim, state + " باید clip داشته باشد")
 		if anim == null:
 			return
-		assert_gt(anim.length, 0.0, "%s بی‌زمانی نیست" % state)
-		assert_gt(anim.track_get_key_count(0), 1, "%s حداقل دو کیفریم دارد" % state)
-		var core_track: int = anim.find_track("Body/Core:self_modulate",
-			Animation.TYPE_VALUE)
-		assert_ne(core_track, -1, "%s رنگ هسته را animate می‌کند (§۳)" % state)
-		if core_track >= 0:
-			var mid: float = anim.length * 0.5
-			var col: Color = anim.track_get_key_value(core_track, 1)
-			colors[str(col)] = state
+		assert_gt(anim.length, 0.05, "%s مدتِ نامفهوم ندارد" % state)
 		durations[state] = anim.length
-		track_counts[state] = anim.get_track_count()
+		looped[state] = anim.loop_mode != Animation.LOOP_NONE
+		assert_true(anim.get_track_count() >= 1, "%s بی‌ترَک نیست" % state)
 	assert_eq(colors.size(), AriaAvatar.STATES.size(),
 		"رنگ هسته‌ی هر شش state باید متفاوت باشد: " + str(colors))
 	var dmin: float = 1e9
@@ -76,10 +73,12 @@ func test_states_are_visually_distinguishable() -> void:
 		dmin = minf(dmin, float(durations[k]))
 		dmax = maxf(dmax, float(durations[k]))
 	assert_true(dmin < dmax, "مدت انیمیشن‌ها فرق دارد (نوسان آرام vs پالس سریع)")
-	var max_tracks: int = 0
-	for k: Variant in track_counts.keys():
-		max_tracks = maxi(max_tracks, int(track_counts[k]))
-	assert_gt(max_tracks, 1, "حالت‌های پرحرکت ترَک بیشتری دارند")
+	assert_true(bool(looped[AriaAvatar.STATE_IDLE]), "idle لوپ است (§۳ «حالت پیش‌فرض»)")
+	assert_false(bool(looped[AriaAvatar.STATE_CELEBRATING]),
+		"celebrating یک‌بار پخش می‌شود و تمام")
+	for state: String in AriaAvatar.STATES:
+		assert_eq(str(_aria.core_modulate()), str(AriaAvatar.core_color_for(state)),
+			state + ": رنگ هسته از همان جدول §۳ می‌آید")
 
 
 func test_the_encouraging_pulse_matches_the_art_bible() -> void:

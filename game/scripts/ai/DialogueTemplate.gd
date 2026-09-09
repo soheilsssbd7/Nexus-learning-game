@@ -3,8 +3,8 @@ extends RefCounted
 # ===========================================================================
 # تسک ۵.۱ — پارسر `data/dialogue/aria_templates.json` (اسکیمای docs/03 §۴)
 # --------------------------------------------------------------------------
-# دو کار می‌کند: داده را **بدون crash** به یک this‌نمایه تبدیل می‌کند و همان‌جا قوانین §۴ را سخت‌گیرانه
-# می‌کند (هر قالب ≥۲ واریانت، بازه Tier معتبر، نوع خطای شناخته‌شده).
+# دو کار می‌کند: داده را **بدون crash** به نمایه‌ی `hint_id → قالب` تبدیل می‌کند و
+# همان‌جا قوانین §۴ را سخت‌گیرانه اعمال می‌کند (هر قالب ≥۲ واریانت، بازه Tier معتبر، نوع خطای شناخته‌شده).
 # منطق «کدام واریانت؟» اینجا نیست — آن حالتِ نشستِ AriaController است (چرخشی، ADR-041).
 #
 # چرا خروجی `Dictionary` است و نه `Array`؟ چون `hint_requested` یک `hint_id` می‌دهد
@@ -79,10 +79,14 @@ static func errors_for(raw: Variant, where: String) -> Array[String]:
 		for e: Variant in (types as Array):
 			if not ALLOWED_ERROR_TYPES.has(str(e)):
 				out.append("%s: نوع خطای ناشناخته `%s`" % [str(id), str(e)])
+	# دام: `JSON.parse_string` هر عددی را float می‌دهد (حتی ۱ و ۵)، پس `is int` روی
+	# داده‌ی واقعی همیشه false است — تشخیص باید روی typeof و مقدار انجام شود.
 	var mn: Variant = d.get("min_tier", 1)
 	var mx: Variant = d.get("max_tier", 5)
-	if not (mn is int) or not (mx is int) or int(mn) < 1 or int(mx) > 5 or int(mn) > int(mx):
-		out.append("%s: `min_tier`/`max_tier` باید ۱..۵ و mn<=mx باشند" % str(id))
+	var numeric: bool = (mn is int or mn is float) and (mx is int or mx is float)
+	if not numeric or int(mn) < 1 or int(mx) > 5 or int(mn) > int(mx) \
+			or float(mn) != float(int(mn)) or float(mx) != float(int(mx)):
+		out.append("%s: `min_tier`/`max_tier` باید عددِ صحیح ۱..۵ و mn<=mx باشند" % str(id))
 	var variants: Variant = d.get("text_variants", [])
 	if not (variants is Array) or (variants as Array).size() < MIN_VARIANTS:
 		out.append("%s: حداقل %d `text_variant` لازم است (§۴)" % [str(id), MIN_VARIANTS])

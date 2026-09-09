@@ -43,7 +43,7 @@ func test_it_follows_the_typography_rules_of_the_art_bible() -> void:
 
 
 func test_short_and_long_messages_fit_without_overflow() -> void:
-	var screen: Vector2 = get_viewport_rect().size
+	var screen: Vector2 = get_tree().root.get_visible_rect().size
 	for text: String in [SHORT_TEXT, LONG_TEXT]:
 		_box = _make()
 		_box.show_text(text)
