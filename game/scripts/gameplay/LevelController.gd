@@ -33,6 +33,14 @@ signal tray_changed(tray_count: int, placed_count: int)
 @export var build_on_ready: bool = true
 ## حلقه‌ی تسک ۳.۴ (برد → بعدی/نقشه). فاز ۶ HUD این را جایگزین می‌کند.
 @export var result_bar_enabled: bool = true
+## تسک ۶.۲: آموزش داخل Onboarding **باید همان مکانیک واقعی باشد** (نه یک شبیه‌سازی
+## جدا که بعداً واگرا شود)، ولی نباید آمار کودک را بنویسد: بدون این فلگ، یک کشیدنِ
+## کره در Onboarding سطح ۰۱ را «تمام‌شده» و رتبه را به‌روز می‌کرد.
+## guard: `begin_level`، `attempt_failed`، `error_patterns`، `apply_level_result`،
+## `mark_level_completed` و emit `level_completed` — یعنی هر چیزی که در save می‌نشیند.
+## سیگنال‌های فیدبک (orb_placed/balance_changed) و `level_won** دست‌نخورده‌اند:
+## آموزش باید واقعی به نظر برسد.
+@export var report_progress: bool = true
 ## نردبان راهنما (تسک ۴.۳): تایمر بی‌حرکتی/شمارش تلاش روی همین سطح. خاموش‌کردنش
 ## صحنه را به رفتار فاز ۳ برمی‌گرداند (بدون هیچ راهنمای خودکار).
 @export var hint_timing_enabled: bool = true
@@ -197,7 +205,8 @@ func build() -> void:
 	_settle_pending = false
 	_settle_elapsed = 0.0
 	set_process(true)
-	GameState.begin_level(level_id, tier)
+	if report_progress:
+		GameState.begin_level(level_id, tier)
 	_layout_tray()
 
 
@@ -471,9 +480,10 @@ func _process(delta: float) -> void:
 	if _all_balanced():
 		return
 	# خودِ GameState سیگنال attempt_failed را با شماره‌ی تلاش publish می‌کند (تسک ۱.۱)
-	GameState.register_attempt_failed()
+	if report_progress:
+		GameState.register_attempt_failed()
 	# تسک ۴.۲: چه نوع خطایی؟ (کاملاً rule-based — هیچ درخواست شبکه/AI اینجا نیست)
-	if error_classification_enabled:
+	if error_classification_enabled and report_progress:
 		var error_type := classify_current_error()
 		if not error_type.is_empty():
 			EventBus.error_detected.emit(error_type)
@@ -484,6 +494,14 @@ func _process(delta: float) -> void:
 func _win() -> void:
 	_won = true
 	_settle_pending = false
+	if not report_progress:
+		# آموزش: کودک برنده شد، ولی هیچ‌چیز در مدل/انجین/سیگنال‌های جهانی نوشته نمی‌شود.
+		# `_won` ست شده تا `is_won()` و `level_won` کار کنند (Onboarding همان را می‌شنود).
+		for tut_scale: BalanceScale in scales:
+			if is_instance_valid(tut_scale):
+				tut_scale.refresh(false)
+		level_won.emit({})
+		return
 	var time_sec: float = maxf(0.5, GameState.elapsed_level_sec())
 	# تسک ۴.۴/۴.۲: رتبه **قبل از** publish به‌روز می‌شود تا payload همان score و
 	# final_elo_delta واقعی را ببرد (ADR-038؛ شنودِ level_completed دو بار اعمال می‌کرد).

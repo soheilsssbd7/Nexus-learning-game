@@ -32,7 +32,14 @@ signal weight_changed(orb: WeightOrb)
 @export var is_placed: bool = false
 ## کفه‌ای که الان روی آن است (null = سینی/درگ).
 @export var pan: BalancePan = null
-@export var drag_enabled: bool = true
+## فاز ۶: «غیرفعال‌کردن درگ» باید *واقعاً* pickup را هم ببندد (پاز/آموزش همان را
+## می‌خواهند)؛ قبلاً فقط در `_ready` خوانده می‌شد پس عوض‌کردنش بی‌اثر بود.
+@export var drag_enabled: bool = true:
+	set(value):
+		drag_enabled = value
+		input_pickable = value
+		if not value and _dragging:
+			end_drag()
 @export var radius: float = 44.0
 
 var hidden_value: float = 0.0  # فقط GHOST — هرگز در UI نمایش داده نمی‌شود (تسک ۲.۳)
