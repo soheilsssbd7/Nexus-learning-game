@@ -21,6 +21,7 @@ const TAG := "LevelLoader"
 const LEVELS_ROOT := "res://data/levels"
 const LEVEL_SCENE_PATH := "res://scenes/gameplay/LevelScene.tscn"
 const WORLD_MAP_PATH := "res://scenes/main/WorldMap.tscn"
+const MAIN_MENU_PATH := "res://scenes/main/MainMenu.tscn"
 const TIER_DIR_PREFIX := "tier"
 const ID_PATTERN := "^tier([1-5])_level_([0-9]{2})$"
 
@@ -199,6 +200,19 @@ func goto_map() -> bool:
 	var err: Error = get_tree().change_scene_to_file(WORLD_MAP_PATH)
 	if err != OK:
 		last_error = "بازگشت به %s شکست خورد (خطای %d)" % [WORLD_MAP_PATH, err]
+		return false
+	return true
+
+
+## تسک ۶.۱: منو حالا صحنه‌ی اصلی است، پس «بازگشت» هم باید مسیر بلد باشد — همان
+## الگوی goto_map: تنها جایی که مسیر صحنه را می‌داند، خودِ UI نه.
+func goto_main_menu() -> bool:
+	last_error = ""
+	if not change_scene_on_start or get_tree() == null:
+		return true
+	var err: Error = get_tree().change_scene_to_file(MAIN_MENU_PATH)
+	if err != OK:
+		last_error = "بازگشت به %s شکست خورد (خطای %d)" % [MAIN_MENU_PATH, err]
 		return false
 	return true
 

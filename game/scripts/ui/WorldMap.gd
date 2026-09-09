@@ -22,6 +22,8 @@ const MEANDER_X: float = 190.0
 
 signal level_requested(level_id: String)
 signal level_blocked(level_id: String, reason: String)
+## تسک ۶.۱: بازگشت به منو (قبلاً نقشه یک بن‌بست بود — از منو می‌آمدی و برنمی‌گشتی).
+signal menu_requested
 
 @export var build_on_ready: bool = true
 ## برای تست/ویرایشگر: اگر خالی باشد از LevelLoader خوانده می‌شود.
@@ -51,6 +53,7 @@ func rebuild() -> void:
 	if level_ids.is_empty():
 		Log.warn(TAG, "هیچ سطحی در data/levels پیدا نشد — نقشه خالی است (فاز ۳/۷)")
 		return
+	_ensure_menu_button()
 	var count: int = level_ids.size()
 	var span: float = BOTTOM_Y - TOP_Y
 	var step: float = span / float(maxi(1, count - 1)) if count > 1 else 0.0
@@ -66,6 +69,24 @@ func rebuild() -> void:
 		add_child(btn)
 		buttons.append(btn)
 	refresh_locks()
+
+
+func _ensure_menu_button() -> void:
+	if has_node("BackToMenu"):
+		return
+	var btn: Button = UIKit.make_button("common.back", "stone", Vector2(240.0, UIKit.MIN_TOUCH_PX))
+	btn.name = "BackToMenu"
+	btn.position = Vector2(60.0, 60.0)
+	btn.pressed.connect(_on_menu_pressed)
+	add_child(btn)
+
+
+func _on_menu_pressed() -> void:
+	menu_requested.emit()
+	if not allow_scene_change:
+		return
+	if not LevelLoader.goto_main_menu():
+		Log.warn(TAG, "بازگشت به منو نشد: " + LevelLoader.last_error)
 
 
 func is_unlocked(index: int) -> bool:

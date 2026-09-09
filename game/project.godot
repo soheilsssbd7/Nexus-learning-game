@@ -15,9 +15,10 @@ config/version="0.1.0"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
-; فاز ۳: جریان کامل «نقشه → انتخاب سطح → برد → بعدی/نقشه» با F5 اجرا می‌شود.
-; در فاز ۶ (تسک ۶.۱) MainMenu.tscn جای این را می‌گیرد.
-run/main_scene="res://scenes/main/WorldMap.tscn"
+; فاز ۳ تا فاز ۵: جریان کامل «نقشه → سطح → برد → بعدی/نقشه» با F5 اجرا می‌شد.
+; فاز ۶ (تسک ۶.۱): منوی اصلی ساخته شد و صحنه‌ی ورودی بازی است — ناوبری از منو به
+; بازی و بازگشت (WorldMap → دکمهٔ «برگشت») از همین‌جا شروع می‌شود.
+run/main_scene="res://scenes/main/MainMenu.tscn"
 
 [autoload]
 
