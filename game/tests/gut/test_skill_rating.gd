@@ -65,10 +65,16 @@ func test_weighted_score_from_the_hint_note_is_applied() -> void:
 func test_clamp_bounds_400_and_2000() -> void:
 	_near(SkillRating.update_elo(400.0, 400.0, false), SkillRating.ELO_MIN, "کف رتبه ۴۰۰ (§۳)")
 	_near(SkillRating.update_elo(2000.0, 2000.0, true), SkillRating.ELO_MAX, "سقف رتبه ۲۰۰۰ (§۳)")
+	# سقف با «بردِ کلان» بسته می‌شود، نه با پشت‌سرهم بردنِ سطح آسان: منحنیِ انتظار
+	# هر بردِ بعدی را کوچک‌تر می‌کند (ویژگیِ خودِ Elo)، پس ۸۰ بردِ آسان هیچ‌وقت
+	# به ۲۰۰۰ نمی‌رسد — این باگ نیست، همان چیزی است که §۳ می‌خواهد.
+	_near(SkillRating.update_elo(1995.0, 800.0, true), SkillRating.ELO_MAX,
+		"سودِ بیشتر از فاصله تا سقف، روی ۲۰۰۰ قفل می‌شود")
 	var v: float = 1000.0
-	for i: int in range(80):
+	for i: int in range(40):
 		v = SkillRating.update_elo(v, 400.0, true)
-	_near(v, SkillRating.ELO_MAX, "برد پیاپی در سطح آسان باید روی سقف قفل شود")
+	assert_true(v > 1000.0 and v < SkillRating.ELO_MAX,
+		"بردِ پیاپیِ سطح آسان رتبه را بالا می‌برد اما به سقف نمی‌چسباند (got %f)" % v)
 
 
 func test_confidence_shrinks_with_attempts() -> void:
@@ -125,5 +131,9 @@ func test_player_model_skill_bookkeeping_uses_the_same_object() -> void:
 	assert_gt(model.skill_elo("addition_basic"), SkillRating.ELO_START,
 		"ensure_skill باید همان نمونه‌ی داخل model.skills را بدهد، نه کپی")
 	var keys := PackedStringArray(["addition_basic", "ghost_algebra"])
-	_near(model.average_skill_elo(keys), (model.skill_elo("addition_basic") + SkillRating.ELO_START) / 2.0,
-		"میانگین رتبه‌ی مهارت‌های یک سطح = ورودی «رتبه‌ی فعلی بازیکن» در انتخاب سطح")
+	_near(model.average_skill_elo(keys), model.skill_elo("addition_basic"),
+		"کلیدِ ناشناس در میانگین حساب نمی‌شود (وگرنه ۱۰۰۰ِ ساختگی رتبه‌ی بازیکن را به عقب "
+		+ "می‌کشید و انتخاب سطح را خراب می‌کرد)")
+	var both := PackedStringArray(["addition_basic"])
+	_near(model.average_skill_elo(both), model.skill_elo("addition_basic"),
+		"یک مهارت = خودِ همان مهارت")

@@ -172,6 +172,10 @@ func test_last_level_of_the_tier_sends_the_player_to_the_map() -> void:
 	add_child_autofree(scene)
 	await get_tree().process_frame
 	assert_eq(LevelLoader.next_of(scene.level_id), "", "پنج‌ام آخرین سطح نوشته‌شده است")
+	# تسک ۴.۴: «بعدی» را موتور انتخاب می‌کند، پس برای سنجیدنِ «دیگر چیزی نمانده»
+	# باید وضعیت واقعیِ پایانِ Tier را بسازیم (۰۱..۰۵ تمام‌شده)، نه مدلِ خالی.
+	for done_id: String in LevelLoader.levels_for_tier(1):
+		GameState.active_model.mark_level_completed(done_id, 25.0, 0)
 	watch_signals(scene.result_bar)
 	scene.result_bar.advance()
 	# آخرین سطحِ Tier = بازگشت به نقشه، نه صفحه‌ی سفید

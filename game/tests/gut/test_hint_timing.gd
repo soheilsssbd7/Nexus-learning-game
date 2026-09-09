@@ -107,19 +107,21 @@ func test_first_wrong_attempt_then_the_fail_ladder() -> void:
 
 
 func test_the_last_ladder_step_repeats_every_two_extra_fails() -> void:
-	# تکرار را با شمارشِ emit می‌سنجیم: `fired_count()` شمارنده‌ی hint_idهای **متفاوت**
-	# است (برای گزارش والدین) و یک متنِ تکراری را دو بار نمی‌شمارد.
+	# شمارش روی `hint_triggered`ی **همین نود** است، نه EventBus: تست‌های قبلیِ همین
+	# فایل هم سیگنال روی EventBus می‌گذارند و `fired_count()` شمارنده‌ی متن‌های
+	# *متفاوت* است (برای گزارش والدین) و تکرار را نمی‌شمارد.
 	var sys := _make_sys(_steps([{"trigger": "fail_3x", "hint_id": "socratic_specific_01"}]))
+	watch_signals(sys)
 	for i: int in range(2):
 		GameState.register_attempt_failed()
-	assert_signal_emit_count(EventBus, "hint_requested", 0, "آستانه‌ی سطح هنوز نیامده")
+	assert_signal_emit_count(sys, "hint_triggered", 0, "آستانه‌ی سطح هنوز نیامده")
 	GameState.register_attempt_failed()
-	assert_signal_emit_count(EventBus, "hint_requested", 1, "سه تلاش = پله‌ی اول")
+	assert_signal_emit_count(sys, "hint_triggered", 1, "سه تلاش = پله‌ی اول")
 	GameState.register_attempt_failed()
-	assert_signal_emit_count(EventBus, "hint_requested", 1, "یک تلاشِ اضافه کافی نیست")
+	assert_signal_emit_count(sys, "hint_triggered", 1, "یک تلاشِ اضافه کافی نیست")
 	GameState.register_attempt_failed()
 	GameState.register_attempt_failed()
-	assert_signal_emit_count(EventBus, "hint_requested", 2,
+	assert_signal_emit_count(sys, "hint_triggered", 2,
 		"هر %d تلاشِ اضافه، همان پله تکرار می‌شود" % HintTimingSystem.ESCALATION_FAILS)
 	assert_eq(sys.fired_count(), 1, "همه‌ی این‌ها یک متن بودند: پله‌ی آخرِ خسته‌کننده")
 

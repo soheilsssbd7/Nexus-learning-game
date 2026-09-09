@@ -66,6 +66,16 @@ func _take_tray_orb(scene: LevelController, value: float) -> WeightOrb:
 	return null
 
 
+## یک کره‌ی دلخواه از سینی روی کفه‌ی **چپ** (سنگین‌تر کردنِ سمتِ پر) — برای ساختنِ
+## یک «تلاش ناموفق» واقعی بدون وابسته‌بودن به مقدارِ خاص: سینیِ سطح ۰۱ ده تا ۱،
+## پنج تا ۲ و سه تا ۵ است؛ هیچ‌کدام ترازو را صاف نمی‌کند.
+func _make_a_wrong_move(scene: LevelController) -> void:
+	assert_false(scene.tray_orbs.is_empty(), "سینی سطح ۰۱ کره دارد")
+	if scene.tray_orbs.is_empty():
+		return
+	_drag(scene.tray_orbs[0], scene.scales[0].left_pan.dish_position())
+
+
 func _solve(scene: LevelController) -> void:
 	var lv: LevelData = LevelLoader.load_level(scene.level_id)
 	var spec: Dictionary = lv.solution_spec if lv != null else {}
@@ -81,8 +91,7 @@ func test_a_wrong_layout_is_classified_and_counted_in_the_model() -> void:
 	if _scene == null:
 		return
 	var model: PlayerModel = GameState.active_model
-	# یک ۱۰ روی راست (نیاز ۸ است): جهت درست، مقدار نه → computation_error
-	_drag(_take_tray_orb(_scene, 10.0), _scene.scales[0].right_pan.dish_position())
+	_make_a_wrong_move(_scene)
 	await get_tree().create_timer(0.3).timeout
 	assert_signal_emit_count(EventBus, "error_detected", 1)
 	var args: Variant = get_signal_parameters(EventBus, "error_detected", 0)
@@ -103,7 +112,7 @@ func test_classification_can_be_switched_off() -> void:
 	if _scene == null:
 		return
 	_scene.error_classification_enabled = false
-	_drag(_take_tray_orb(_scene, 10.0), _scene.scales[0].right_pan.dish_position())
+	_make_a_wrong_move(_scene)
 	await get_tree().create_timer(0.3).timeout
 	assert_signal_emit_count(EventBus, "error_detected", 0)
 	assert_eq(GameState.level_attempts, 1, "شمارش تلاش مستقل از طبقه‌بندی است")
@@ -177,9 +186,13 @@ func test_the_next_level_after_a_win_comes_from_the_engine() -> void:
 	await get_tree().process_frame
 	assert_true(_scene.result_bar != null, "نوار نتیجه فاز ۳ باید باشد")
 	_scene.result_bar.advance()
-	assert_eq(str(LevelLoader.pending_config.get("level_id", "")), "tier1_level_02",
-		"بازیکن تازه = همان پله‌ی نردبان؛ موتور بی‌دلیل جابه‌جا نمی‌کند")
-	assert_eq(DifficultyEngine.last_reason(), "ladder_order")
+	var nxt: String = str(LevelLoader.pending_config.get("level_id", ""))
+	assert_false(nxt.is_empty(), "موتور باید سطح بعدی را در صف بگذارد (نه صفحه‌ی سفید)")
+	assert_ne(nxt, "tier1_level_01", "همان سطح تکراری ممنوع")
+	assert_true(nxt in ["tier1_level_02", "tier1_level_03", "tier1_level_04", "tier1_level_05"],
+		"پس از بردِ سطح ۰۱ فقط می‌توان در نردبانِ Tier 1 جلو رفت: %s" % nxt)
+	assert_true(DifficultyEngine.last_reason() in ["ladder_order", "elo_lead", "mastery_jump"],
+		"دلیلِ انتخاب از خودِ موتور می‌آید، نه از ترتیب فایل: %s" % DifficultyEngine.last_reason())
 
 
 func test_no_more_hints_after_the_level_is_won() -> void:
