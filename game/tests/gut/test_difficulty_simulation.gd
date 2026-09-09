@@ -122,14 +122,16 @@ func test_strong_and_weak_players_end_up_on_different_rungs() -> void:
 	var gap: float = float(strong["final_elo"]) - float(weak["final_elo"])
 	assert_gt(gap, 100.0,
 		"§۵: رتبه‌ی دو بازیکن بعد از ۳۰ سطح باید واگرا شود (فاصله‌ی اندازه‌گیری‌شده %f)" % gap)
-	var weak_order: Array = weak["order"] as Array
-	var strong_order: Array = strong["order"] as Array
-	assert_lt(weak_order.size(), strong_order.size(),
-		"بازیکن ضعیف به‌خاطر تمرینِ مجدّد سطحِ تازه‌ی کمتری طی می‌کند")
+	# هر دو سی گام بازی می‌کنند؛ تفاوت در «سطح‌های تازهِ دیده‌شده» است
 	var weak_seen := {}
-	for id: Variant in weak_order:
+	for id: Variant in (weak["order"] as Array):
 		weak_seen[str(id)] = true
-	assert_lt(weak_seen.size(), POOL_SIZE, "سطح‌های تازه‌ی کمتری در مسیر بازیکن ضعیف هست")
+	var strong_seen := {}
+	for id: Variant in (strong["order"] as Array):
+		strong_seen[str(id)] = true
+	assert_lt(weak_seen.size(), strong_seen.size(),
+		"بازیکن ضعیف به‌خاطر تمرینِ مجدّد سطحِ تازه‌ی کمتری باز می‌کند")
+	assert_lt(weak_seen.size(), POOL_SIZE, "مسیر بازیکن ضعیف تکرار دارد (و این عمدی است)")
 
 
 func test_the_weak_player_gets_practice_instead_of_being_pressed_forward() -> void:
@@ -176,21 +178,14 @@ func test_rating_stays_inside_the_clamp() -> void:
 			var e: float = float(elos[i])
 			assert_true(e >= SkillRating.ELO_MIN and e <= SkillRating.ELO_MAX,
 				"Elo داخل clamp می‌ماند (%f)" % e)
-		assert_gt(float(res["final_elo"]), SkillRating.ELO_START,
-			"سی سطح بی‌راهنما = بازیکنی که واقعاً جلو رفته")
-
-
-func test_rating_stays_inside_the_clamp_and_moves_monotonically() -> void:
-	for scenario: Array in [[0, 1], [3, 5]]:
-		var res: Dictionary = _run(int(scenario[0]), int(scenario[1]))
-		var elos: Array = res["elos"] as Array
-		assert_false(elos.is_empty(), "رتبه در طول بازی ثبت می‌شود")
-		for i: int in range(elos.size()):
-			var e: float = float(elos[i])
-			assert_true(e >= SkillRating.ELO_MIN and e <= SkillRating.ELO_MAX,
-				"Elo داخل clamp می‌ماند (%f)" % e)
-			if i > 0:
-				assert_true(e >= float(elos[i - 1]), "بدون باخت، رتبه عقب نمی‌رود")
+		if int(scenario[0]) == 0:
+			assert_gt(float(res["final_elo"]), SkillRating.ELO_START,
+				"سی سطح بی‌راهنما = بازیکنی که واقعاً جلو رفته")
+		else:
+			# §۵ ضدِ تورم: بازیکنی که هر سطح را با سه راهنما و پنج تلاش باز می‌کند،
+			# با ۳۰ «برد» هم رتبه‌اش بالا نمی‌رود (روی کاغذ برد است، در واقع تمرین).
+			assert_true(float(res["final_elo"]) <= SkillRating.ELO_START + 1.0,
+				"راهنمای همیشگی رتبه را می‌سوزاند")
 
 
 func test_the_engine_is_deterministic_for_the_same_player() -> void:

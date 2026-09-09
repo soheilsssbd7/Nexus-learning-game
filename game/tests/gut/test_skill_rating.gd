@@ -68,8 +68,8 @@ func test_clamp_bounds_400_and_2000() -> void:
 	# سقف با «بردِ کلان» بسته می‌شود، نه با پشت‌سرهم بردنِ سطح آسان: منحنیِ انتظار
 	# هر بردِ بعدی را کوچک‌تر می‌کند (ویژگیِ خودِ Elo)، پس ۸۰ بردِ آسان هیچ‌وقت
 	# به ۲۰۰۰ نمی‌رسد — این باگ نیست، همان چیزی است که §۳ می‌خواهد.
-	_near(SkillRating.update_elo(1995.0, 800.0, true), SkillRating.ELO_MAX,
-		"سودِ بیشتر از فاصله تا سقف، روی ۲۰۰۰ قفل می‌شود")
+	_near(SkillRating.update_elo(1995.0, 2600.0, true), SkillRating.ELO_MAX,
+		"بردِ غیرمنتظره در سطحی خیلی سخت‌تر، روی ۲۰۰۰ قفل می‌شود")
 	var v: float = 1000.0
 	for i: int in range(40):
 		v = SkillRating.update_elo(v, 400.0, true)

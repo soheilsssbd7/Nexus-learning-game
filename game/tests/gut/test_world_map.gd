@@ -35,6 +35,8 @@ func before_each() -> void:
 	GameState.active_model = fresh
 	SaveSystem.bind_model(fresh)
 	watch_signals(EventBus)
+	# فاز ۴: streak/dلیل‌ها روی autoload زنده‌اند؛ تستِ نقشه باید جریانِ خطی را ببیند
+	DifficultyEngine.reset_state()
 
 
 func _build_map(override: Array[String] = []) -> WorldMap:
@@ -155,7 +157,11 @@ func test_full_flow_map_to_win_to_next_level() -> void:
 	assert_true(scene.result_bar.visible, "نوار نتیجه بعد از برد ظاهر می‌شود")
 	# ۳) «بعدی» → سطح ۲ در صف است و نقشه قفلش را باز کرده
 	scene.result_bar.advance()
-	assert_eq(LevelLoader.pending_config.get("level_id"), "tier1_level_02")
+	var nxt: String = str(LevelLoader.pending_config.get("level_id", ""))
+	# بعد از بردِ سطح ۰۱، «بعدی» را موتور می‌گوید: یک پله جلوتر در همان Tier
+	# (با رتبه‌ی همین برد ممکن است یک پله جهش هم باشد — قانون §۵ mastery_jump).
+	assert_true(nxt in ["tier1_level_02", "tier1_level_03"],
+		"صف باید سطح جلوترِ Tier 1 را داشته باشد، نه همان سطح: %s" % nxt)
 	await get_tree().process_frame
 	assert_false(_map.buttons[1].disabled, "برگشت به نقشه = سطح بعدی باز")
 	# ۴) «نقشه»
