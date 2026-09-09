@@ -375,12 +375,93 @@ def validate_progression(metas: list[dict], errs: list[str]) -> None:
                 errs.append(f"Tier {tier}: پرش دشواری {ea}→{eb} بین {a['file']} و {b['file']} بیش از {ELO_JUMP_LIMIT} است")
 
 
+
+L10N_PATH = ROOT / "game" / "data" / "l10n" / "ui_strings.json"
+L10N_DEFAULT_MAX = 80
+
+
+def check_l10n(errs: list[str]) -> dict:
+    """بررسی فایل رشته‌های UI (تسک ۶.۳): چندزبانه‌بودن باید واقعی باشد، نه در حد شعار.
+
+    قوانینی که `game/scripts/ui/Loc.gd` هم در GUT می‌سنجد، اینجا به‌صورت محتوایی:
+      • `default_locale` باید در `locales` تعریف شده باشد و جدولش خالی نباشد؛
+      • هر locale دقیقاً همان مجموعه‌کلیدِ پیش‌فرض را داشته باشد (نه کم، نه زیاد) —
+        وگرنه کاربر یک کلید خام روی دکمه می‌بیند؛
+      • هیچ رشته‌ای تهی نباشد و از سقف طول (پیش‌فرض ۸۰) عبور نکند (§۷: دیوار ممنوع)؛
+      • هیچ رقمی در متن آماده نباشد: اعداد را `Loc.digits()` در زمان اجرا می‌سازد،
+        پس اگر رقمی hardcode شود یعنی فرمتِ زبان دیگر شکسته می‌شود؛
+      • `rtl_locales` زیرمجموعه‌ی `locales` باشد (جهت از داده می‌آید نه از hardcode).
+    """
+    summary = {"file": str(L10N_PATH.relative_to(ROOT)), "locales": [], "keys": 0}
+    data = load_json(L10N_PATH, errs)
+    if not isinstance(data, dict):
+        errs.append(f"{summary['file']}: فایل رشته‌های UI نیست یا پارس نشد (تسک ۶.۳)")
+        return summary
+    locales = data.get("locales")
+    strings = data.get("strings")
+    default = str(data.get("default_locale", ""))
+    if not isinstance(locales, dict) or not locales:
+        errs.append(f"{summary['file']}: `locales` باید objectِ غیرخالی باشد")
+        return summary
+    if not isinstance(strings, dict):
+        errs.append(f"{summary['file']}: `strings` باید object باشد")
+        return summary
+    if default not in locales:
+        errs.append(f"{summary['file']}: `default_locale` ({default or 'تهی'}) در `locales` تعریف نشده")
+        return summary
+    try:
+        max_len = int(data.get("max_string_len", L10N_DEFAULT_MAX))
+    except (TypeError, ValueError):
+        max_len = L10N_DEFAULT_MAX
+    ref = strings.get(default)
+    if not isinstance(ref, dict) or not ref:
+        errs.append(f"{summary['file']}: جدول رشته‌های `{default}` خالی یا object نیست")
+        return summary
+    summary["locales"] = sorted(locales.keys())
+    summary["keys"] = len(ref)
+
+    rtl = data.get("rtl_locales", [])
+    if not isinstance(rtl, list):
+        errs.append(f"{summary['file']}: `rtl_locales` باید آرایه باشد")
+    else:
+        for code in rtl:
+            if code not in locales:
+                errs.append(f"{summary['file']}: `rtl_locales` زبانِ تعریف‌نشده «{code}» را می‌شمارد")
+
+    digit_re = re.compile(r"[0-9۰-۹]")
+    for code in sorted(locales.keys()):
+        table = strings.get(code)
+        if not isinstance(table, dict):
+            errs.append(f"{summary['file']}: `strings.{code}` object نیست")
+            continue
+        missing = sorted(set(ref.keys()) - set(table.keys()))
+        extra = sorted(set(table.keys()) - set(ref.keys()))
+        if missing:
+            errs.append(f"{summary['file']}: {code} این کلیدها را ندارد: {', '.join(missing[:6])}"
+                        + (f" (+{len(missing) - 6})" if len(missing) > 6 else ""))
+        if extra:
+            errs.append(f"{summary['file']}: {code} کلیدهای اضافه دارد: {', '.join(extra[:6])}")
+        for key in sorted(table.keys()):
+            value = table[key]
+            if not isinstance(value, str):
+                errs.append(f"{summary['file']}: {code}/{key} رشته نیست")
+                continue
+            if not value.strip():
+                errs.append(f"{summary['file']}: {code}/{key} تهی است")
+            elif len(value) > max_len:
+                errs.append(f"{summary['file']}: {code}/{key} بلندتر از {max_len} نویسه (§۷)")
+            elif digit_re.search(value):
+                errs.append(f"{summary['file']}: {code}/{key} رقم hardcode دارد — از Loc.digits() استفاده کن")
+    return summary
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="NEXUS content validator")
     ap.add_argument("--json", metavar="OUT", help="نوشتن گزارش JSON (برای آرشیو CI)")
     args = ap.parse_args()
 
     errs: list[str] = []
+    l10n = check_l10n(errs)  # مستقل از وجود سطح: رشته‌های UI از فاز ۶ لازم‌اند
     if not LEVELS_DIR.exists() or not sorted(LEVELS_DIR.glob("tier*/level_*.json")):
         print("· هنوز هیچ game/data/levels/tier*/level_*.json وجود ندارد (طبیعی در فاز ۰..۲) → skip")
         return 0
@@ -404,10 +485,11 @@ def main() -> int:
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
-    print(f"سطح بررسی‌شده: {total} · قابل‌حل تأییدشده: {solved}/{total} · قالب دیالوگ: {len(hints)}")
+    print(f"سطح بررسی‌شده: {total} · قابل‌حل تأییدشده: {solved}/{total} · قالب دیالوگ: {len(hints)}"
+          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])}")
 
     if args.json:
-        Path(args.json).write_text(json.dumps({"levels": metas, "errors": errs}, ensure_ascii=False, indent=2), encoding="utf-8")
+        Path(args.json).write_text(json.dumps({"levels": metas, "l10n": l10n, "errors": errs}, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"گزارش JSON → {args.json}")
 
     if errs:
