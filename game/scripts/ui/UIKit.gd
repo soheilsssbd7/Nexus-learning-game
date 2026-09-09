@@ -123,6 +123,9 @@ static func make_button(key: String, tone: String = "gold",
 	var btn := Button.new()
 	btn.name = key.replace(".", "_")
 	btn.text = Loc.t(key)
+	# هر متنی که از Loc آمده یک `loc_key` هم دارد: با عوض‌شدن زبان، صحنه‌ها یک
+	# «retranslate» می‌خواهند نه بازسازی. (چیپ‌های رنگی متا ندارند ⇒ بی‌متن می‌مانند.)
+	btn.set_meta(&"loc_key", key)
 	btn.custom_minimum_size = size
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return style_button(btn, tone)
@@ -133,6 +136,7 @@ static func make_label(key: String, px: int = DIALOG_FONT_PX,
 	var label := Label.new()
 	label.name = key.replace(".", "_")
 	label.text = Loc.t(key)
+	label.set_meta(&"loc_key", key)
 	label.add_theme_font_size_override("font_size", px)
 	label.add_theme_color_override("font_color", color)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -180,6 +184,24 @@ static func apply_flow(node: Node) -> void:
 			elif ctrl is Button:
 				(ctrl as Button).text_direction = Loc.text_direction()
 		apply_flow(child)
+
+
+## زبان عوض شد؟ یک پاس روی درخت کافی است: هر برچسب/دکمه‌ای که با `make_label/
+## make_button` ساخته شده متنش را از `Loc` می‌گیرد ⇒ «i18n-ready» یعنی همین، نه بیشتر.
+static func retranslate(root: Node) -> int:
+	var touched: int = 0
+	for child: Node in root.get_children():
+		if child is Control and (child as Object).has_meta(&"loc_key"):
+			var key: String = str((child as Object).get_meta(&"loc_key"))
+			var text: String = Loc.t(key)
+			if child is Button:
+				(child as Button).text = text
+				touched += 1
+			elif child is Label:
+				(child as Label).text = text
+				touched += 1
+		touched += retranslate(child)
+	return touched
 
 
 static func anchor_full(ctrl: Control) -> void:

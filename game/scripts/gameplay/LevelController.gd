@@ -461,6 +461,39 @@ func _on_scale_placement(orb: WeightOrb, placed: bool) -> void:
 		_settle_elapsed = 0.0
 
 
+## «بازی متوقف شد» یعنی کره هم نباید جابه‌جا شود (§۶ سند هنری: پاز واقعی، نه فقط
+## منوی رویِ صحنه) — و وقتی برقرار شد، همان کره‌ها دوباره قابل‌کشیدن‌اند.
+func set_drag_enabled(on: bool) -> void:
+	for orb: WeightOrb in tray_orbs:
+		if is_instance_valid(orb):
+			orb.drag_enabled = on
+	for scale: BalanceScale in scales:
+		if not is_instance_valid(scale):
+			continue
+		for pan: BalancePan in [scale.left_pan, scale.right_pan]:
+			if pan == null:
+				continue
+			for placed: WeightOrb in pan.orbs:
+				if is_instance_valid(placed):
+					placed.drag_enabled = on
+
+
+func any_orb_draggable() -> bool:
+	for orb: WeightOrb in tray_orbs:
+		if is_instance_valid(orb) and orb.drag_enabled:
+			return true
+	for scale: BalanceScale in scales:
+		if not is_instance_valid(scale):
+			continue
+		for pan: BalancePan in [scale.left_pan, scale.right_pan]:
+			if pan == null:
+				continue
+			for placed: WeightOrb in pan.orbs:
+				if is_instance_valid(placed) and placed.drag_enabled:
+					return true
+	return false
+
+
 func _all_balanced() -> bool:
 	if scales.is_empty():
 		return false

@@ -68,6 +68,15 @@ static func available_locales() -> Array:
 	return (raw as Dictionary).keys() if raw is Dictionary else [default_locale()]
 
 
+## نامِ قابل‌نمایش یک زبان (برای دکمهٔ «زبان» در تنظیمات): از خودِ فایل، نه hardcode.
+static func label_for(code: String) -> String:
+	ensure_loaded()
+	var raw: Variant = _data.get("locales", {})
+	if raw is Dictionary and (raw as Dictionary).has(code):
+		return str((raw as Dictionary)[code])
+	return code
+
+
 static func is_known_locale(code: String) -> bool:
 	return available_locales().has(code)
 

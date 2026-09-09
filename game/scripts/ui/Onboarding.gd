@@ -277,6 +277,7 @@ func show_step(step: String) -> void:
 	if step == STEP_SCALE and not _won and done_button != null:
 		done_button.disabled = true
 	step_changed.emit(step)
+	UIKit.retranslate(self)
 	UIKit.apply_flow(self)
 
 

@@ -120,6 +120,7 @@ func refresh() -> void:
 			primary_button.text = Loc.t("menu.continue")
 		_:
 			primary_button.text = Loc.t("menu.play")
+	UIKit.retranslate(self)
 	for btn: Button in buttons:
 		if btn.name == "menu_quit":
 			# در تست/هدلس دکمه هست ولی بی‌اثر (`quit_game()` خارج می‌شود) ⇒ «کرش ندادن»
