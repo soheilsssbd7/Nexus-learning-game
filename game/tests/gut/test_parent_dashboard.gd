@@ -181,9 +181,14 @@ func test_translating_the_labels_does_not_translate_the_data() -> void:
 	var dash := _make()
 	_reveal(dash)
 	dash.refresh()
+	var before: String = dash.stat_text("levels")
 	assert_true(Loc.set_locale("en"))
 	UIKit.retranslate(dash)
-	assert_eq(dash.stat_text("levels"), Loc.digits("3"))
+	assert_eq(dash.stat_text("levels"), before,
+		"retranslate برچسب‌ها را می‌برد، نه مقدارِ مدل را")
+	dash.refresh()
+	assert_eq(dash.stat_text("levels"), Loc.digits("3"),
+		"با زبان تازه رقم هم انگلیسی نوشته می‌شود (قالب عوض می‌شود، نه مقدار)")
 	var row: Label = dash.transcript_box.get_child(0) as Label
 	assert_true(row.text.contains("gentle_nudge_01"),
 		"ردیف داده نباید با retranslate به یک رشتهٔ UI تبدیل شود: " + row.text)

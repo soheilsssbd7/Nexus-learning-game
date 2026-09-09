@@ -256,12 +256,15 @@ static func audit_touch_targets(root: Node, out: Array[String] = []) -> Array[St
 	for child: Node in root.get_children():
 		if child is Control and CLICKABLE.has(child.get_class()):
 			var ctrl := child as Control
-			var effective := ctrl.size
-			if effective.x < MIN_TOUCH_PX or effective.y < MIN_TOUCH_PX:
-				effective = ctrl.custom_minimum_size
+			# مؤثر = بزرگ‌ترینِ «اندازهٔ واقعی» و «حداقلِ خواسته‌شده» روی هر محور:
+			# در هدلس layout اجرا نشده و size صفر است، ولی custom_minimum_size=144 یعنی
+			# دکمه روی دستگاه واقعی ۱۴۴ پیکسل جا می‌گیرد ⇒ نباید به‌دلیل اندازهٔ ۰ رد شود.
+			var effective := Vector2(maxf(ctrl.size.x, ctrl.custom_minimum_size.x),
+				maxf(ctrl.size.y, ctrl.custom_minimum_size.y))
 			if not touch_floor(effective):
+				# نامِ خودِ متخلف، نه ریشه: «AuditRoot: 0×0» هیچ‌جا را نشانت نمی‌دهد.
 				out.append("%s: %s × %s < %s (کفِ لمسی §۷)" % [
-					str(root.get_path()), str(effective.x), str(effective.y),
+					str(ctrl.name), str(effective.x), str(effective.y),
 					str(MIN_TOUCH_PX)])
 		audit_touch_targets(child, out)
 	return out

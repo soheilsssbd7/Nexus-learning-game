@@ -37,7 +37,7 @@ var _locked: bool = false
 func _ready() -> void:
 	if build_on_ready:
 		_build()
-		new_question()
+		new_question(question_seed)
 
 
 func _build() -> void:
@@ -107,8 +107,10 @@ static func make_question(seed: int = -1) -> Dictionary:
 	return {"a": a, "b": b, "answer": a * b}
 
 
+## `seed >= 0` ⇒ قطعی (تست)؛ در غیر این صورت تصادفی — «سؤال دیگر» باید سؤالِ دیگری
+## بدهد، وگرنه قفل فقط یک جواب دارد و با تکرارِ همان عدد رد می‌شود.
 func new_question(seed: int = -1) -> void:
-	var q: Dictionary = make_question(seed if seed >= 0 else question_seed)
+	var q: Dictionary = make_question(seed)
 	_answer = int(q["answer"])
 	attempts = 0
 	_locked = false

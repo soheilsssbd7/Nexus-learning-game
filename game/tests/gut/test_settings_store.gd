@@ -68,7 +68,8 @@ func test_out_of_range_and_wrong_types_are_clamped_not_trusted() -> void:
 	assert_eq(str(SettingsStore.clamp_value("locale", "de")), "fa",
 		"زبان تعریف‌نشده رد می‌شود؛ صفحه نباید نیمه‌انگلیسی شود")
 	assert_eq(str(SettingsStore.clamp_value("haptics_enabled", "false")), "false")
-	assert_eq(str(SettingsStore.clamp_value("unknown.key", 1)), "<Null>")
+	assert_null(SettingsStore.clamp_value("unknown.key", 1),
+		"کلید ناشناخته ⇒ تهی، تا فراخواننده مجبور باشد تصمیم بگیرد (نه 0، نه false)")
 
 
 func test_garbage_avatar_only_moves_the_allowed_range() -> void:
@@ -96,6 +97,9 @@ func test_unknown_key_is_refused_loudly() -> void:
 
 func test_toggle_writes_through_to_the_difficulty_engine() -> void:
 	SettingsStore.load_from(_path)
+	# نقطهٔ شروعِ قطعی: ادعای تست این است که «toggle به‌تنهایی موتور را عوض نمی‌کند»،
+	# پس موتور باید آگاهانه روشن باشد؛ وگرنه نتیجه به ترتیب اجرای فایل‌ها وابسته است.
+	DifficultyEngine.adaptive_selection = true
 	assert_true(bool(SettingsStore.get_value("adaptive_selection")))
 	assert_true(SettingsStore.toggle("adaptive_selection"))
 	assert_false(bool(DifficultyEngine.adaptive_selection), "پیش از apply، موتور دست‌نخورده است")

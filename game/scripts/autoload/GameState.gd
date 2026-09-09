@@ -169,9 +169,13 @@ func commit_playtime() -> void:
 	# زمانِ پازِ همین پنجره کم می‌شود: جمع pauseهای بسته‌شده از آخرین commit، بعلاوهٔ
 	# pauseِ بازِ جاری اگر داخل همین پنجره شروع شده باشد.
 	var window_paused: int = _session_paused_msec - _session_paused_committed_msec
-	if _pause_open_msec > _last_playtime_commit_msec:
+	# `>=` و نه `>`: اگر پاز **همان millisecondِ** آخرین commit باز شده باشد (در تست‌ها
+	# دقیقاً همین می‌افتد) پنجره هم پاز است؛ بی‌این، ۴۵۰ms خواب کودک به‌عنوان
+	# «زمان بازی» در داشبورد والدین صورتحساب می‌شد ✗ (خطای واقعیِ همین دور CI).
+	if _pause_open_msec > 0 and _pause_open_msec >= _last_playtime_commit_msec:
 		window_paused += now - _pause_open_msec
 	_session_paused_committed_msec = _session_paused_msec
+	window_paused = clampi(window_paused, 0, maxi(0, now - _last_playtime_commit_msec))
 	var delta_sec: float = float(now - _last_playtime_commit_msec - window_paused) / 1000.0
 	_last_playtime_commit_msec = now
 	if delta_sec > 0.0:

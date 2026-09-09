@@ -61,8 +61,14 @@ func test_pressed_state_follows_the_spec() -> void:
 	UIKit._press_down(btn)
 	assert_almost_eq(btn.scale.x, UIKit.PRESSED_SCALE, 0.001, "§۷: scale 0.95 هنگام فشرده‌شدن")
 	assert_gt(btn.pivot_offset.x, 0.0, "pivot در مرکز، وگرنه دکمه به گوشه می‌چسبد و می‌پرد")
-	assert_false(UIKit.haptics_allowed(),
-		"لرزش فقط روی دستگاه لمسی؛ در CI/دسکتاپ باید بی‌صدا باشد (تستِ قطعی)")
+	# ادعای درست: «هر دو شرط لازم است» — نه اینکه CI قطعاً لمس‌ناپذیر است
+	# (headless 4.7 برعکس گزارش می‌دهد ✗ و تستِ حدسی قرمز می‌شد).
+	assert_eq(UIKit.haptics_allowed(), DisplayServer.is_touchscreen_available()
+		and bool(SettingsStore.get_value("haptics_enabled")),
+		"لرزش = دستگاه لمسی ∧ تنظیمات؛ UI هیچ‌وقت خودش حدس نمی‌زند")
+	SettingsStore.set_value("haptics_enabled", false)
+	assert_false(UIKit.haptics_allowed(), "خاموش‌کردن از تنظیمات باید کافی باشد")
+	SettingsStore.set_value("haptics_enabled", true)
 
 
 func test_labels_ignore_touch_and_wrap() -> void:

@@ -12,16 +12,22 @@ const SETTINGS_SCENE := "res://scenes/ui/SettingsMenu.tscn"
 const TMP := "user://test_settings_menu.json"
 
 var _saved_model: PlayerModel = null
+var _saved_adaptive: bool = true
 
 
 func before_each() -> void:
 	_saved_model = GameState.active_model
+	_saved_adaptive = bool(DifficultyEngine.adaptive_selection)
 	SettingsStore.reset_for_tests()
 	SettingsStore.load_from(TMP)
 
 
 func after_each() -> void:
 	GameState.active_model = _saved_model
+	# این فایل «پیشرفت خودکار» را خاموش می‌کند؛ اگر برگردانده نشود، فایل تستِ بعدی
+	# (test_settings_store) موتور را از قبل خاموش می‌بیند و ادعای «پیش از apply
+	# دست‌نخورده است» بی‌معنی می‌شود ✓ ریشهٔ یکی از شکست‌های همین دور CI همین بود.
+	DifficultyEngine.adaptive_selection = _saved_adaptive
 	SettingsStore.reset()
 	SettingsStore.apply_audio()
 	Loc.set_locale(Loc.default_locale())

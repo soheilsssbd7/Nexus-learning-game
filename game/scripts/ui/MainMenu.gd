@@ -138,9 +138,12 @@ func has_progress() -> bool:
 
 
 func needs_onboarding() -> bool:
-	if GameState.is_first_run:
-		return true
-	return not bool(SettingsStore.get_value("onboarding_done"))
+	# ترتیب عمدی: **رکورد** مقدم بر پرچم است. `is_first_run` فقط «ذخیره‌ای نبود» را
+	# می‌گوید؛ اگر رکورد اتمام نوشته شده باشد همان منبع حقیقتِ پایدار است و کودک
+	# نباید دوباره پشت آموزش برود (`finish()` هر دو را با هم می‌نویسد ✓).
+	if bool(SettingsStore.get_value("onboarding_done")):
+		return false
+	return GameState.is_first_run
 
 
 func primary_action() -> String:

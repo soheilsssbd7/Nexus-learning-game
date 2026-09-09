@@ -99,7 +99,7 @@ func test_retry_resets_and_the_gate_is_touch_ready() -> void:
 	var before: String = gate.question_label.text
 	for i: int in range(ParentGate.MAX_ATTEMPTS - 1):
 		gate.submit("1")
-	gate.new_question()
+	gate.new_question(11)
 	assert_eq(gate.attempts, 0)
 	assert_false(gate.is_locked())
 	assert_ne(gate.question_label.text, before, "سؤال تازه باید تازه باشد")
