@@ -3,11 +3,4 @@
 [ext_resource type="Script" path="res://scripts/ui/DialogueBox.gd" id="1_box"]
 
 [node name="DialogueBox" type="Control"]
-layout_mode = 3
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 0
 script = ExtResource("1_box")

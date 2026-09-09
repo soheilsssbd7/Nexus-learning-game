@@ -20,8 +20,10 @@ func before_each() -> void:
 
 
 func _make() -> DialogueBox:
-	var box: DialogueBox = load(BOX_SCENE).instantiate() as DialogueBox
-	assert_not_null(box, "صحنه DialogueBox باید بارگذاری شود")
+	# جعبه را در کد می‌سازیم: `_ready` خودش کادر و برچسب را می‌سازد، پس تست به
+	# بارگذاری صحنه وابسته نیست (همان الگوی `LevelResultBar` در فاز ۳).
+	var box := DialogueBox.new()
+	box.name = "DialogueBoxUnderTest"
 	add_child_autofree(box)
 	return box
 
@@ -79,13 +81,29 @@ func test_it_reacts_to_the_hint_shown_signal() -> void:
 	assert_true(_box.visible)
 	assert_eq(_box.visible_text(), "یک کره را امتحان کن.")
 	_box.hide_now()
+	assert_false(_box.visible, "hide_now فوری است (تصمیمِ state نباید ۰.۲ ثانیه طول بکشد)")
+	_box.show_text("خداحافظ")
 	await get_tree().process_frame
-	await get_tree().process_frame
-	assert_false(_box.visible, "خروج هم ملایم است، نه ناپدیدشدنِ ناگهانی")
+	assert_true(_box.visible)
+	_box.hide_soft()
+	assert_true(_box.visible, "hide_soft اول فید می‌کند، بعد مخفی")
+	await get_tree().create_timer(0.45).timeout
+	assert_false(_box.visible, "و در آخر واقعاً می‌رود (§۷ «ملایم» ولی نه بی‌پایان)")
+
+
+func test_the_shipped_scene_instantiates_the_same_box() -> void:
+	# صحنه‌ی فاز ۶ (HUD) همین فایل را می‌گذارد؛ ریشه باید DialogueBox باشد
+	var packed: PackedScene = load(BOX_SCENE)
+	assert_not_null(packed, "%s باید بارگذاری شود" % BOX_SCENE)
+	if packed == null:
+		return
+	var node: Node = packed.instantiate()
+	add_child_autofree(node)
+	assert_true(node is DialogueBox, "اسکریپت صحنه کلاس را می‌پوشاند: " + str(node))
 
 
 func test_it_can_be_silent_and_can_stay_forever() -> void:
-	var box: DialogueBox = load(BOX_SCENE).instantiate() as DialogueBox
+	var box := DialogueBox.new()
 	box.listen_to_event_bus = false
 	box.auto_hide_sec = 0.0
 	add_child_autofree(box)

@@ -67,7 +67,7 @@ func _ready() -> void:
 	_timer.name = "AutoHide"
 	_timer.one_shot = true
 	_timer.wait_time = maxf(0.0, auto_hide_sec)
-	_timer.timeout.connect(hide_now)
+	_timer.timeout.connect(hide_soft)
 	add_child(_timer)
 
 	modulate.a = 0.0
@@ -96,7 +96,19 @@ func show_text(text: String) -> void:
 		_timer.start()
 
 
+## مخفی‌کردن فوری (حالتِ «متن تهی» و تست): تصمیمِ state باید همان لحظه گرفته شود،
+## وگرنه یک کادر نیمه‌شفافِ خالی روی صحنه می‌ماند.
 func hide_now() -> void:
+	if _timer != null:
+		_timer.stop()
+	if _fade != null and _fade.is_valid():
+		_fade.kill()
+	visible = false
+	modulate.a = 0.0
+
+
+## خروج «ملایم» §۷: فید و بعد مخفی‌شدن — همین را تایمر خودکار صدا می‌زند.
+func hide_soft() -> void:
 	if _timer != null:
 		_timer.stop()
 	if not visible:

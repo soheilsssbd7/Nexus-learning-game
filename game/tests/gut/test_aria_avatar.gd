@@ -77,6 +77,7 @@ func test_states_are_visually_distinguishable() -> void:
 	assert_false(bool(looped[AriaAvatar.STATE_CELEBRATING]),
 		"celebrating یک‌بار پخش می‌شود و تمام")
 	for state: String in AriaAvatar.STATES:
+		assert_true(_aria.play_state(state), state + " دوباره قابل‌فراخوانی است")
 		assert_eq(str(_aria.core_modulate()), str(AriaAvatar.core_color_for(state)),
 			state + ": رنگ هسته از همان جدول §۳ می‌آید")
 

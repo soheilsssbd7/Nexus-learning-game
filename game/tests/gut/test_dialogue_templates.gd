@@ -47,13 +47,19 @@ func test_parses_a_good_template() -> void:
 
 
 func test_broken_json_never_crashes_and_says_why() -> void:
-	var bad: Dictionary = _index("{ this is not json")
+	# عمداً JSON بی‌اعتبار («{ this is not json ») نمی‌دهیم: خودِ Godot آن را با یک ERROR
+	# لاگ می‌کند و GUT هر ERROR را «unexpected» می‌شمارد؛ همان حالت با `load_file` روی
+	# مسیر ناموجود سنجیده می‌شود. اینجا «شکلِ بدِ ولی JSONِ درست» مهم است.
+	var bad: Dictionary = _index("{\"just\": \"a shape without hints\"}")
 	assert_false(bool(bad["ok"]))
-	assert_false(str(bad["error"]).is_empty())
+	assert_true(str(bad["error"]).contains("hints"), str(bad["error"]))
 	assert_false(bool(_index("").ok), "متن خالی")
 	assert_false(bool(_index("[]").ok), "ریشه باید object باشد")
 	assert_false(bool(_index("{\"hints\": []}").ok), "hints خالی")
 	assert_false(bool(_index("{\"hints\": 3}").ok), "hints باید آرایه باشد")
+	var missing_file: Dictionary = DialogueTemplate.load_file("res://data/dialogue/nope.json")
+	assert_false(bool(missing_file["ok"]), "فایل نبود → ok=false، نه crash")
+	assert_true(str(missing_file["error"]).contains("پیدا نشد"), str(missing_file["error"]))
 
 
 func test_one_variant_is_rejected() -> void:
