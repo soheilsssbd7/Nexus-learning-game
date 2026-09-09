@@ -32,7 +32,10 @@ var _last_playtime_commit_msec: int = 0
 var _level_paused_msec: int = 0
 var _pause_open_msec: int = 0
 var _session_paused_msec: int = 0
-var _session_paused_committed_msec: int = 0
+## چقدر از زمانِ پازِ نشست تا **آخرین commit** کسر شده است. نگه‌داشتنِ «مجموعِ پاز»
+## کافی نیست: pauseِ باز، در دو commit پشت‌سرهم دوبار کسر می‌شود و زمان واقعیِ بازی
+## صفر می‌ماند (خطای واقعی همین دور CI) ⇒ باید «مقدارِ کسرشده» را جدا حساب کنیم.
+var _session_paused_billed_msec: int = 0
 
 
 func _ready() -> void:
@@ -116,7 +119,7 @@ func reset_time_windows_for_tests() -> void:
 	_last_playtime_commit_msec = now
 	_level_paused_msec = 0
 	_session_paused_msec = 0
-	_session_paused_committed_msec = 0
+	_session_paused_billed_msec = 0
 	_pause_open_msec = 0
 	is_paused = false
 
@@ -166,15 +169,15 @@ func commit_playtime() -> void:
 	if active_model == null or not is_instance_valid(active_model):
 		return
 	var now: int = Time.get_ticks_msec()
-	# زمانِ پازِ همین پنجره کم می‌شود: جمع pauseهای بسته‌شده از آخرین commit، بعلاوهٔ
-	# pauseِ بازِ جاری اگر داخل همین پنجره شروع شده باشد.
-	var window_paused: int = _session_paused_msec - _session_paused_committed_msec
-	# `>=` و نه `>`: اگر پاز **همان millisecondِ** آخرین commit باز شده باشد (در تست‌ها
-	# دقیقاً همین می‌افتد) پنجره هم پاز است؛ بی‌این، ۴۵۰ms خواب کودک به‌عنوان
-	# «زمان بازی» در داشبورد والدین صورتحساب می‌شد ✗ (خطای واقعیِ همین دور CI).
-	if _pause_open_msec > 0 and _pause_open_msec >= _last_playtime_commit_msec:
-		window_paused += now - _pause_open_msec
-	_session_paused_committed_msec = _session_paused_msec
+	# «مجموعِ پاز تا این لحظه» = پازهای بسته + پازِ بازِ جاری؛ تفاضلش از «چقدر تا
+	# آخرین commit کسر شده» دقیقاً پازِ همین پنجره را می‌دهد ✓ نه کم (۴۵۰ms خوابِ
+	# کودک به‌عنوان زمان بازی صورتحساب می‌شد) و نه دوبار (وگرنه commit بعدی صفر
+	# می‌شد و «زمان واقعی بازی» هرگز ثبت نمی‌شد ✗ هر دو را همین دور CI گرفت).
+	var paused_now: int = _session_paused_msec
+	if _pause_open_msec > 0:
+		paused_now += now - _pause_open_msec
+	var window_paused: int = paused_now - _session_paused_billed_msec
+	_session_paused_billed_msec = paused_now
 	window_paused = clampi(window_paused, 0, maxi(0, now - _last_playtime_commit_msec))
 	var delta_sec: float = float(now - _last_playtime_commit_msec - window_paused) / 1000.0
 	_last_playtime_commit_msec = now
