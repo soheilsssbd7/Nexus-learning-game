@@ -79,3 +79,10 @@ drag_end={
 "deadzone": 0.5,
 "events": []
 }
+
+[audio]
+
+; فاز ۶ (تسک ۶.۳): اسلایدر «موسیقی» و «جلوه‌ها» باید دو باس جدا داشته باشند، پس
+; چیدمان باس‌ها از همینجا تعریف می‌شود (Master ← Music/SFX). فاز ۷ (AudioManager)
+; فقط پخش را به این باس‌ها وصل می‌کند و دیگر ساختار صدا دست‌نخورده می‌ماند.
+buses/default_bus_layout="res://assets/audio/default_bus_layout.tres"
