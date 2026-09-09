@@ -120,6 +120,10 @@ func show_hint(hint_id: String) -> void:
 	last_text = text
 	last_hint_id = hint_id
 	set_state("hint_light")
+	# §۴ سند ۰۳: `aria_transcript_log` مبنای شفافیت برای والد است ⇒ همین‌جا نوشته
+	# می‌شود (نه در UI): هر متنی که کودک دید، در مدل هم ثبت شده باشد.
+	if GameState.active_model != null:
+		GameState.active_model.record_hint_shown(hint_id, GameState.current_level_id, text)
 	if emits_hint_shown:
 		EventBus.hint_shown.emit(hint_id, GameState.current_level_id, text)
 

@@ -149,6 +149,22 @@ static func make_label(key: String, px: int = DIALOG_FONT_PX,
 	return label
 
 
+## برچسبِ **داده** (نه رشته‌ی UI): بی‌`loc_key`، تا `retranslate()` عددِ مدل را با
+## ترجمه‌ی یک کلید عوض نکند (خطایی که در داشبورد والدین فاجعه است: جای «۳ ساعت»
+## بنشیند «زمان بازی»).
+static func make_raw_label(text_value: String, px: int = DIALOG_FONT_PX,
+		color: Color = Palette.CLOUD_WHITE) -> Label:
+	var label := Label.new()
+	label.text = text_value
+	label.add_theme_font_size_override("font_size", px)
+	label.add_theme_color_override("font_color", color)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.text_direction = Loc.text_direction()
+	label.horizontal_alignment = Loc.alignment()
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
 ## کادر نیمه‌شفاف (پشت‌زمینه‌ی متن‌ها/HUD) — همان گوشه‌ی ۱۶px و حاشیه‌ی ۲۴px.
 static func make_panel(alpha: float = 0.82, padding: float = MARGIN) -> PanelContainer:
 	var panel := PanelContainer.new()

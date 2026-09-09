@@ -138,12 +138,18 @@ func count_error_pattern(error_type: String) -> int:
 
 
 ## §۲: این ورودی‌ها مبنای شفافیتِ داشبورد والدین‌اند → حذف خودکار نداریم (فقط سقف چرخشی).
-func record_hint_shown(hint_id: String, level_id: String) -> void:
-	aria_transcript_log.append({
+## §۲ سند داده‌ها سه فیلد را تعریف کرده (timestamp/hint_id/level_id)؛ `text` **افزودهٔ
+## فاز ۶** است با پیش‌فرض تهی (ADR-048): داشبورد والدین باید «چه گفت» را نشان بدهد،
+## نه فقط کلیدِ قالب را. دادهٔ قدیمی بدون این کلید هم خوانده می‌شود.
+func record_hint_shown(hint_id: String, level_id: String, text: String = "") -> void:
+	var entry := {
 		"timestamp": Time.get_datetime_string_from_system(true),
 		"hint_id": hint_id,
 		"level_id": level_id,
-	})
+	}
+	if not text.is_empty():
+		entry["text"] = text
+	aria_transcript_log.append(entry)
 	while aria_transcript_log.size() > MAX_TRANSCRIPT_ENTRIES:
 		aria_transcript_log.pop_front()
 

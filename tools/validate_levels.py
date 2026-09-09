@@ -239,7 +239,7 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
     rel = path.relative_to(ROOT).as_posix()
     raw = load_json(path, errs)
     meta = {"file": rel, "level_id": None, "tier": None, "difficulty_elo": None,
-            "solvable": False, "leak_numbers": [], "hint_ids": []}
+            "solvable": False, "leak_numbers": [], "hint_ids": [], "concept_tags": []}
     if not isinstance(raw, dict):
         return meta
 
@@ -265,6 +265,8 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
         errs.append(f"{rel}: world باید {sorted(ALLOWED_WORLDS)} باشد")
 
     tags = raw.get("concept_tags")
+    if isinstance(tags, list):
+        meta["concept_tags"] = [x for x in tags if isinstance(x, str)]
     if not isinstance(tags, list) or not tags:
         errs.append(f"{rel}: concept_tags باید آرایه‌ی غیرخالی باشد")
     else:
@@ -357,6 +359,23 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
     return meta
 
 
+def check_concept_labels(metas: list[dict], key_sets: dict[str, list[str]], errs: list[str]) -> None:
+    """§۶.۵: نمودار تسلط داشبورد، مهارت‌ها را با `Loc.t("skill.<tag>")` نشان می‌دهد.
+
+    اگر برچسبی برای یک `concept_tag` تازه تعریف نشده باشد، والد «addition_basic»
+    می‌بیند؛ قانون: هر tag در **همهٔ** localeها باید `skill.<tag>` داشته باشد.
+    (فقط وقتی فایل رشته‌ها موجود باشد سنجیده می‌شود — فاز ۰..۵ بی‌مصرف نمی‌شود.)
+    """
+    if not key_sets:
+        return
+    for m in metas:
+        for tag in m.get("concept_tags", []):
+            for code, keys in sorted(key_sets.items()):
+                if f"skill.{tag}" not in keys:
+                    errs.append(f"{m['file']}: برچسب والدین `skill.{tag}` در زبان "
+                                f"«{code}» تعریف نشده (§۶.۵)")
+
+
 def validate_progression(metas: list[dict], errs: list[str]) -> None:
     """DoD فاز ۷: منحنی دشواری داخل هر Tier یکنواخت افزایشی، بدون پرش."""
     by_tier: dict[int, list[dict]] = {}
@@ -419,6 +438,8 @@ def check_l10n(errs: list[str]) -> dict:
         return summary
     summary["locales"] = sorted(locales.keys())
     summary["keys"] = len(ref)
+    summary["key_sets"] = {str(code): sorted(table.keys())
+                           for code, table in strings.items() if isinstance(table, dict)}
 
     rtl = data.get("rtl_locales", [])
     if not isinstance(rtl, list):
@@ -481,6 +502,7 @@ def main() -> int:
             ids[m["level_id"]] = m["file"]
 
     validate_progression(metas, errs)
+    check_concept_labels(metas, l10n.get("key_sets", {}), errs)
     check_answer_leaks(metas, hints, errs)
 
     total = len(metas)
