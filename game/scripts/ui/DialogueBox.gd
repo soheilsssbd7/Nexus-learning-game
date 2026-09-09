@@ -66,7 +66,10 @@ func _ready() -> void:
 	_timer = Timer.new()
 	_timer.name = "AutoHide"
 	_timer.one_shot = true
-	_timer.wait_time = maxf(0.0, auto_hide_sec)
+	# دام: Godot روی `Timer` با `wait_time <= 0` خطای «Time should be greater than zero»
+	# می‌زند و GUT هر ERROR را شکست حساب می‌کند. حالت «بمان» اصلاً تایمر را روشن نمی‌کند،
+	# پس این کفِ ۱ ثانیه هیچ رفتار observable ندارد.
+	_timer.wait_time = auto_hide_sec if auto_hide_sec > 0.0 else 1.0
 	_timer.timeout.connect(hide_soft)
 	add_child(_timer)
 
