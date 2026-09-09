@@ -84,6 +84,6 @@ static func from_dict(d: Dictionary) -> SkillRating:
 	var r := SkillRating.new()
 	r.elo = clampf(float(d.get("elo", ELO_START)), ELO_MIN, ELO_MAX)
 	r.confidence = clampf(float(d.get("confidence", 0.0)), 0.0, 1.0)
-	r.attempts = int(d.get("attempts", 0))
+	r.attempts = maxi(0, int(d.get("attempts", 0)))  # شمارنده‌ی منفی از دیسک = 0
 	r.last_seen = str(d.get("last_seen", ""))
 	return r
