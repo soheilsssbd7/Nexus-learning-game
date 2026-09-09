@@ -41,6 +41,13 @@ signal tray_changed(tray_count: int, placed_count: int)
 ## سیگنال‌های فیدبک (orb_placed/balance_changed) و `level_won** دست‌نخورده‌اند:
 ## آموزش باید واقعی به نظر برسد.
 @export var report_progress: bool = true
+## تسک ۶.۴: HUD داخل صحنهٔ سطح (دکمهٔ راهنما + پیشرفت + Aria + جعبهٔ گفت‌وگو).
+## بدهیِ فاز ۵ همین‌جا بسته شد: آن فاز منطق و صحنه‌ها را ساخت، ولی هیچ صحنه‌ای
+## آن‌ها را instantiate نمی‌کرد.
+@export var hud_enabled: bool = true
+## پازِ واقعی (تسک ۶.۳) از همین صحنه: resume یعنی همان درختِ زنده، پس منوی پاز
+## فرزندِ صحنه است نه یک صحنهٔ جدا که با change_scene وضعیت را می‌سوزاند.
+@export var pause_menu_enabled: bool = true
 ## نردبان راهنما (تسک ۴.۳): تایمر بی‌حرکتی/شمارش تلاش روی همین سطح. خاموش‌کردنش
 ## صحنه را به رفتار فاز ۳ برمی‌گرداند (بدون هیچ راهنمای خودکار).
 @export var hint_timing_enabled: bool = true
@@ -50,6 +57,8 @@ signal tray_changed(tray_count: int, placed_count: int)
 
 var result_bar: LevelResultBar = null
 var hint_timing: HintTimingSystem = null
+var hud: HUD = null
+var pause_menu: PauseMenu = null
 
 var level_id: String = ""
 var tier: int = 1
@@ -89,6 +98,16 @@ func _ready() -> void:
 		result_bar.controller = self
 		result_bar.allow_scene_change = LevelLoader.change_scene_on_start
 		add_child(result_bar)
+	if hud_enabled and hud == null:
+		hud = HUD.new()
+		hud.name = "HUD"
+		hud.controller = self
+		add_child(hud)
+	if pause_menu_enabled and pause_menu == null:
+		pause_menu = PauseMenu.new()
+		pause_menu.name = "PauseMenu"
+		pause_menu.allow_scene_change = LevelLoader.change_scene_on_start
+		add_child(pause_menu)
 	if build_on_ready:
 		build()
 
@@ -492,6 +511,31 @@ func any_orb_draggable() -> bool:
 				if is_instance_valid(placed) and placed.drag_enabled:
 					return true
 	return false
+
+
+func open_pause() -> void:
+	if pause_menu != null and is_instance_valid(pause_menu):
+		pause_menu.open(self)
+		return
+	if hud != null and is_instance_valid(hud):
+		hud.pause_level()
+
+
+func close_pause() -> void:
+	if pause_menu != null and is_instance_valid(pause_menu):
+		pause_menu.resume()
+
+
+## §۶.۳: بازگشت با دکمهٔ عقبِ Android = پاز، نه خروج از بازی.
+func _unhandled_input(event: InputEvent) -> void:
+	if not pause_menu_enabled:
+		return
+	if event.is_action_pressed("ui_cancel"):
+		if pause_menu != null and pause_menu.is_open():
+			pause_menu.resume()
+		else:
+			open_pause()
+		get_viewport().set_input_as_handled()
 
 
 func _all_balanced() -> bool:

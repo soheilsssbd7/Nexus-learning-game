@@ -214,6 +214,8 @@ func _build_scale_step() -> void:
 	controller.hint_timing_enabled = false
 	controller.error_classification_enabled = false
 	controller.result_bar_enabled = false
+	controller.hud_enabled = false
+	controller.pause_menu_enabled = false
 	var holder := Node2D.new()
 	holder.name = "TutorialHolder"
 	holder.position = Vector2(0.0, 260.0)
