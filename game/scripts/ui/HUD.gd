@@ -193,7 +193,10 @@ func refresh_progress() -> void:
 	if progress_label == null:
 		return
 	var tier: int = controller.tier if controller != null else GameState.current_tier
-	_tier_ids = LevelLoader.levels_for_tier(tier)
+	# `Array[String]` برگردانده می‌شود (نه Variant): `_tier_ids` همان‌جا مقدار اولیه‌ی
+	# تهی دارد و Tierِ بدون سطح فقط صفر پیپ می‌دهد، نه خطا.
+	var ids: Array[String] = LevelLoader.levels_for_tier(tier)
+	_tier_ids = ids
 	var level_id: String = controller.level_id if controller != null else GameState.current_level_id
 	_current_index = _tier_ids.find(level_id)
 	var total: int = maxi(_tier_ids.size(), 1)

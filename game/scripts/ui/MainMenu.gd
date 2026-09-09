@@ -113,13 +113,15 @@ func refresh() -> void:
 	if primary_button == null:
 		return
 	var mode: String = primary_action()
-	match mode:
-		"onboarding":
-			primary_button.text = Loc.t("onboarding.start")
-		"continue":
-			primary_button.text = Loc.t("menu.continue")
-		_:
-			primary_button.text = Loc.t("menu.play")
+	var key: String = "menu.play"
+	if mode == "onboarding":
+		key = "onboarding.start"
+	elif mode == "continue":
+		key = "menu.continue"
+	# کلید را در **متا** می‌نویسیم، نه متن را: `retranslate()` همین متا را می‌خواند و
+	# اگر مستقیم متن ست می‌شد، سطرِ بعد پاکش می‌کرد (باگی که «ادامه‌ی بازی» را به
+	# «شروع بازی» برمی‌گرداند) ✓ و با عوض‌شدن زبان هم برچسب درست می‌ماند.
+	primary_button.set_meta(&"loc_key", key)
 	UIKit.retranslate(self)
 	for btn: Button in buttons:
 		if btn.name == "menu_quit":

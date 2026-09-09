@@ -324,7 +324,7 @@ func _on_adaptive_toggled(on: bool) -> void:
 func export_for_review() -> void:
 	export_requested.emit()
 	var json_text: String = SaveSystem.export_json_for_parent()
-	DisplayServer.clipboard_write(json_text)
+	DisplayServer.clipboard_set(json_text)
 	if export_label != null:
 		export_label.text = Loc.t("dashboard.exported")
 		export_label.visible = true

@@ -189,16 +189,22 @@ static func make_vbox(separation: float = GAP) -> VBoxContainer:
 ## جهت یک کانتینر از Locale می‌آید؛ «RTL درست» یعنی اگر زبان en شد، همان چیدمان
 ## برمی‌گردد — نه اینکه صحنه‌ها `if fa: ...` داشته باشند.
 static func apply_flow(node: Node) -> void:
+	# فقط کلاس‌هایی که **واقعاً** این خصوصیت‌ها را دارند لمس می‌شوند: `ColorRect`/
+	# `PanelContainer`/`BoxContainer` در Godot ۴ عضو `text_direction` ندارند و انتساب به
+	# آنها خطای运行时 است (GUT هر خطای موتور را «Unexpected Error» می‌شمارد ⇒ CI قرمز،
+	# بدون آنکه حتی یک assert نقض شده باشد) ✓ RichTextLabel ارث‌برِ Label است ⇒ پوشش داده شد.
 	for child: Node in node.get_children():
-		if child is Control:
-			var ctrl := child as Control
-			ctrl.text_direction = Loc.text_direction()
-			if ctrl is LineEdit:
-				(ctrl as LineEdit).alignment = Loc.alignment()
-			elif ctrl is Label:
-				(ctrl as Label).horizontal_alignment = Loc.alignment()
-			elif ctrl is Button:
-				(ctrl as Button).text_direction = Loc.text_direction()
+		if child is Label:
+			var label := child as Label
+			label.text_direction = Loc.text_direction()
+			label.horizontal_alignment = Loc.alignment()
+		elif child is Button:
+			var btn := child as Button
+			btn.text_direction = Loc.text_direction()
+		elif child is LineEdit:
+			var field := child as LineEdit
+			field.text_direction = Loc.text_direction()
+			field.alignment = Loc.alignment()
 		apply_flow(child)
 
 
