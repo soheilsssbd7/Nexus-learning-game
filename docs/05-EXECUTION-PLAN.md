@@ -367,6 +367,7 @@ wrap + سقفِ طولِ رشته‌ها ✓ تنظیماتِ زندهٔ صدا/
 | ۷.۰ باتِ محتوا | `6fb51e8` | `tests/gut/test_all_content_playable.gd`: پنج تستِ کشف‌محور (Loader همهٔ فایل‌ها را می‌بیند ✓ بردِ `solution_spec.intended` در موتورِ واقعی ✓ باختهٔ `wrong_ops` ✓ قابل‌تحویل‌بودن هر `hint_id` ✓ رابطهٔ Elo بین Tierها ✓) + سه قاعدهٔ تازه در `validate_levels.py` | gdlint/parse ✓ · validator ۱۵/۱۵ ✓ | ✅ |
 | ۷.۱ Tier 2 | `6fabebd` | ۱۰ سطح `data/levels/tier2/level_2_01..10.json` — mechanic «بدهی/عدد منفی»، Elo ۱۱۰۰..۱۴۶۰، بدون رقم در هیچ راهنما، یک `tolerance: 0.5/approx`، یک «فقط با بدهی حل می‌شود»، یک «یک کره کافی است» | `target_value = sum(left) − sum(right_fixed)` از حساب ساخته شد، نه از دست ⇒ `LevelData.validate()` + DPِ ابزار + باتِ GUT هر سه ✓ | ✅ |
 | ۷.۱b صفحه‌بندی نقشه | `67ebcd7` | `WorldMap` صفحه‌بندی‌شده (صفحاتِ داخلِ Tier، متوازن) + `common.previous/next` + سه تستِ کهنه به استنتاج از دیسک | ADR-052: با ۱۵ سطح نودها روی هم می‌افتادند ✗✓ باگِ واقعیِ UI که فقط با رشدِ محتوا دیده می‌شد | ✅ |
+| ۷.۱c قاعدهٔ «هیچ زیرمجموعه‌ای نبَرَد» | e43bdc4 | subset-check در `validate_levels.py` + چیدمانِ یکی‌یکی در بات + دادهٔ ۲_۰۱/۲_۰۷ | ADR-053: بات، دو سطح را که `wrong_ops`شان «حلِ درست + یک کره» بود رد کرد ✓✓ | ✅ |
 
 **جمع محتوا:** ۱۵ سطح از ≈۴۵ (Tier ۱: ۵ · Tier ۲: ۱۰) · Elo پیوسته ۹۰۰→۱۴۶۰ · `validate_levels.py`: «قابل‌حل تأییدشده: ۱۵/۱۵».
 
