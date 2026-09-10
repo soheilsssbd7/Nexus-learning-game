@@ -70,8 +70,8 @@ func test_first_run_sends_the_child_to_onboarding() -> void:
 	assert_eq(menu.primary_button.text, Loc.t("onboarding.start"))
 	watch_signals(menu)
 	menu.play()
-	assert_signal_emitted_with_parameters(menu, "play_requested", ["onboarding"],
-		"اولین اجرا نباید مستقیم وسط یک سطح پرتاب شود")
+	# اولین اجرا نباید مستقیم وسط یک سطح پرتاب شود (پارامتر چهارم GUT = index، نه پیام)
+	assert_signal_emitted_with_parameters(menu, "play_requested", ["onboarding"])
 
 
 func test_onboarding_done_is_persisted_and_honoured() -> void:

@@ -72,13 +72,15 @@ func test_hint_button_walks_the_ladder_one_rung_per_press() -> void:
 	GameState.hints_used_this_level = 0
 	watch_signals(EventBus)
 	hud.hint_button.pressed.emit()
-	assert_signal_emitted_with_parameters(EventBus, "hint_requested", ["gentle_nudge_01"],
-		"پرس اول = اولین پلهٔ نردبانِ همین سطح")
+	# پرس اول = اولین پلهٔ نردبانِ همین سطح.  دامِ GUT ۹: پارامتر چهارمِ این assert
+	# «شمارهٔ فراخوانی» است نه پیام؛ متن آنجا = `String == int` داخل خودِ GUT ✗✗
+	# (و GUT هر خطای موتور را شکست می‌داند) ⇒ پیام را اینجا کامنت می‌کنیم.
+	assert_signal_emitted_with_parameters(EventBus, "hint_requested", ["gentle_nudge_01"])
 	assert_eq(GameState.hints_used_this_level, 1,
 		"راهنمای دستی هم شمرده می‌شود، وگرنه نرخ راهنمای والدین دروغ می‌گوید")
 	hud.hint_button.pressed.emit()
-	assert_signal_emitted_with_parameters(EventBus, "hint_requested", ["socratic_operation_01"],
-		"پرس دوم باید یک پله بالاتر باشد، نه تکرارِ همان متن")
+	# پرس دوم باید یک پله بالاتر باشد، نه تکرارِ همان متن
+	assert_signal_emitted_with_parameters(EventBus, "hint_requested", ["socratic_operation_01"])
 	assert_eq(GameState.hints_used_this_level, 2)
 	assert_eq(scene.hint_timing.fired_count(), 2)
 
