@@ -105,7 +105,7 @@ func test_the_intended_solution_wins_on_every_level() -> void:
 		var wanted: Variant = (intended as Dictionary).get("right_orbs", [])
 		if not (wanted is Array) or (wanted as Array).is_empty():
 			continue
-		var scene := _scene_for(lid)
+		var scene: LevelController = await _scene_for(lid)
 		if scene == null:
 			continue
 		var used: Array[WeightOrb] = []
@@ -134,7 +134,7 @@ func test_the_documented_wrong_move_never_wins() -> void:
 		var wanted: Variant = (wrong as Dictionary).get("right_orbs", [])
 		if not (wanted is Array) or (wanted as Array).is_empty():
 			continue
-		var scene := _scene_for(lid)
+		var scene: LevelController = await _scene_for(lid)
 		if scene == null:
 			continue
 		var used: Array[WeightOrb] = []

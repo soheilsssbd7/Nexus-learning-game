@@ -139,6 +139,10 @@ func _first_open_index() -> int:
 func _clear_nodes() -> void:
 	for b: Button in buttons:
 		if is_instance_valid(b):
+			# `remove_child` قبل از `queue_free` لازم است: تا پایانِ فریم، نودِ در صفِ حذف
+			# هنوز همان اسم را نگه می‌دارد ⇒ نودِ تازه با نامِ تکراری، خودکار
+			# «@Button@1372» می‌شود ✗✓ (این را تستِ اسمِ نودها در CI گرفت).
+			remove_child(b)
 			b.queue_free()
 	buttons.clear()
 

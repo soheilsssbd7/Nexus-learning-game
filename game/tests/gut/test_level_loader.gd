@@ -89,9 +89,9 @@ func test_every_authored_level_loads_and_validates() -> void:
 			var jump: int = lv.difficulty_elo - previous_elo
 			assert_true(jump >= 0 and jump <= ELO_JUMP_LIMIT,
 				"منحنی دشواری باید افزایشی و بدون پرش باشد (%d→%d)" % [previous_elo, lv.difficulty_elo])
-	previous_elo = lv.difficulty_elo
-	previous_tier = lv.tier
-	loaded += 1
+		previous_elo = lv.difficulty_elo
+		previous_tier = lv.tier
+		loaded += 1
 	assert_eq(loaded, _files_on_disk_all(), "هر فایلِ روی دیسک باید بارگذاری شود")
 	assert_eq(LevelLoader.last_error, "", "هیچ مسیری نباید خطا رد کند")
 

@@ -66,11 +66,17 @@ func test_scene_exists_and_builds_one_node_per_level() -> void:
 	var seen: Dictionary = {}
 	for page: int in range(_map.pages.size()):
 		_map.goto_page(page)
-		for btn: Button in _map.buttons:
-			var number: int = str(btn.name).trim_prefix("Level_").to_int()
+		var indices: Array = _map.pages[page]
+		assert_eq(_map.buttons.size(), indices.size())
+		for i: int in range(indices.size()):
+			# شماره از خودِ صفحه می‌آید و **اسم** فقط راستی‌آزمایی می‌شود: اگر شمارش از
+			# اسم خوانده شود، یک تصادمِ اسم (نودِ در صفِ حذف ⇒ «@Button@1372» ✗) کل تست را
+			# گمراه می‌کند که «سطحی وجود ندارد»، درحالی‌که مشکلِ واقعی نام‌گذاری است.
+			var number: int = int(indices[i]) + 1
 			assert_false(seen.has(number), "سطح %d دو بار روی نقشه است" % number)
 			seen[number] = true
-		assert_eq(_map.buttons.size(), (_map.pages[page] as Array).size())
+			assert_eq(str(_map.buttons[i].name), "Level_%02d" % number,
+				"نامِ نود باید شمارهٔ سراسریِ سطح باشد")
 	for i: int in range(_map.level_count()):
 		assert_true(seen.has(i + 1), "سطح %d هیچ نودی روی هیچ صفحه‌ای ندارد" % (i + 1))
 	_map.goto_page(0)
