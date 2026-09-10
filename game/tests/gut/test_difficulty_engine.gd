@@ -229,12 +229,23 @@ func test_kill_switch_returns_to_the_authored_order() -> void:
 	DifficultyEngine.adaptive_selection = true
 
 
+## «دیگر سطحي نیست» را **می‌سازیم** (آخرین Tierِ نوشته‌شده را تمام می‌کنیم) ✗✓ فرضِ
+## فاز ۳ («Tier 2 خالی است») با اولین محتوای فاز ۷ ترکید و همان تست، رفتارِ درستِ
+## موتور را «باگ» گزارش می‌کرد — خطرناک‌ترین نوع تستِ کهنه ✓✓ حالا با هر تعداد Tier
+## که نوشته شود سنجش درست است.
 func test_finished_tier_with_no_next_files_ends_cleanly() -> void:
-	for id: String in LevelLoader.levels_for_tier(1):
+	var last_tier: int = 0
+	for tier: int in range(1, 6):
+		if not LevelLoader.levels_for_tier(tier).is_empty():
+			last_tier = tier
+	assert_gte(last_tier, 1, "دست‌کم یک Tier باید روی دیسک باشد")
+	var ids: Array[String] = LevelLoader.levels_for_tier(last_tier)
+	for id: String in LevelLoader.level_ids():
 		_model.mark_level_completed(id, 20.0, 0)
-	var last: String = LevelLoader.levels_for_tier(1)[4]
+	var last: String = ids[ids.size() - 1]
 	var picked: Dictionary = DifficultyEngine.next_level(last)
-	assert_eq(str(picked["level_id"]), "", "Tier 2 هنوز سطحی ندارد → «بعدی نیست»، نه crash")
+	assert_eq(str(picked["level_id"]), "",
+		"پایانِ آخرین Tierِ نوشته‌شده (Tier %d) = «بعدی نیست»، نه crash" % last_tier)
 	assert_eq(str(picked["reason"]), "no_candidates")
 	assert_eq(DifficultyEngine.pick_next_level_id(last), "", "seam هم تهی می‌دهد تا ResultBar به نقشه برود")
 

@@ -56,8 +56,22 @@ func test_levels_for_tier_filters() -> void:
 	assert_gte(LevelLoader.levels_for_tier(2).size(), 1, "فاز ۷: Tier 2 خالی نماند")
 
 
+## `tier` از **پیشوندِ id** و پوشه مثلث‌سنجی می‌شود (فاز ۳ فرض می‌کرد همه‌چیز Tier 1 است ✗✓
+## ⇒ با اولین Tierِ تازه، آن `assert_eq(lv.tier, 1)` می‌شد «تستی که داده را ممنوع می‌کند»).
+func _tier_of(id: String) -> int:
+	return id.trim_prefix("tier").split("_")[0].to_int()
+
+
+func _files_on_disk_all() -> int:
+	var total: int = 0
+	for tier: int in range(1, 6):
+		total += _files_on_disk(tier)
+	return total
+
+
 func test_every_authored_level_loads_and_validates() -> void:
 	var previous_elo: int = -1
+	var previous_tier: int = -1
 	var loaded: int = 0
 	for id: String in LevelLoader.level_ids():
 		var lv: LevelData = LevelLoader.load_level(id, false)
@@ -66,15 +80,19 @@ func test_every_authored_level_loads_and_validates() -> void:
 			continue
 		assert_eq(lv.validate().size(), 0, "%s داده‌ی ناسازگار دارد: %s" % [id, str(lv.validate())])
 		assert_eq(lv.level_id, id)
-		assert_eq(lv.tier, 1)
+		assert_eq(lv.tier, _tier_of(id), "%s: فیلد `tier` با پیشوندِ `level_id` نمی‌خواند" % id)
+		assert_true(id.begins_with("tier%d_" % lv.tier), "%s: id زیرِ Tier خودش نیست" % id)
 		assert_gt(lv.available_count(), 0, "%s سینی خالی ندارد" % id)
-		if previous_elo >= 0:
+		if previous_elo >= 0 and lv.tier == previous_tier:
+			# نردبانِ **داخل** هر Tier؛ رابطه‌ی بین Tierها را test_all_content_playable
+			# می‌سنجد (مرز Tier مجاز است ۱ پله بالا برود ⇒ اینجا چک‌کردنش خطای ساختگی بود ✗)
 			var jump: int = lv.difficulty_elo - previous_elo
 			assert_true(jump >= 0 and jump <= ELO_JUMP_LIMIT,
 				"منحنی دشواری باید افزایشی و بدون پرش باشد (%d→%d)" % [previous_elo, lv.difficulty_elo])
-		previous_elo = lv.difficulty_elo
-		loaded += 1
-	assert_eq(loaded, 5)
+	previous_elo = lv.difficulty_elo
+	previous_tier = lv.tier
+	loaded += 1
+	assert_eq(loaded, _files_on_disk_all(), "هر فایلِ روی دیسک باید بارگذاری شود")
 	assert_eq(LevelLoader.last_error, "", "هیچ مسیری نباید خطا رد کند")
 
 

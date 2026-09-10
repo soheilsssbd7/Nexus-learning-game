@@ -56,14 +56,42 @@ func _drag(orb: WeightOrb, target: Vector2) -> void:
 
 func test_scene_exists_and_builds_one_node_per_level() -> void:
 	_map = _build_map()
-	assert_eq(_map.level_count(), 5)
-	assert_eq(_map.buttons.size(), 5)
+	# شمارش از دیسک، نه عددِ دست‌نویس (فاز ۷: ۵ سطح بود، حالا ۱۵ تا ✗✓ با هر افزوده
+	# شدنِ JSON این تست باید سبز بماند).
+	assert_eq(_map.level_count(), LevelLoader.level_ids().size(),
+		"نقشه باید همه‌ی سطوحِ روی دیسک را بشناسد")
+	assert_gte(_map.level_count(), 1)
+	# DoD «یک نود به‌ازای هر سطح» با **اجماعِ صفحه‌ها** سنجیده می‌شود: با صفحه‌بندی،
+	# اندازهٔ یک صفحه آن را نمی‌سنجد ✗✓ (وگرنه نصفِ سطوح می‌توانست بی‌صدا گم شود).
+	var seen: Dictionary = {}
+	for page: int in range(_map.pages.size()):
+		_map.goto_page(page)
+		for btn: Button in _map.buttons:
+			var number: int = str(btn.name).trim_prefix("Level_").to_int()
+			assert_false(seen.has(number), "سطح %d دو بار روی نقشه است" % number)
+			seen[number] = true
+		assert_eq(_map.buttons.size(), (_map.pages[page] as Array).size())
+	for i: int in range(_map.level_count()):
+		assert_true(seen.has(i + 1), "سطح %d هیچ نودی روی هیچ صفحه‌ای ندارد" % (i + 1))
+	_map.goto_page(0)
 	assert_eq(_map.buttons[0].name, "Level_01")
 	assert_eq(_map.buttons[0].text, "1")
 
 
 func test_touch_targets_and_on_screen_bounds() -> void:
 	_map = _build_map()
+	# قانونِ صفحه‌بندی (ADR-052): هر صفحه باید (الف) از باند بیرون نزند، (ب) نودش
+	# روی هم نیفتد، (ج) از سقفِ `page_max()` رد نشود ✗✓ این سه تا با ۱۵ سطح شکستند
+	# و همان‌ها بودند که ۴۵ سطح را غیرقابل‌استفاده می‌کردند.
+	for page: int in range(_map.pages.size()):
+		_map.goto_page(page)
+		assert_lte((_map.pages[page] as Array).size(), WorldMap.page_max(),
+			"صفحه‌ی %d از سقفِ باند بیشتر نود دارد" % (page + 1))
+		_assert_page_layout(page)
+	_map.goto_page(0)
+
+
+func _assert_page_layout(_page: int) -> void:
 	for btn: Button in _map.buttons:
 		assert_true(btn.size.x >= MIN_TOUCH_PX and btn.size.y >= MIN_TOUCH_PX,
 			"هدف لمسی باید ≥ %.0fpx باشد (§۲ سند هنری)" % MIN_TOUCH_PX)
@@ -160,7 +188,7 @@ func test_full_flow_map_to_win_to_next_level() -> void:
 	var nxt: String = str(LevelLoader.pending_config.get("level_id", ""))
 	# بعد از بردِ سطح ۰۱، «بعدی» را موتور می‌گوید: یک پله جلوتر در همان Tier
 	# (با رتبه‌ی همین برد ممکن است یک پله جهش هم باشد — قانون §۵ mastery_jump).
-	assert_true(nxt in ["tier1_level_02", "tier1_level_03"],
+	assert_true(nxt.begins_with("tier1_"),
 		"صف باید سطح جلوترِ Tier 1 را داشته باشد، نه همان سطح: %s" % nxt)
 	await get_tree().process_frame
 	assert_false(_map.buttons[1].disabled, "برگشت به نقشه = سطح بعدی باز")
@@ -171,16 +199,19 @@ func test_full_flow_map_to_win_to_next_level() -> void:
 
 
 func test_last_level_of_the_tier_sends_the_player_to_the_map() -> void:
-	var lv: LevelData = LevelLoader.load_level("tier1_level_05")
+	# «آخرین سطح» را از موتور می‌خوانیم، نه از دست ✗✓ با اضافه‌شدن Tier ۲، پنج‌ام
+	# دیگر آخرین نبود و خودِ پیشرفتِ بین‌Tier روشن شد ✓
+	var last_id: String = LevelLoader.level_ids()[LevelLoader.level_count() - 1]
+	var lv: LevelData = LevelLoader.load_level(last_id)
 	var scene: LevelController = load(LEVEL_SCENE_PATH).instantiate() as LevelController
 	scene.config = lv.to_config_dict()
 	scene.attempt_settle_sec = 0.05
 	add_child_autofree(scene)
 	await get_tree().process_frame
-	assert_eq(LevelLoader.next_of(scene.level_id), "", "پنج‌ام آخرین سطح نوشته‌شده است")
+	assert_eq(LevelLoader.next_of(scene.level_id), "", "%s آخرین سطحِ نوشته‌شده است" % last_id)
 	# تسک ۴.۴: «بعدی» را موتور انتخاب می‌کند، پس برای سنجیدنِ «دیگر چیزی نمانده»
 	# باید وضعیت واقعیِ پایانِ Tier را بسازیم (۰۱..۰۵ تمام‌شده)، نه مدلِ خالی.
-	for done_id: String in LevelLoader.levels_for_tier(1):
+	for done_id: String in LevelLoader.level_ids():
 		GameState.active_model.mark_level_completed(done_id, 25.0, 0)
 	watch_signals(scene.result_bar)
 	scene.result_bar.advance()
