@@ -32,12 +32,28 @@ func test_level_ids_are_discovered_sorted() -> void:
 	assert_eq(ids[0], "tier1_level_01")
 
 
+## شمارش از **دیسک** گرفته می‌شود، نه از عددِ دست‌نویس: هر سطحِ تازه‌ای که در فاز ۷
+## نوشته شود، بدون ویرایش این فایل سنجیده می‌شود (عددِ ثابت یعنی «تستی که باید یادمان
+## بیاید به‌روز شود» — همان دامی که یک بار در فاز ۵ گرفتیم ✗).
+func _files_on_disk(tier: int) -> int:
+	var dir: DirAccess = DirAccess.open("res://data/levels/tier%d" % tier)
+	if dir == null:
+		return 0
+	var count: int = 0
+	for file: String in dir.get_files():
+		if file.ends_with(".json") and file.begins_with("level_"):
+			count += 1
+	return count
+
+
 func test_levels_for_tier_filters() -> void:
 	var tier1: Array[String] = LevelLoader.levels_for_tier(1)
-	assert_eq(tier1.size(), 5)
+	assert_eq(tier1.size(), _files_on_disk(1), "موتور باید همان تعدادِ فایلِ Tier 1 را ببیند")
 	for id: String in tier1:
 		assert_true(id.begins_with("tier1_"))
-	assert_eq(LevelLoader.levels_for_tier(2).size(), 0, "Tier 2 در فاز ۷ نوشته می‌شود")
+	assert_eq(LevelLoader.levels_for_tier(2).size(), _files_on_disk(2),
+		"Tier 2 در فاز ۷ نوشته می‌شود؛ گارد باید با دیسک بخواند، نه با صفرِ ثابت")
+	assert_gte(LevelLoader.levels_for_tier(2).size(), 1, "فاز ۷: Tier 2 خالی نماند")
 
 
 func test_every_authored_level_loads_and_validates() -> void:

@@ -239,7 +239,8 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
     rel = path.relative_to(ROOT).as_posix()
     raw = load_json(path, errs)
     meta = {"file": rel, "level_id": None, "tier": None, "difficulty_elo": None,
-            "solvable": False, "leak_numbers": [], "hint_ids": [], "concept_tags": []}
+            "solvable": False, "leak_numbers": [], "hint_ids": [], "concept_tags": [],
+            "intro": None}
     if not isinstance(raw, dict):
         return meta
 
@@ -277,6 +278,17 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
     intro = raw.get("narrative_intro")
     if not isinstance(intro, str) or len(intro.strip()) < 10:
         errs.append(f"{rel}: narrative_intro کوتاه/خالی است (تسک ۷.x: هر سطح یک بیت روایی منحصربه‌فرد)")
+    else:
+        meta["intro"] = intro.strip()
+
+    # حلِ قصدمند باید **همان** چیزی باشد که داده طلب کرده، و «اشتباهِ آموزشی» نباید ببرد ✗
+    spec = raw.get("solution_spec") if isinstance(raw.get("solution_spec"), dict) else {}
+    intended = spec.get("intended") if isinstance(spec.get("intended"), dict) else {}
+    if isinstance(intended.get("right_orbs"), list) and intended["right_orbs"]:
+        meta["intended_sum"] = sum(float(x) for x in intended["right_orbs"])
+    wrong = spec.get("wrong_ops") if isinstance(spec.get("wrong_ops"), dict) else {}
+    if isinstance(wrong.get("right_orbs"), list) and wrong["right_orbs"]:
+        meta["wrong_sum"] = sum(float(x) for x in wrong["right_orbs"])
 
     tol = raw.get("tolerance")
     if not isinstance(tol, (int, float)) or tol < 0:
@@ -338,6 +350,14 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
     else:
         errs.append(f"{rel}: right_side باید target_value (یا ghost_orbs) داشته باشد")
 
+    if "intended_sum" in meta and isinstance(target, (int, float)) and isinstance(tol, (int, float)):
+        if abs(meta["intended_sum"] - cents(target) / 100) > cents(tol) / 100 + 1e-9:
+            errs.append(f"{rel}: `solution_spec.intended.right_orbs` مجموعش {meta['intended_sum']:g} ≠ "
+                        f"نیاز کفه‌ی راست {cents(target)/100:g} ⇒ حلِ قصدمند در موتور می‌بازد")
+    if "wrong_sum" in meta and isinstance(target, (int, float)) and isinstance(tol, (int, float)):
+        if abs(meta["wrong_sum"] - cents(target) / 100) <= cents(tol) / 100 + 1e-9:
+            errs.append(f"{rel}: `wrong_ops.right_orbs` هم تراز می‌کند ⇒ سطح چیزی یاد نمی‌دهد")
+
     seq = raw.get("hint_sequence")
     if not isinstance(seq, list) or not seq:
         errs.append(f"{rel}: hint_sequence خالی است — هر سطح دست‌کم یک تریگر راهنما لازم دارد")
@@ -356,6 +376,16 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
                 meta["hint_ids"].append(hid)
                 if hints and hid not in hints:
                     errs.append(f"{loc}: hint_id `{hid}` در aria_templates.json تعریف نشده")
+                elif hints:
+                    # قاعدهٔ تازه (تسک ۷.۰): راهنمایی که بازه‌ی Tierش این سطح را پوشش
+                    # نمی‌دهد، **نوشته می‌شود ولی هرگز به کودک نمی‌رسد** (فیلتر
+                    # `DialogueTemplate` بر پایه‌ی tier کار می‌کند) ⇒ داده‌ی مرده ✗
+                    hint = hints[hid]
+                    mn = hint.get("min_tier") if isinstance(hint.get("min_tier"), int) else 1
+                    mx = hint.get("max_tier") if isinstance(hint.get("max_tier"), int) else 5
+                    if isinstance(tier, int) and not (mn <= tier <= mx):
+                        errs.append(f"{loc}: قالب `{hid}` برای Tier {tier} فعال نیست "
+                                    f"(بازه‌ی خودش {mn}..{mx}) ⇒ راهنما هیچ‌وقت نمایش داده نمی‌شود")
     return meta
 
 
@@ -374,6 +404,23 @@ def check_concept_labels(metas: list[dict], key_sets: dict[str, list[str]], errs
                 if f"skill.{tag}" not in keys:
                     errs.append(f"{m['file']}: برچسب والدین `skill.{tag}` در زبان "
                                 f"«{code}» تعریف نشده (§۶.۵)")
+
+
+def check_narrative_uniqueness(metas: list[dict], errs: list[str]) -> None:
+    """§۶ سند GDD/تسک ۷.x: هر سطح یک بیت روایی **منحصربه‌فرد** دارد.
+
+    تکرارِ جمله یعنی دو سطح «یکی» به‌نظر کودک می‌آیند و حسِ پیشرفت می‌شکند ✗
+    (قبلاً فقط در پیامِ خطای طول‌سنجی وعده داده شده بود و هیچ‌کس نمی‌سنجیدش.)
+    """
+    seen: dict[str, str] = {}
+    for m in metas:
+        intro = m.get("intro")
+        if not intro:
+            continue
+        if intro in seen:
+            errs.append(f"{m['file']}: narrative_intro عیناً تکرارِ {seen[intro]} است")
+        else:
+            seen[intro] = m["file"]
 
 
 def validate_progression(metas: list[dict], errs: list[str]) -> None:
@@ -503,6 +550,7 @@ def main() -> int:
 
     validate_progression(metas, errs)
     check_concept_labels(metas, l10n.get("key_sets", {}), errs)
+    check_narrative_uniqueness(metas, errs)
     check_answer_leaks(metas, hints, errs)
 
     total = len(metas)
