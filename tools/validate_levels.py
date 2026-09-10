@@ -286,10 +286,10 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
     spec = raw.get("solution_spec") if isinstance(raw.get("solution_spec"), dict) else {}
     intended = spec.get("intended") if isinstance(spec.get("intended"), dict) else {}
     if isinstance(intended.get("right_orbs"), list) and intended["right_orbs"]:
-        meta["intended_sum"] = sum(float(x) for x in intended["right_orbs"])
+        meta["intended_sum"] = sum(_row_values(intended["right_orbs"]))
     wrong = spec.get("wrong_ops") if isinstance(spec.get("wrong_ops"), dict) else {}
     if isinstance(wrong.get("right_orbs"), list) and wrong["right_orbs"]:
-        meta["wrong_orbs"] = [float(x) for x in wrong["right_orbs"]]
+        meta["wrong_orbs"] = _row_values(wrong["right_orbs"])
         meta["wrong_sum"] = sum(meta["wrong_orbs"])
 
     tol = raw.get("tolerance")
@@ -317,6 +317,17 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
                     continue
                 if o.get("type") not in ALLOWED_ORB_TYPES:
                     errs.append(f"{rel}: {side_name}.{key}[{i}] type نامعتبر `{o.get('type')}`")
+                if o.get("type") == "ghost" and key != "ghost_orbs":
+                    # ADR-028: شبح **فقط** در `*_ghost_orbs`؛ اگر در `fixed_orbs` بیاید،
+                    # موتور او را یک‌بار به‌عنوان کرهٔ عددی و یک‌بار به‌عنوان شبح می‌گذارد
+                    # ⇒ وزنِ دوبل ✗✓ (سطح عملاً غیرقابل‌حل می‌شود و فقط باتِ GUT می‌گیردش)
+                    errs.append(f"{rel}: {side_name}.{key}[{i}] کره‌ی شبح است؛ باید در "
+                                f"`ghost_orbs` باشد نه `{key}` (وزنِ دوبل ✗ ADR-028)")
+                if o.get("type") != "ghost" and key == "ghost_orbs":
+                    # برعکسِ همان دام: عددِ معمولی در `ghost_orbs` یعنی موتور `hidden_value`
+                    # ندارد ⇒ وزن صفر ✗✓ «تراز» در موتور با داده نمی‌خواند.
+                    errs.append(f"{rel}: {side_name}.ghost_orbs[{i}] باید `type: ghost` باشد "
+                                f"(وگرنه وزنش صفر حساب می‌شود ✗)")
                 if o.get("type") == "ghost":
                     if tier is not None and isinstance(tier, int) and tier < 3:
                         errs.append(f"{rel}: ghost_orbs فقط برای Tier 3+ (§1)")
@@ -337,7 +348,10 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
               if isinstance(o, dict)]
     meta["leak_numbers"] = sorted(set(meta["leak_numbers"] + [h for h in hidden if h]))
 
-    if isinstance(target, (int, float)) and isinstance(tol, (int, float)):
+    scales_raw = raw.get("scales")
+    if isinstance(scales_raw, list) and scales_raw:
+        check_multi_scale(raw, scales_raw, rel, tier, tol, meta, errs)
+    elif isinstance(target, (int, float)) and isinstance(tol, (int, float)):
         if cents(tol) == 0 and left_total != cents(target) + right_fixed:
             errs.append(f"{rel}: ناسازگاری — مجموع چپ {left_total/100:g} ≠ target {cents(target)/100:g} + ثابتِ راست {right_fixed/100:g}")
         need = left_total - right_fixed
@@ -352,11 +366,12 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
     else:
         errs.append(f"{rel}: right_side باید target_value (یا ghost_orbs) داشته باشد")
 
-    if "intended_sum" in meta and isinstance(target, (int, float)) and isinstance(tol, (int, float)):
+    single = not (isinstance(scales_raw, list) and scales_raw)
+    if single and "intended_sum" in meta and isinstance(target, (int, float)) and isinstance(tol, (int, float)):
         if abs(meta["intended_sum"] - cents(target) / 100) > cents(tol) / 100 + 1e-9:
             errs.append(f"{rel}: `solution_spec.intended.right_orbs` مجموعش {meta['intended_sum']:g} ≠ "
                         f"نیاز کفه‌ی راست {cents(target)/100:g} ⇒ حلِ قصدمند در موتور می‌بازد")
-    if "wrong_orbs" in meta and isinstance(target, (int, float)) and isinstance(tol, (int, float)):
+    if single and "wrong_orbs" in meta and isinstance(target, (int, float)) and isinstance(tol, (int, float)):
         need = cents(target) / 100.0
         lim = cents(tol) / 100.0 + 1e-9
         orbs = meta["wrong_orbs"]
@@ -416,6 +431,163 @@ def check_concept_labels(metas: list[dict], key_sets: dict[str, list[str]], errs
                 if f"skill.{tag}" not in keys:
                     errs.append(f"{m['file']}: برچسب والدین `skill.{tag}` در زبان "
                                 f"«{code}» تعریف نشده (§۶.۵)")
+
+
+def _row_values(raw_list) -> list[float]:
+    """`solution_spec.*.right_orbs` دو شکل دارد: عدد (تک‌کفه) یا `{"value","scale"}`
+    (چندکفه ✓ ADR-055) ⇒ هر دو به فهرستِ عددی تبدیل می‌شوند تا هیچ شاخه‌ای در
+    چک‌های بعدی «نیمه‌کامل» نماند ✗✓."""
+    out: list[float] = []
+    if not isinstance(raw_list, list):
+        return out
+    for x in raw_list:
+        if isinstance(x, dict):
+            v = x.get("value", 0)
+            out.append(float(v) if isinstance(v, (int, float)) else 0.0)
+        elif isinstance(x, (int, float)):
+            out.append(float(x))
+    return out
+
+
+def _orb_rows(entries, rel: str, key: str, tier, errs: list[str]) -> list[dict]:
+    """همان قوانین کره‌ها (نوع/`value`/`hidden_value`/ghost) ولی برای `scales[i]` ✓"""
+    out: list[dict] = []
+    if entries is None:
+        return out
+    if not isinstance(entries, list):
+        errs.append(f"{rel}.{key} باید array باشد")
+        return out
+    for i, o in enumerate(entries):
+        if not isinstance(o, dict):
+            errs.append(f"{rel}.{key}[{i}] باید object باشد")
+            continue
+        if o.get("type") not in ALLOWED_ORB_TYPES:
+            errs.append(f"{rel}.{key}[{i}] type نامعتبر `{o.get('type')}`")
+            continue
+        if o.get("type") == "ghost" and not key.endswith("ghost_orbs"):
+            # همان قاعدهٔ ADR-028 که برای `left_side/right_side` گذاشتیم: در چندکفه هم
+            # شبح فقط در `left_ghost_orbs`/`right_ghost_orbs` ✓✓ (یک‌جایِ قانونیِ واحد ⇒
+            # هیچ‌وقت وزنِ دوبل یا صفر نمی‌شود ✗)
+            errs.append(f"{rel}.{key}[{i}] کره‌ی شبح است؛ باید در `*_ghost_orbs` باشد "
+                        f"(وزنِ دوبل ✗ ADR-028)")
+        if o.get("type") != "ghost" and key.endswith("ghost_orbs"):
+            errs.append(f"{rel}.{key}[{i}] در `*_ghost_orbs` باید `type: ghost` باشد "
+                        f"(وگرنه موتور `hidden_value` ندارد ⇒ وزن صفر ✗)")
+        if o.get("type") == "ghost":
+            if isinstance(tier, int) and tier < 3:
+                errs.append(f"{rel}.{key}[{i}] ghost_orbs فقط برای Tier 3+ (§۱)")
+            if not isinstance(o.get("hidden_value"), (int, float)):
+                errs.append(f"{rel}.{key}[{i}] کره‌ی روح باید hidden_value عددی داشته باشد")
+        elif not isinstance(o.get("value"), (int, float)):
+            errs.append(f"{rel}.{key}[{i}] باید value عددی داشته باشد")
+        out.append(o)
+    return out
+
+
+def check_multi_scale(raw: dict, scales: list, rel: str, tier, tol, meta: dict, errs: list[str]) -> None:
+    """سطحِ چندکفه (آرک‌تایپ «Twin Observatory» — تسک ۷.۳، ADR-055).
+
+    سینی **مشترک** است ⇒ «قابل‌حل» یعنی *تقسیمِ* کره‌ها بین کفه‌ها، و DPِ تک‌کفه‌ای اینجا
+    معنا ندارد ✗✓ (اگر آن را طوری گسترش دهیم که ۲^k حالت را بشمارد، با ۴۰ کره منفجر
+    می‌شود ⇒ `MAX_DP_WIDTH` برای همین هست). پس ادعا را دو لایه می‌سنجیم:
+      ۱) این ابزار: هر کفه با `target_value` خودش می‌خواند، حلِ قصدمندِ نوشته‌شده **هر
+         کفه را جدا** تراز می‌کند، ظرفیت سینی جواب می‌دهد، و هیچ زیرمجموعه‌ای از
+         `wrong_ops`ِ همان کفه تراز نمی‌کند ✓
+      ۲) باتِ GUT: همان چیدمان در موتورِ واقعی **بَرَد** ✓✓ (لایهٔ دوم قوی‌تر از DPِ روی
+         کاغذ است: علامتِ NegativeOrb، وزنِ GhostOrb و `is_balanced()` موتور را هم می‌بیند).
+    """
+    if isinstance(raw.get("right_side"), dict) and raw["right_side"].get("target_value") is not None:
+        errs.append(f"{rel}: سطحِ چندکفه نباید `right_side.target_value` سطحی داشته باشد "
+                    f"— نیاز در هر `scales[i].target_value` نوشته می‌شود (ادعای دوگانه ✗)")
+
+    caps: dict[int, int] = {}
+    for o in (raw.get("right_side") or {}).get("available_orbs") or []:
+        if isinstance(o, dict) and o.get("type") in ALLOWED_ORB_TYPES and o.get("type") != "ghost":
+            caps[orb_weight(o)] = caps.get(orb_weight(o), 0) + int(o.get("count", 1) or 1)
+    tray_total = sum(caps.values())
+
+    needs: list[int] = []
+    for i, sc in enumerate(scales):
+        loc = f"{rel}: scales[{i}]"
+        if not isinstance(sc, dict):
+            errs.append(f"{loc} باید object باشد")
+            needs.append(0)
+            continue
+        left = _orb_rows(sc.get("left_orbs"), loc, "left_orbs", tier, errs) + \
+            _orb_rows(sc.get("left_ghost_orbs"), loc, "left_ghost_orbs", tier, errs)
+        right = _orb_rows(sc.get("right_orbs"), loc, "right_orbs", tier, errs) + \
+            _orb_rows(sc.get("right_ghost_orbs"), loc, "right_ghost_orbs", tier, errs)
+        if not left and not right:
+            errs.append(f"{loc}: هر دو کفه خالی است — کفه‌ی بی‌بار معنای آموزشی ندارد")
+        need = side_total(left) - side_total(right)
+        needs.append(need)
+        tv = sc.get("target_value")
+        if tv is None:
+            errs.append(f"{loc}: `target_value` لازم است (در چندکفه، هر کفه نیازِ خودش را دارد)")
+        elif isinstance(tv, (int, float)) and cents(tol) == 0 and cents(tv) != need:
+            errs.append(f"{loc}: نیاز کفه {need/100:g} ≠ target_value {cents(tv)/100:g}")
+        for o in left + right:
+            if isinstance(o, dict) and o.get("type") == "ghost":
+                hv = cents(o.get("hidden_value", 0))
+                if hv:
+                    meta["leak_numbers"].append(abs(hv) / 100)
+        meta["leak_numbers"] = sorted({*meta.get("leak_numbers", []), abs(need) / 100})
+
+    # ظرفیت سینی برای هر دو لیستِ حل/اشتباه (هر کفه جدا) ✓
+    spec = raw.get("solution_spec") if isinstance(raw.get("solution_spec"), dict) else {}
+    for name in ("intended", "wrong_ops"):
+        part = spec.get(name) if isinstance(spec.get(name), dict) else {}
+        rows = part.get("right_orbs")
+        if not isinstance(rows, list) or not rows:
+            continue
+        per_scale: dict[int, list[float]] = {}
+        used: dict[int, int] = {}
+        for r in rows:
+            if not isinstance(r, dict) or r.get("value") is None:
+                # «بی‌scale» در چندکفه یعنی هر دو کفه با یک عدد ببندند ✗✓ همان
+                # «مجموعِ کل = ادعای دروغین» که ADR-055 رد می‌کند ⇒ صریح ممنوع.
+                errs.append(f"{rel}: `solution_spec.{name}.right_orbs` در سطحِ چندکفه باید "
+                            f"object با `value` و `scale` باشد (این: {r!r})")
+                return
+            val = float(r.get("value", 0))
+            sc_i = int(r.get("scale", 0) or 0)
+            if sc_i < 0 or sc_i >= len(scales):
+                # `place_on_right(…, scale_index)` در موتور فقط کرانِ بالا را چک می‌کند ✗
+                # ⇒ ایندکسِ منفی یعنی `scales[-1]` و خطای زمان‌اجرا روی داده ✗✓ اینجا بسته می‌شود.
+                errs.append(f"{rel}: `scale` {sc_i} خارج از تعداد کفه‌ها ({len(scales)}) است")
+                return
+            per_scale.setdefault(sc_i, []).append(val)
+            # وزنِ کره با همان قاعده‌ی موتور: negative یعنی ‎-abs(value) ✓ (ADR-028)
+            key = orb_weight({"type": "negative" if val < 0 else "number", "value": abs(val)})
+            used[key] = used.get(key, 0) + 1
+        for v, c in used.items():
+            if caps.get(v, 0) < c:
+                errs.append(f"{rel}: `solution_spec.{name}` به {c} کره با وزن {v/100:g} نیاز دارد "
+                            f"ولی سینی {caps.get(v, 0)} تا دارد ⇒ حلِ نوشته‌شده چیده نمی‌شود ✗")
+        if name == "intended":
+            ok = True
+            for sc_i, vals in per_scale.items():
+                if sc_i >= len(needs):
+                    errs.append(f"{rel}: `scale` {sc_i} در intended وجود ندارد")
+                    continue
+                if abs(sum(vals) * 100 - needs[sc_i]) > cents(tol):
+                    ok = False
+                    errs.append(f"{rel}: intendedِ کفه {sc_i} مجموعش {sum(vals):g} ≠ نیاز "
+                                f"{needs[sc_i]/100:g} ⇒ در موتور می‌بازد")
+            meta["solvable"] = ok and tray_total > 0
+            meta["scales"] = len(scales)
+        else:
+            for sc_i, vals in per_scale.items():
+                if sc_i >= len(needs):
+                    continue
+                lim = cents(tol) / 100.0 + 1e-9
+                for size in range(1, len(vals) + 1):
+                    bad = [c for c in itertools.combinations(vals, size)
+                           if abs(sum(c) - needs[sc_i] / 100.0) <= lim]
+                    if bad:
+                        errs.append(f"{rel}: زیرمجموعه‌ی {list(bad[0])} از `wrong_ops`ِ کفه {sc_i} "
+                                    f"تراز می‌کند ⇒ آن حرکت «اشتباه» نیست (ADR-053)")
+                        break
 
 
 def check_narrative_uniqueness(metas: list[dict], errs: list[str]) -> None:
