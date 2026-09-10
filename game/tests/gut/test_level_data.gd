@@ -244,3 +244,67 @@ func test_broken_json_is_reported_without_engine_error() -> void:
 	var not_object: Dictionary = LevelData.from_json_text("[1,2,3]", "res://tmp/arr.json")
 	assert_false(bool(not_object["ok"]))
 	assert_true(str(not_object["error"]).contains("object"))
+
+
+# --------------------------------------------------------------------------
+# تسک ۷.۳ — آرک‌تایپ «Twin Observatory» (چندکفه، ADR-055)
+# --------------------------------------------------------------------------
+func _twin_level() -> Dictionary:
+	return {
+		"level_id": "tier4_level_01", "tier": 4,
+		"concept_tags": ["two_dimensional"],
+		"narrative_intro": "دو ترازو روی یک میز؛ هر دو با هم باید صاف شوند.",
+		"left_side": {"fixed_orbs": [], "ghost_orbs": []},
+		"right_side": {"available_orbs": [
+			{"type": "number", "value": 4, "count": 2},
+			{"type": "number", "value": 5, "count": 1},
+			{"type": "number", "value": 3, "count": 2},
+		]},
+		"scales": [
+			{"id": "pan_a", "left_orbs": [{"type": "number", "value": 8}], "target_value": 8.0},
+			{"id": "pan_b", "left_orbs": [{"type": "number", "value": 5}], "target_value": 5.0},
+		],
+		"hint_sequence": [{"trigger": "idle_45s", "hint_id": "gentle_nudge_01"}],
+		"solution_spec": {"intended": {"right_orbs": [
+			{"value": 4, "scale": 0}, {"value": 4, "scale": 0}, {"value": 5, "scale": 1},
+		]}},
+	}
+
+
+func test_multi_scale_level_is_valid_and_reaches_the_engine() -> void:
+	var lv := LevelData.from_dict(_twin_level())
+	assert_eq(lv.validate().size(), 0, "چندکفهٔ سالم باید بی‌خطا باشد: %s" % str(lv.validate()))
+	assert_eq(lv.scales_cfg.size(), 2)
+	# «هیچ لایه‌ی ترجمه‌ای» (ADR-055): اگر `to_config_dict()` فقط یک کفه می‌ساخت، دادهٔ
+	# سالم به موتورِ تک‌کفه می‌رسید و Tier ۴ عملاً نصفه‌ی Tier ۳ می‌شد ✗✓
+	var cfg: Dictionary = lv.to_config_dict()
+	var scales: Array = cfg.get("scales") as Array
+	assert_eq(scales.size(), 2, "to_config_dict باید `scales` را رد کند")
+	assert_eq(str((scales[0] as Dictionary).get("id")), "pan_a")
+	assert_eq((cfg.get("available_orbs") as Array).size(), 3, "سینیِ مشترک سرِ جایش بماند ✓")
+
+
+func test_multi_scale_catches_every_ambiguous_shape() -> void:
+	var cases: Array[Dictionary] = []
+
+	var no_target: Dictionary = _twin_level()
+	(no_target["scales"] as Array)[1].erase("target_value")
+	cases.append({"why": "کفه‌ای بدون `target_value` (نیازش نامعلوم است ✗)", "data": no_target})
+
+	var bad_target: Dictionary = _twin_level()
+	bad_target["scales"][1]["target_value"] = 4.5
+	cases.append({"why": "targetِ کفه با چیدمانش نمی‌خواند", "data": bad_target})
+
+	var flat_intended: Dictionary = _twin_level()
+	flat_intended["solution_spec"] = {"intended": {"right_orbs": [4, 4, 5]}}
+	cases.append({"why": "`intended` بی‌`scale` در سطح چندکفه (مجموعِ کل، ادعای دروغین ✗)",
+		"data": flat_intended})
+
+	var ghost_wrong_key: Dictionary = _twin_level()
+	ghost_wrong_key["scales"][0]["left_orbs"].append({"type": "ghost", "hidden_value": 2})
+	cases.append({"why": "شبح در `left_orbs` بجای `left_ghost_orbs` (وزنِ دوبل ✗ ADR-028)",
+		"data": ghost_wrong_key})
+
+	for case: Dictionary in cases:
+		var errs: Array[String] = LevelData.from_dict(case["data"] as Dictionary).validate()
+		assert_gt(errs.size(), 0, "باید خطا می‌گرفت: %s" % str(case["why"]))

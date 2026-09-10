@@ -44,6 +44,15 @@ const MIN_INTRO_LEN: int = 10
 @export var has_target: bool = false
 @export var available_orbs: Array[Dictionary] = []
 
+@export_group("چندکفه‌ای (Tier 4+)")
+## آرک‌تایپ «Twin Observatory»: آرایه‌ی `scales` در فایل با **همان کلیدهای** configِ
+## LevelController نوشته می‌شود (`left_orbs/right_orbs/*_ghost_orbs/target_value/id`)
+## ⇒ هیچ لایه‌ی ترجمه‌ای وجود ندارد که بتواند بلغزد ✗✓ (ADR-055). خالی = تک‌کفه.
+## سینی **مشترک** است: `available_orbs` همان‌جا در `right_side` می‌ماند، چون موتور
+## یک سینی برای کل سطح دارد (§۲ سند ۰۱) ⇒ «قابل‌حل بودن» یعنی تقسیمِ کره‌ها بین کفه‌ها،
+## و آن را باتِ GUT در موتور می‌سنجد، نه DPِ تک‌کفه‌ای (پیامد F).
+@export var scales_cfg: Array[Dictionary] = []
+
 @export_group("تنظیم")
 @export var tolerance: float = 0.0
 @export var tolerance_strategy: String = "exact"
@@ -78,6 +87,7 @@ static func from_dict(data: Dictionary, p_source_path: String = "") -> LevelData
 	lv.tolerance_strategy = str(data.get("tolerance_strategy", "exact"))
 	lv.expected_solve_time_sec = float(data.get("expected_solve_time_sec", 40.0))
 	lv.difficulty_elo = int(data.get("difficulty_elo", 900))
+	lv.scales_cfg = _dict_array(data.get("scales"))
 	lv.solution_spec = _dict(data.get("solution_spec"))
 	lv.hint_sequence = _dict_array(data.get("hint_sequence"))
 	return lv
@@ -145,9 +155,13 @@ func validate() -> Array[String]:
 			errs.append("هر ردیف available_orbs باید count ≥ 1 داشته باشد")
 
 	var ghosts: int = left_ghost_orbs.size() + right_ghost_orbs.size()
-	if not has_target and ghosts == 0:
+	if not scales_cfg.is_empty():
+		# تکلیف حسابِ کفه‌ها در `validate_scales()` است، نه اینجا: در سطحِ چندکفه،
+		# `target_value`ِ سطح معنا ندارد و چک‌کردنش خطای ساختگی می‌داد ✗✓
+		errs.append_array(validate_scales())
+	elif not has_target and ghosts == 0:
 		errs.append("right_side باید target_value یا ghost_orbs داشته باشد")
-	if has_target and is_equal_approx(tolerance, 0.0) and ghosts == 0:
+	if has_target and scales_cfg.is_empty() and is_equal_approx(tolerance, 0.0) and ghosts == 0:
 		if not is_equal_approx(left_weight() - right_weight(), target_value):
 			errs.append("ناسازگاری: نیاز راست %.3f ≠ target_value %.3f"
 				% [left_weight() - right_weight(), target_value])
@@ -163,13 +177,94 @@ func validate() -> Array[String]:
 	if not solution_spec.is_empty():
 		var intended: Variant = _dict(solution_spec.get("intended")).get("right_orbs")
 		if intended is Array:
-			var total: float = 0.0
-			for v: Variant in (intended as Array):
-				total += float(v)
-			if not is_zero_approx(total) and not is_equal_approx(total, left_weight() - right_weight()):
-				errs.append("solution_spec.intended با نیاز کفه‌ی راست نمی‌خواند (%.3f ≠ %.3f)"
-					% [total, left_weight() - right_weight()])
+			if scales_cfg.is_empty():
+				var total: float = 0.0
+				for v: Variant in (intended as Array):
+					total += _orb_value(v)
+				if not is_zero_approx(total) and not is_equal_approx(total, left_weight() - right_weight()):
+					errs.append("solution_spec.intended با نیاز کفه‌ی راست نمی‌خواند (%.3f ≠ %.3f)"
+						% [total, left_weight() - right_weight()])
+			else:
+				errs.append_array(_validate_intended_per_scale(intended as Array))
 	return errs
+
+
+## حسابِ هر کفه در سطحِ چندکفه: `target_value` داده‌شده باید با «چپ − راستِ همان کفه»
+## بخواند، و کره‌های `ghost` هم مثل سطحِ تک‌کفه فقط در کلیدِ `*_ghost_orbs` می‌آیند
+## (ADR-028 ⇒ وزنِ دوبل ممنوع ✗✓).
+func validate_scales() -> Array[String]:
+	var errs: Array[String] = []
+	var seen_ids: Dictionary = {}
+	for i: int in range(scales_cfg.size()):
+		var sc: Dictionary = scales_cfg[i]
+		var tag: String = "scales[%d]" % i
+		var sid: String = str(sc.get("id", ""))
+		if not sid.is_empty():
+			if seen_ids.has(sid):
+				errs.append("%s: `id` تکراری `%s` (ErrorClassifier با نامِ کفه کار می‌کند)" % [tag, sid])
+			seen_ids[sid] = true
+		for key: String in ["left_orbs", "left_ghost_orbs", "right_orbs", "right_ghost_orbs"]:
+			for entry: Variant in _arr(sc.get(key)):
+				var d: Dictionary = entry as Dictionary
+				var type_name: String = str(d.get("type", "number"))
+				if type_name not in ALLOWED_ORB_TYPES:
+					errs.append("%s.%s: نوع کره نامعتبر `%s`" % [tag, key, type_name])
+				if type_name == "ghost" and tier < 3:
+					errs.append("%s.%s: ghost در Tier < 3 مجاز نیست (§۱)" % [tag, key])
+				if type_name == "ghost" and key.ends_with("_orbs") and not key.contains("ghost"):
+					errs.append("%s.%s: کره‌ی روح باید در `*_ghost_orbs` باشد نه `%s` (وزنِ دوبل ✗ ADR-028)"
+						% [tag, key, key])
+		var target_v: Variant = sc.get("target_value")
+		if target_v is float or target_v is int:
+			var need: float = side_weight(_orb_array(sc.get("left_orbs"))) \
+				+ side_weight(_orb_array(sc.get("left_ghost_orbs"))) \
+				- side_weight(_orb_array(sc.get("right_orbs"))) \
+				- side_weight(_orb_array(sc.get("right_ghost_orbs")))
+			# مثل قانونِ تک‌کفه: فقط وقتی تلورانس صفر است «دقیقاً» می‌خواهیم ✗✓
+			if is_zero_approx(tolerance) and not is_equal_approx(need, float(target_v)):
+				errs.append("%s: نیاز %.3f ≠ target_value %.3f" % [tag, need, float(target_v)])
+		elif sc.get("left_ghost_orbs") == null and sc.get("right_ghost_orbs") == null:
+			errs.append("%s: `target_value` یا کره‌ی شبح لازم است" % tag)
+	return errs
+
+
+## `intended.right_orbs` در سطحِ چندکفه، ورودی‌ی `{"value": 4, "scale": 1}` است ⇒ مجموعِ
+## هر کفه جدا باید با نیازِ همان کفه بخواند ✗✓ (مجموعِ کل، ادعای دروغین می‌ساخت: ۴+۴ در
+## کفه‌ای با نیاز ۲ و ۸ در کفه‌ای با نیاز ۱۰، «۱۶=۱۲» را سبز نشان می‌داد ✗✗).
+func _validate_intended_per_scale(intended: Array) -> Array[String]:
+	var errs: Array[String] = []
+	var per_scale: Array[float] = []
+	for entry: Variant in intended:
+		var d: Dictionary = _dict(entry)
+		var idx: int = int(d.get("scale", 0))
+		if idx < 0 or idx >= scales_cfg.size():
+			errs.append("intended: `scale` %d از تعداد کفه‌ها (%d) بیرون است" % [idx, scales_cfg.size()])
+			continue
+		while per_scale.size() <= idx:
+			per_scale.append(0.0)
+		per_scale[idx] += _orb_value(d.get("value", 0.0))
+	for i: int in range(scales_cfg.size()):
+		var need: float = _scale_need(i)
+		var got: float = per_scale[i] if i < per_scale.size() else 0.0
+		if is_zero_approx(need) and is_zero_approx(got):
+			continue
+		if not is_equal_approx(got, need):
+			errs.append("intended برای کفه %d: %.3f ≠ نیاز %.3f" % [i, got, need])
+	return errs
+
+
+func _scale_need(index: int) -> float:
+	if index < 0 or index >= scales_cfg.size():
+		return 0.0
+	var sc: Dictionary = scales_cfg[index]
+	return side_weight(_orb_array(sc.get("left_orbs"))) + side_weight(_orb_array(sc.get("left_ghost_orbs"))) \
+		- side_weight(_orb_array(sc.get("right_orbs"))) - side_weight(_orb_array(sc.get("right_ghost_orbs")))
+
+
+static func _orb_value(v: Variant) -> float:
+	if v is Dictionary:
+		return float((v as Dictionary).get("value", 0.0))
+	return float(v)
 
 
 # --------------------------------------------------------------------------
@@ -227,7 +322,7 @@ func to_config_dict() -> Dictionary:
 		"tier": tier,
 		"tolerance": tolerance,
 		"narrative_intro": narrative_intro,
-		"scales": [{
+		"scales": scales_cfg.duplicate(true) if not scales_cfg.is_empty() else [{
 			"id": "main",
 			# قاعده (ADR-028): کره‌ی روح **فقط** در کلید `*_ghost_orbs` می‌آید؛ اگر در
 			# `*_orbs` هم می‌آمد، LevelController دو بار روی کفه می‌گذاشتش (وزن دوبله).
@@ -258,6 +353,10 @@ func summary() -> String:
 # --------------------------------------------------------------------------
 # تبدیل‌های ایمن (درس فاز ۱: JSON هرچه بدهد take می‌کند)
 # --------------------------------------------------------------------------
+static func _arr(v: Variant) -> Array:
+	return v as Array if v is Array else []
+
+
 static func _dict(value: Variant) -> Dictionary:
 	return value if value is Dictionary else {}
 
