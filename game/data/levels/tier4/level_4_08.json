@@ -1,0 +1,162 @@
+{
+  "level_id": "tier4_level_08",
+  "tier": 4,
+  "world": "balance_realm",
+  "concept_tags": [
+    "fractions",
+    "two_dimensional",
+    "equality"
+  ],
+  "narrative_intro": "امروز ترازو کمی بخشنده است؛ باز هم دو میز با هم باید صاف شوند.",
+  "left_side": {
+    "fixed_orbs": [],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 10,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 1.5,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 0.5,
+        "count": 4
+      },
+      {
+        "type": "number",
+        "value": 4,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 8,
+        "count": 1
+      }
+    ]
+  },
+  "scales": [
+    {
+      "id": "left_a",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 13
+        },
+        {
+          "type": "number",
+          "value": 1.5
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [
+        {
+          "type": "number",
+          "value": 4
+        }
+      ],
+      "right_ghost_orbs": [],
+      "target_value": 10.5
+    },
+    {
+      "id": "right_b",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 8.5
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [],
+      "right_ghost_orbs": [],
+      "target_value": 8.5
+    }
+  ],
+  "tolerance": 0.5,
+  "tolerance_strategy": "approx",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "almost_there_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "twin_pans_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "try_the_other_one_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "gentle_nudge_01"
+    }
+  ],
+  "expected_solve_time_sec": 210,
+  "difficulty_elo": 1840,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        {
+          "value": 10,
+          "scale": 0
+        },
+        {
+          "value": 0.5,
+          "scale": 0
+        },
+        {
+          "value": 8,
+          "scale": 1
+        },
+        {
+          "value": 0.5,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        {
+          "value": 5,
+          "scale": 0
+        },
+        {
+          "value": 4,
+          "scale": 0
+        },
+        {
+          "value": 5,
+          "scale": 1
+        },
+        {
+          "value": 1.5,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}
