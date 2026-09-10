@@ -1,0 +1,95 @@
+{
+  "level_id": "tier3_level_02",
+  "tier": 3,
+  "world": "balance_realm",
+  "concept_tags": [
+    "fractions",
+    "concrete_numbers"
+  ],
+  "narrative_intro": "نیم‌کره‌ها هم وزن دارند؛ امروز دو تا نیم، یک کره‌ی کامل نیست.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 4.5
+      }
+    ],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "target_value": 3.5,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 1.5,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 2,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 0.5,
+        "count": 4
+      },
+      {
+        "type": "number",
+        "value": 3,
+        "count": 2
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 1
+      }
+    ],
+    "ghost_orbs": []
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "socratic_specific_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "one_move_at_a_time_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "almost_there_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "gentle_nudge_01"
+    }
+  ],
+  "expected_solve_time_sec": 95,
+  "difficulty_elo": 1520,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        2,
+        1.5
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        1.5,
+        1.5
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}
