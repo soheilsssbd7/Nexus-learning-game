@@ -1,0 +1,98 @@
+{
+  "level_id": "tier2_level_08",
+  "tier": 2,
+  "world": "balance_realm",
+  "concept_tags": [
+    "debt",
+    "negative_numbers",
+    "multi_step"
+  ],
+  "narrative_intro": "امروز ترازو کمی بخشنده است؛ نزدیک‌بودن کافی نیست، اما یک کره فرق می‌آورد.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 13
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 17,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 6,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 2
+      },
+      {
+        "type": "negative",
+        "value": 2,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 1,
+        "count": 3
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "negative",
+        "value": 4
+      }
+    ]
+  },
+  "tolerance": 0.5,
+  "tolerance_strategy": "approx",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "almost_there_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "inventory_count_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "socratic_operation_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "start_from_left_01"
+    }
+  ],
+  "expected_solve_time_sec": 70,
+  "difficulty_elo": 1380,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        6,
+        6,
+        5
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        6,
+        5,
+        5
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "level_id": "tier2_level_04",
+  "tier": 2,
+  "world": "balance_realm",
+  "concept_tags": [
+    "subtraction_negative",
+    "debt"
+  ],
+  "narrative_intro": "ده کیلو بار و سه کیلو بدهی روی قفسه‌ی چپ؛ هر دو کفه حساب دارد.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 10
+      },
+      {
+        "type": "negative",
+        "value": 3
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 5,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 7,
+        "count": 2
+      },
+      {
+        "type": "negative",
+        "value": 2,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 1,
+        "count": 4
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 2
+      }
+    ]
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "one_move_at_a_time_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "sign_flip_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "check_your_own_balance_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "compare_sides_01"
+    }
+  ],
+  "expected_solve_time_sec": 50,
+  "difficulty_elo": 1220,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        7,
+        -2
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        7,
+        1,
+        1
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}

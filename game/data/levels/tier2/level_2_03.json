@@ -1,0 +1,93 @@
+{
+  "level_id": "tier2_level_03",
+  "tier": 2,
+  "world": "balance_realm",
+  "concept_tags": [
+    "negative_numbers",
+    "subtraction"
+  ],
+  "narrative_intro": "کفه‌ی راست سنگین‌تر از آن است که با افزودن درست شود؛ بدهی برگردان.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 7
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": -8,
+    "available_orbs": [
+      {
+        "type": "negative",
+        "value": 4,
+        "count": 2
+      },
+      {
+        "type": "negative",
+        "value": 2,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 3,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 1
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 15
+      }
+    ]
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "sign_flip_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "start_from_left_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "compare_sides_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "almost_there_01"
+    }
+  ],
+  "expected_solve_time_sec": 45,
+  "difficulty_elo": 1180,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        -4,
+        -4
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        -4,
+        -2
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

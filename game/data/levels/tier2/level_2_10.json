@@ -1,0 +1,107 @@
+{
+  "level_id": "tier2_level_10",
+  "tier": 2,
+  "world": "balance_realm",
+  "concept_tags": [
+    "subtraction_negative",
+    "debt",
+    "multi_step"
+  ],
+  "narrative_intro": "آخرین قفسه‌ی بازار: هجده بار، پنج بدهی، و تو باید تعادل را از میان همه‌ی راه‌ها پیدا کنی.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 18
+      },
+      {
+        "type": "negative",
+        "value": 5
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 9,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 12,
+        "count": 1
+      },
+      {
+        "type": "negative",
+        "value": 3,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 4,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 9,
+        "count": 1
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 6
+      },
+      {
+        "type": "negative",
+        "value": 2
+      }
+    ]
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "compare_sides_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "check_your_own_balance_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "socratic_specific_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "both_sides_01"
+    }
+  ],
+  "expected_solve_time_sec": 85,
+  "difficulty_elo": 1460,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        12,
+        -3
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        12,
+        4
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

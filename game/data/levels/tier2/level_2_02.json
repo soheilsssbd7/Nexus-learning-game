@@ -1,0 +1,97 @@
+{
+  "level_id": "tier2_level_02",
+  "tier": 2,
+  "world": "balance_realm",
+  "concept_tags": [
+    "subtraction",
+    "negative_numbers"
+  ],
+  "narrative_intro": "سه سیب و چهار سیب؛ اما کفه‌ی راست از قبل پنج کیلو دارد.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 9
+      },
+      {
+        "type": "number",
+        "value": 4
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 8,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 4,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 3,
+        "count": 2
+      },
+      {
+        "type": "negative",
+        "value": 1,
+        "count": 4
+      },
+      {
+        "type": "number",
+        "value": 2,
+        "count": 2
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 5
+      }
+    ]
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "sign_flip_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "try_the_other_one_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "smallest_first_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "inventory_count_01"
+    }
+  ],
+  "expected_solve_time_sec": 40,
+  "difficulty_elo": 1140,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        4,
+        4
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        4,
+        3
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}
