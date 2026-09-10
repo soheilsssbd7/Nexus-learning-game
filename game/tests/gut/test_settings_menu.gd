@@ -64,8 +64,12 @@ func test_the_widgets_show_what_is_stored() -> void:
 	assert_almost_eq(menu.music_slider.value, 0.3, 0.001,
 		"اولین بازکردن تنظیمات باید واقعیت را نشان بدهد، نه پیش‌فرض را")
 	assert_false(menu.haptics_toggle.button_pressed)
-	menu.music_slider.grab_focus()  # بی‌ضرر: focus_mode=NONE است و نباید حالت را عوض کند
-	assert_eq(menu.music_slider.focus_mode, Control.FOCUS_NONE)
+	# ادعا را بسنج، نه «شکستِ عمدی‌اش» را: `HSlider.focus_mode = FOCUS_NONE` یعنی
+	# کودک با یک کشیدنِ اسلایدر صفحه‌کلید نمی‌بیند ✓ صداکردن `grab_focus()` همین‌جا
+	# خطای موتور («This control can't grab focus») چاپ می‌کرد و GUT آن را شکست
+	# می‌شمرد، درحالی‌که خودِ ادعا درست بود ✗ (خطای واقعیِ همین دور CI).
+	assert_eq(menu.music_slider.focus_mode, Control.FOCUS_NONE,
+		"اسلایدر فوکوس‌ناپذیر است ⇒ صفحه‌کلید روی آن باز نمی‌شود")
 
 
 func test_moving_a_slider_changes_the_bus_and_the_file() -> void:

@@ -281,9 +281,75 @@ HUD سطح instantiate نمی‌کند (عمداً به فاز ۶ موکول ش�
 عمدی») در فاز ۱۰ با APK واقعی و در فاز ۱۱ با کودک بسته می‌شود؛ رنگ‌های هسته از `Palette`‌اند و
 اگر فاز ۸ تم‌ها را عوض کرد، فقط `CORE_COLORS` ویرایش می‌شود.
 
-### فاز ۶ — UI/UX
-۶.۱ `MainMenu` · ۶.۲ `Onboarding` (آواتار + آموزش عملی) · ۶.۳ `PauseMenu`/`SettingsMenu` (resume کامل، اسلایدر صدا، زبان) · ۶.۴ `HUD` (دکمه‌ی راهنما + پیشرفت) · ۶.۵ `ParentDashboard` + parent-gate ریاضی (نمودار تسلط، زمان، `aria_transcript_log`).
-DoD: اندازه‌ی لمسی ≥ ۴۸px با تست خودکار روی مینیاتور صحنه‌ها؛ RTL درست؛ داشبورد = دقیقاً داده‌ی `PlayerModel`.
+### فاز ۶ — UI/UX ⚠️ (۱۳ کامیت؛ ۶ دور رفع خطا با CI — تأیید نهایی در انتظار push)
+| تسک | خروجی | DoD (سند ۰۴) | شواهد | وضعیت |
+|---|---|---|---|---|
+| ۶.۱ رشته‌ها + تنظیمات + UIKit | `data/l10n/ui_strings.json` (**۹۱ کلید × ۲ زبان**، سقف ۸۰ نویسه)، `scripts/ui/Loc.gd` (۱۸ تابع ایستا: `t/digits/percent/duration_sec/alignment/text_direction/missing_keys/reset_for_tests`)، `scripts/ui/SettingsStore.gd`، `assets/audio/default_bus_layout.tres` (Master/Music/SFX)، `scripts/ui/UIKit.gd` (`MIN_TOUCH_PX=۱۴۴`، `make_button/make_label/make_raw_label/make_panel/style_button/apply_flow/retranslate/audit_touch_targets`) | «RTL درست؛ رشته‌ها از جدول؛ کفِ لمسی در کد» | `test_loc.gd` (۷)، `test_settings_store.gd` (۱۰: clamp/LRU نبودِ باور به دیسک/تفکیک فایل از مدل)، `test_ui_kit.gd` (۱۰: ممیزی لمسی روی درخت ساختگی، `style_button` که دکمهٔ بزرگ‌تر را کوچک نمی‌کند، قرارداد لرزش) + قانون تازه در `tools/validate_levels.py::check_l10n` (تقارن کلیدها، سقف طول، بی‌رقم‌بودنِ چسبیده به عدد) ⇒ خروجی محلی: «رشته UI: 91×2 ✓» | ✅ |
+| ۶.۱ `MainMenu` | `scripts/ui/MainMenu.gd` + `scenes/main/MainMenu.tscn` = **صحنهٔ شروعِ بازی**؛ چهار مقصد (شروع/ادامه، نقشه، تنظیمات، داشبرد والدین، خروج) + `WorldMap.menu_requested` و `LevelLoader.goto_main_menu()` (دو طرفه) | «ورودی/خروجی از هیچ صحنه‌ای بسته نمی‌شود» | `test_main_menu.gd` (۹: برچسبِ دکمهٔ اصلی از وضعیت **واقعیِ** مدل، `continue` فقط وقتی چیزی هست، ممیزی §۷، و `test_navigation_targets_exist` که همهٔ مقصدها را `load()` می‌کند) | ✅ |
+| ۶.۲ `Onboarding` | `scripts/ui/Onboarding.gd` + `scenes/main/Onboarding.tscn` + `PlayerAvatarPreview.gd` (آواتار لایه‌ای `_draw` با ۶ تُن پوست/۸ مدل مو/پالت §۴)؛ دو گام: آواتار (chipها در `GridContainer columns=4`) و ترازو = **`LevelController` واقعی** (ADR-۰۵۰) | «آموزش فقط عمل، بی‌متنِ طولانی؛ بی‌آسیب به آمار» | `test_onboarding.gd` (۹: برابری شمارنده‌های chip با `SettingsStore`/`PlayerAvatarPreview`، persist فوری، **برَدنِ آموزش بدون** `levels_completed`/`level_attempts`/`error_patterns`/`aria_transcript_log`، حرکت غلط = نه تلاش نه بازخورد منفی، `skip` فقط گام آواتار، سقف `MAX_LABEL_LEN=40`، ممیزی لمسی + بی‌overflow) | ✅ |
+| ۶.۳ `SettingsStore` (فایل جدا) | `user://settings.json` + `SPEC` + چهار `apply_*` (ADR-۰۴۵)؛ `set_value` درمقاوبل/`set_and_save` برای ثبت | «هیچ تنظیمی در `PlayerModel` نمی‌نشیند» | بالا (۶.۱) + assertِ «خروجی والدین کلید `settings` ندارد» در `test_parent_dashboard.gd` | ✅ |
+| ۶.۳ `PauseMenu` | `scripts/ui/PauseMenu.gd` + `scenes/ui/PauseMenu.tscn` (root: `PROCESS_MODE_ALWAYS` + `MOUSE_FILTER_STOP`، dim، چهار دکمه ≥۱۴۴) + منطق زمانِ پاز در `GameState` (ADR-۰۴۶) + `LevelController.set_drag_enabled/any_orb_draggable` | «resume از همان لحظه؛ زمان پاز شمرده نمی‌شود» | `test_pause_menu.gd` (۹: فریزِ واقعیِ درخت، کرهٔ درگ‌شونده در میانهٔ پاز رها می‌شود، **مقایسهٔ دو پنجرهٔ زمانی** با ضریب، تنظیمات به‌عنوان اورلی ⇒ هیچ `change_scene`/reload، و `allow_scene_change=false` برای هدلس) | ✅ |
+| ۶.۳ `SettingsMenu` | `scripts/ui/SettingsMenu.gd` + `scenes/ui/SettingsMenu.tscn`: دو `HSlider` (+ `CheckButton` لرزش + دو دکمهٔ زبانِ disabled روی فعال)، اثر **فوری** روی `AudioServer`/`Loc`، بدون دکمهٔ «ذخیره» | «صدا و زبان زنده؛ بدون reload» | `test_settings_menu.gd` (۷: ولومِ صفر = mute روی باس، `apply_locale` و عوض‌شدن برچسب‌های **همان صحنهٔ باز**، «widgets show what is stored» = ویجت‌ها از فایل می‌خوانند نه از حدس) | ✅ |
+| ۶.۴ `HUD` | `scripts/ui/HUD.gd` + `scenes/gameplay/HUD.tscn` (root `mouse_filter=IGNORE` + اندازهٔ صریح ۱۰۸۰×۱۹۲۰)؛ دکمهٔ راهنما، پیپ‌های پیشرفتِ Tier، **و بدهی فاز ۵ بسته شد**: `AriaController` + `Aria.tscn` + `DialogueBox` داخل صحنهٔ سطح؛ `LevelController.open_pause/close_pause` + `ui_cancel` | «دکمهٔ راهنما همان نردبان فاز ۴ را صدا می‌زند» | `test_hud.gd` (۹: هر پرس = یک پله بالاتر (`gentle_nudge_01` → `socratic_operation_01`) و **دقیقاً یک** `register_hint_used` در هر دو مسیر نردبان/fallback، سطحِ بی‌راهنما = نه سیگنال نه شمارنده، پیپ‌ها از `levels_for_tier` + `levels_completed`، متن راهنما **عیناً** یکی از واریانت‌های فایل و `hint_light` روی آواتار، پاز با دکمه و با `ui_cancel`، `Intro` جابه‌جا شد تا زیر نوار HUD برخورد نکند) | ✅ |
+| ۶.۵ `ParentDashboard` + قفل | `scripts/ui/ParentGate.gd` (ADR-۰۴۷)، `MasteryChart.gd` (میله‌ها از `skills.keys()`)، `ParentDashboard.gd` + `scenes/ui/ParentDashboard.tscn`؛ `record_hint_shown(..., text)` به `AriaController.show_hint()` وصل شد (ADR-۰۴۸)؛ kill-switch تطبیق؛ خروجی JSON به کلیپ‌بورد | «داشبورد = دقیقاً دادهٔ `PlayerModel`» | `test_parent_gate.gd` (۷: «پاسخ روی هیچ Label/Button صفحه نیست»، ارقام فارسی/عربی، Enter خالی یک حق را نمی‌خورد، سه اشتباه = قفلِ نشست) + `test_parent_dashboard.gd` (۹: مدلِ ساختگی ۳ سطح/۳۶۶۱٫۵s/۲۳٫۴٪/۴۲٫۵s/Elo ۱۱۲۰ ⇒ متن‌ها با `Loc.duration_sec/percent/digits` برابری می‌کنند، `fill` میله = `(elo-۴۰۰)/۱۶۰۰`، **۱۲۰ ردیف لاگ کامل و قابل‌اسکرول**، `error_patterns` بزرگ‌ترین‌اول با نامِ فارسی، خاموش‌کردن تطبیق **فوراً** به موتور، JSON خروجی معتبر و بی‌`settings`، و حلقهٔ بسته: پرس دکمه ⇒ `text` در لاگ مدل) + قانون CI: هر `concept_tag` باید `skill.<tag>` را در **هر دو زبان** داشته باشد (سه tag ناقص را همان دور گرفت ⇒ ۱۶ برچسب اضافه شد) | ✅ |
+| رفع خطاهای CI (۶ دور) | `4f44435`, `3cf3140`, `60d4935`, `e1aa8ef`, `49095c4` + دو کامیت ۶.۳/۶.۴ (`81cd080`, `7ce2c32`) | — | فهرست ۱۳ خطای پایین ⇓ | ⚠️ ۳ شکست آخر در `49095c4` رفع شده؛ چون اتصال GitHubِ Agent منقضی شد، این کامیت push نشده ⇒ **قبل از بستن فاز، CI روی `49095c4` باید سبز دیده شود** |
+
+**جمع تست:** ۳۷ فایل / **۳۱۵ تست** در CI (فاز ۵: ۲۷ فایل / ۲۲۹ ⇒ **+۸۶ تست تازه، بدون هیچ تستِ گمشده** ✓
+گارد «Scripts == تعداد فایل روی دیسک» (`ADR-033`) سه بار ثابت کرد بدون آن، «سبز» یعنی هیچ‌چیز ✓).
+
+**۱۳ خطایی که فقط با اجرای واقعی گرفته شدند (نه gdlint/gdparse/validator):**
+۱) `Control.TEXT_ALIGNMENT_*` (نامِ Godot 3؛ در ۴ جهانی است) در `Loc.gd` ⇒ **یک** Parse Error در
+   پایین‌ترین لایه، `UIKit` را بی‌کامپایل کرد و ۵۸ تست با پیامِ بی‌ربطِ «Nonexistent function
+   'make_button' in base 'GDScript'» قرمز شد ✓ درس: زنجیره را از ریشه بخوان، نه از تعداد شکست‌ها.
+۲) `NodePath.to_string()` در ۴ وجود ندارد ⇒ همان کلاس خطا، در `audit_touch_targets`.
+۳) `assert_watch_signals()` در GUT نیست (درستش `watch_signals`) ⇒ **۶ فایل تست بارگذاری نشدند**
+   و یک تست از آنها اجرا نشد؛ گارد کشفِ تست، صحنه را لو داد (Scripts 31 از 37).
+۴) `DisplayServer.clipboard_write` در ۴ شده `clipboard_set` ⇒ یک سطر، کل `ParentDashboard.gd`
+   کامپایل نشد و فایل تستش هم `Compilation failed` گرفت.
+۵) `UIKit.apply_flow` به **هر** کنترلی `text_direction` می‌داد؛ `ColorRect` این عضو ندارد ⇒
+   خطای运行时 در هر صحنه‌ای که HUD/پاز دارد (~۷۰ تست) ✗✓ قاعدهٔ تازه (ADR-۰۵۱): پیاده‌روی UI
+   بر پایهٔ کلاسِ صریح، هرگز `is Control`.
+۶) `retranslate()` **بعد از** ست‌کردن متن، برچسب پویا را می‌خورد ⇒ «ادامه‌ی بازی» هرگز روی دکمه
+   نمی‌نشست؛ اصلاح: کلید در `meta["loc_key"]`، نه متن (ADR-۰۵۱).
+۷) `needs_onboarding()` پرچم `is_first_run` را بر **رکوردِ** `onboarding_done` مقدم می‌داد ⇒
+   اتمامِ ثبت‌شده بی‌اثر؛ ترتیب عمداً برعکس شد.
+۸) `commit_playtime` pauseِ باز را در دو commit پشت‌سرهم کم می‌کرد ⇒ زمانِ واقعیِ بازی **صفر**
+   («زمان بازی» والدین دروغ می‌شد ✓ ADR-۰۴۶) ⇒ شمارندهٔ «پازِ کسرشده» (`billed`) اضافه شد.
+۹) ممیزِ لمسی، **ریشه** را گزارش می‌کرد نه متخلف را و `custom_minimum_size` را **جای** `size`
+   می‌گذاشت نه `max` ⇒ در هدلس (layout=۰) هر دکمه‌ای محکوم می‌شد؛ ابزارِ DoD هم باید تست شود.
+۱۰) دو تست به **ترتیب اجرا** وابسته بودند (`test_settings_menu` پرچم موتور را خاموش می‌گذاشت ⇒
+   `test_settings_store` ادعای بی‌معنی) ⇒ هر دو خودکفا + ذخیره/بازگردانی در `after_each`.
+۱۱) `assert_eq(str(x), "<Null>")`: در Godot ۴ مقدار `str(null)` برابر `"<null>"` است ⇒ جای
+   مقایسهٔ رشته‌ای، `assert_null` (ادعای واقعی: کلید ناشناخته تهی می‌دهد نه ۰/false).
+۱۲) تستِ `test_the_widgets_show_what_is_stored` برای اثبات «اسلایدر فوکوس‌ناپذیر است» خودش
+   `menu.music_slider.grab_focus()` را صدا می‌زد ⇒ خطای موتورِ «This control can't grab focus»
+   (که GUT شکست می‌داند) درحالی‌که **خودِ ادعا درست بود** ✗✓ قانون تازه: ادعا را بسنج، نه
+   شکستِ عمدی‌اش را — `assert_eq(slider.focus_mode, FOCUS_NONE)` کافی و بی‌خطاست.
+   (نکته: `ParentGate` همان فراخوانی را دارد ولی `focus_mode = FOCUS_ALL` ⇒ مجاز ✓ و
+   کامنتی که آن را متهم می‌کرد اصلاح شد؛ ادعای نادرست روی کد، خودش باگ است.)
+۱۳) امضای GUT ناسازگار است: `assert_signal_emit_count(..., msg)` پیام می‌گیرد ولی
+   `assert_signal_emitted_with_parameters(obj, sig, params, **index**)` پیام **ندارد** ⇒ سه فراخوانیِ
+   من، رشته را به‌عنوان index به `_signal_watcher` می‌دادند و **داخل خودِ GUT** با
+   «Invalid operands 'String' and 'int'» + «Nonexistent function 'size' in base 'Nil'» می‌ترکید،
+   بدون اشاره به فایل من ✗ (سه دور CI سوخت) ⇒ `tools/ci_annotate.py` هم اصلاح شد: جزئیاتِ بعد از
+   `[Failed]` و خطِ `at: file:line` حالا در annotation می‌آیند (با لاگ ساختگی آزموده شد ✓).
+
+**انحراف‌ها/افزوده‌هایی که سند ۰۴ نداشت (صریح):** «متنِ طولانی نداریم» به دو قانونِ قابل‌سنجش
+شکست شد: هر برچسب ≤ `40` نویسه و ≤ ۵ برچسبِ نمایان در هر گام (ADR-۰۵۰؛ کپشنِ سه ردیفِ انتخاب لازم
+بود)؛ تنظیمات **روی** پاز سوار می‌شود نه صحنهٔ جدا (تضمینِ resume بدون reload)؛ داشبورد هر عددی را
+از مدل می‌خواند و هیچ میانگینی در UI حساب نمی‌کند؛ `MasteryChart` از `skills.keys()` می‌سازد، پس
+مفهومِ تازهٔ فاز ۷ خودکار در داشبورد می‌نشیند و `skill.<tag>` اجباری است؛ `ParentGate` عمداً
+امنیت نیست (ADR-۰۴۷)؛ و آواتارِ کودک در همین فاز `_draw` شد (هنر نهایی فاز ۸) تا انتخابِ §۴
+زودتر از «جای‌گذارِ خاکستری» آزمون پس بدهد.
+
+**بدهی به فازهای بعد:** (الف) `assets/fonts/` خالی است ⇒ همه‌جا `ThemeDB.fallback_font` و
+`Loc` رقم‌ها را دستی تبدیل می‌کند؛ فونت بچگانه + `Theme` رسمیِ §۷ فاز ۸ (با `retranslate` هیچ
+ارتباطی ندارد و نباید اشتباه گرفته شود). (ب) `assets/audio/*` فقط `default_bus_layout.tres` را دارد؛
+`AudioManager` و فایل‌های واقعی فاز ۷.۶/۸ (باس‌ها از الان جدا و تست‌شوند ⇒ فقط `load` عوض می‌شود).
+(ج) DoD دستی ۶.۲/۶.۳ («با کودک تست شود») به فاز ۱۱. (د) آمارِ داشبورد روی دادهٔ **محلی** است؛
+`POST /api/events` (فاز ۹) هنوز هیچ فراخوانی ندارد و بازی کامل آفلاین می‌ماند ✓ (نگهبان
+`test_live_ai_provider.gd`). (ه) اگر owner قفلِ واقعی (PIN) بخواهد: ADR-۰۴۷ باید با یک ADR تازه
+بازبینی شود، چون بازیابیِ PIN یعنی دادهٔ شخصی ✗.
 
 ### فاز ۷ — محتوا
 ۷.۱..۷.۴ Tier 2..5 (≈ ۸-۱۲ سطح هر Tier؛ جمع MVP ≈ ۴۰-۵۰ سطح) · ۷.۵ `story_beats.json` · ۷.۶ `AudioManager` + لیست دارایی صوتی.

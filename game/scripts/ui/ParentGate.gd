@@ -161,6 +161,9 @@ func submit(text: String = "") -> bool:
 		answer_field.text if answer_field != null else "")
 	var digits: String = normalize_digits(raw.strip_edges())
 	if digits.is_empty():
+		# فوکوس را نگه می‌داریم (و برنمی‌داریم): کودک روی صفحه‌کلیدِ Android است و
+		# `focus_mode = FOCUS_ALL` ⇒ `can_grab_focus()` درست است، پس این فراخوانی
+		# بی‌خطر است و فقط یعنی صفحه‌کلید از زیرِ دستش بالا نمی‌پرد.
 		if answer_field != null:
 			answer_field.grab_focus()
 		return false
