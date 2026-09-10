@@ -75,13 +75,9 @@
     "wrong_ops": {
       "right_orbs": [
         5,
-        5,
-        2,
-        -2
+        5
       ],
       "operations": [
-        "add",
-        "add",
         "add",
         "add"
       ]

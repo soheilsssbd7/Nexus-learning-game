@@ -28,6 +28,7 @@ NEXUS — validate_levels.py
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import re
 import sys
@@ -288,7 +289,8 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
         meta["intended_sum"] = sum(float(x) for x in intended["right_orbs"])
     wrong = spec.get("wrong_ops") if isinstance(spec.get("wrong_ops"), dict) else {}
     if isinstance(wrong.get("right_orbs"), list) and wrong["right_orbs"]:
-        meta["wrong_sum"] = sum(float(x) for x in wrong["right_orbs"])
+        meta["wrong_orbs"] = [float(x) for x in wrong["right_orbs"]]
+        meta["wrong_sum"] = sum(meta["wrong_orbs"])
 
     tol = raw.get("tolerance")
     if not isinstance(tol, (int, float)) or tol < 0:
@@ -354,9 +356,19 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
         if abs(meta["intended_sum"] - cents(target) / 100) > cents(tol) / 100 + 1e-9:
             errs.append(f"{rel}: `solution_spec.intended.right_orbs` مجموعش {meta['intended_sum']:g} ≠ "
                         f"نیاز کفه‌ی راست {cents(target)/100:g} ⇒ حلِ قصدمند در موتور می‌بازد")
-    if "wrong_sum" in meta and isinstance(target, (int, float)) and isinstance(tol, (int, float)):
-        if abs(meta["wrong_sum"] - cents(target) / 100) <= cents(tol) / 100 + 1e-9:
-            errs.append(f"{rel}: `wrong_ops.right_orbs` هم تراز می‌کند ⇒ سطح چیزی یاد نمی‌دهد")
+    if "wrong_orbs" in meta and isinstance(target, (int, float)) and isinstance(tol, (int, float)):
+        need = cents(target) / 100.0
+        lim = cents(tol) / 100.0 + 1e-9
+        orbs = meta["wrong_orbs"]
+        # «اشتباهِ آموزشی» باید در **هر ترتیبی** ببازد ✗✓ اگر فقط *مجموعش* را چک کنیم،
+        # [5,5,2,-2] (یعنی حلِ درست + یک کره) سبز می‌شود درحالی‌که کودک با سه تای اول
+        # برده است — همین دام، دو سطح از Tier ۲ را در باتِ GUT قرمز کرد ✓
+        for size in range(1, len(orbs) + 1):
+            bad = [c for c in itertools.combinations(orbs, size) if abs(sum(c) - need) <= lim]
+            if bad:
+                errs.append(f"{rel}: زیرمجموعه‌ی {list(bad[0])} از `wrong_ops.right_orbs` هم "
+                            f"تراز می‌کند ⇒ آن حرکت «اشتباه» نیست و سطح بی‌آموزش شده")
+                break
 
     seq = raw.get("hint_sequence")
     if not isinstance(seq, list) or not seq:

@@ -141,10 +141,16 @@ func test_the_documented_wrong_move_never_wins() -> void:
 		var orbs: Array[WeightOrb] = _pick_orbs(scene, wanted as Array, used)
 		if orbs.size() != (wanted as Array).size():
 			continue  # کره‌ها در سینی نیستند؛ قاعدهٔ داده‌ای در validator گرفته می‌شود
-		scene.place_on_right(orbs)
-		await get_tree().process_frame
-		assert_false(scene.is_won(),
-			"`%s`: «حرکتِ اشتباه» هم تراز می‌کند ⇒ سطح بی‌آموزش شده است" % lid)
+		# کره‌ها یکی‌یکی می‌نشینند و **هیچ پیشوندی** نباید ببرد ✗✓ اگر همه را یک‌جا بگذاریم
+		# و برد در موتور latch شده باشد، ترتیبِ داده می‌تواند «باختن را وانمود کند؛ این
+		# حلقه همان را در موتور سنجید و قاعدهٔ «هیچ زیرمجموعه‌ای تراز نکند» در validator آن را
+		# در داده (برای همهٔ ترتیب‌ها) می‌بندد ✓✓ دو لایه، یک ادعا. (نمونهٔ واقعی: Tier ۲ دو
+		# سطح داشت که `wrong_ops` = حلِ درست + یک کره بود ⇒ با سه تای اول بُرد ✗✓ ADR-053.)
+		for k: int in range(orbs.size()):
+			scene.place_on_right([orbs[k]])
+			await get_tree().process_frame
+			assert_false(scene.is_won(),
+				"`%s`: «حرکتِ اشتباه» با %d کرهٔ اول تراز می‌کند ⇒ آن حرکت اشتباه نیست" % [lid, k + 1])
 
 
 func test_every_level_offers_a_hint_that_the_runtime_can_deliver() -> void:
