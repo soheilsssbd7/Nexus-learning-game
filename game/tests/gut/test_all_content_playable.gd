@@ -68,8 +68,24 @@ func _read_json(path: String) -> Dictionary:
 	return parsed as Dictionary if parsed is Dictionary else {}
 
 
-## کره‌های سینی که وزنشان (با علامت!) برابر مقدارِ خواسته‌شده است؛ هر کره یک بار
-## مصرف می‌شود تا سطح‌های چندکره‌ای جوابِ ساختگی نگیرند.## کره‌های سینی با همان وزنِ علامت‌دار (`WeightOrb.weight()` ⇒ NegativeOrb منفی و
+## صحنهٔ واقعیِ سطح، با bookkeepingِ خاموش ✗✓ (ADR-050: «تستِ محتوا نباید آمارِ کودک
+## را آلوده کند») و `attempt_settle_sec` کوتاه، تا هر کره در همان فریم settle شود.
+## coroutine است، پس هر فراخوانی‌اش `await` می‌خواهد — Godot خطای parse می‌دهد و فایل
+## را اصلاً load نمی‌کند ✗✓ (دقیقاً همان «سبزِ توخالی» که نباید تکرار شود).
+func _scene_for(level_id: String) -> LevelController:
+	LevelLoader.clear_pending_config()
+	var scene: LevelController = LevelLoader.create_level_scene(level_id) as LevelController
+	assert_not_null(scene, "صحنهٔ `%s` ساخته نشد" % level_id)
+	if scene == null:
+		return null
+	scene.report_progress = false
+	scene.attempt_settle_sec = 0.05
+	add_child_autofree(scene)
+	await get_tree().process_frame
+	return scene
+
+
+## کره‌های سینی با همان وزنِ علامت‌دار (`WeightOrb.weight()` ⇒ NegativeOrb منفی و
 ## GhostOrb برابر `hidden_value` ✓)؛ `used` با instance_id نگه داشته می‌شود تا دو کرهٔ
 ## هم‌وزن، یک کره را دو بار «مصرف» نکنند ✗✓ (با ۱۰ ردیفِ `count` در سینی، این دامِ واقعی است).
 func _pick_orb(scene: LevelController, value: float, used: Dictionary) -> WeightOrb:
@@ -140,7 +156,7 @@ func test_the_intended_solution_wins_on_every_level() -> void:
 			if bool(r2["ok"]):
 				_place_pairs(scene2, r2["pairs"] as Array)
 				await get_tree().process_frame
-				assert_true(scene2.is_won(), "`%s`: همان حل با ترتیبِ معکوس نباخت ✗" % lid)
+				assert_true(scene2.is_won(), "`%s`: همان حلِ قصدمند با ترتیبِ معکوس هم باید ببرد ✗" % lid)
 		checked += 1
 	assert_gte(checked, 1, "هیچ سطحی `solution_spec.intended` نداشت ⇒ این تست چیزی نمی‌سنجد")
 	assert_eq(checked, _ids.size(), "همهٔ سطح‌ها باید حلِ قصدمندِ تست‌شدنی داشته باشند")
