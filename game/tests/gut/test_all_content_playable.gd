@@ -125,6 +125,21 @@ func _place_pairs(scene: LevelController, pairs: Array) -> void:
 		scene.place_on_right(one, int(d["scale"]))
 
 
+## قراردادِ کشف: هر فایلِ روی دیسک باید از راه `LevelLoader` هم دیده شود ✗✓ اگر یک Tier
+## در فهرستِ بارگذاری جا بیفتد، نقشه آن را «قفلِ ابدی» نشان می‌دهد و هیچ تستِ دیگری (حتی
+## باتِ حل‌شدن) متوجه نمی‌شود، چون بات خودش با `_discover_level_ids()` دیسک را می‌خواند ✗✓
+## ⇒ این تست دقیقاً همان «فاصلهٔ دیسک ↔ موتور» را می‌سنجد (۷.۰).
+func test_every_level_id_on_disk_is_discoverable_by_the_loader() -> void:
+	var missing: Array[String] = []
+	for lid: String in _ids:
+		if not LevelLoader.level_ids().has(lid):
+			missing.append(lid)
+	assert_true(missing.is_empty(),
+		"این سطح‌ها روی دیسک‌اند ولی `LevelLoader` نمی‌بیند: %s" % str(missing))
+	assert_eq(LevelLoader.level_count(), _ids.size(),
+		"شمارش موتور و دیسک باید یکی باشد، وگرنه یک Tier نصفه بارگذاری می‌شود ✗")
+
+
 func test_the_intended_solution_wins_on_every_level() -> void:
 	var checked: int = 0
 	for lid: String in _ids:
