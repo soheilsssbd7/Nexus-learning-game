@@ -131,7 +131,7 @@ func test_shader_takes_its_color_from_modulate_not_from_itself() -> void:
 	var src: String = f.get_as_text()
 	f.close()
 	assert_true(src.contains("shader_type canvas_item"), "canvas_item چون روی Node2D است")
-	var re_lit := RegEx.create_from_string(r"vec3\s*\(\s*0?\.\d")
+	var re_lit := RegEx.create_from_string("vec3\\s*\\(\\s*0?\\.\\d")
 	var hits := re_lit.search_all(src)
 	assert_eq(hits.size(), 0, "رنگِ هاردکد در شیدر ممنوع ✓ (رنگ = self_modulate)")
 	assert_true(src.contains("COLOR.rgb"), "خروجی از COLOR (یعنی modulate) ساخته می‌شود")
@@ -145,10 +145,10 @@ func test_core_state_colors_are_official_palette_derivations() -> void:
 		var c: Color = AriaAvatar.core_color_for(state)
 		var near := 1.0
 		for b: Color in bases:
-			near = minf(near, absf(c.get_h() - b.get_h()))
+			near = minf(near, absf(c.h - b.h))
 		assert_true(near < 0.06, "%s: هویّت با یکی از چهار رنگِ رسمی یکی است ⇒ %s" % [state, str(c)])
 	var concerned: Color = AriaAvatar.core_color_for(AriaAvatar.STATE_CONCERNED)
-	assert_true(concerned.get_saturation() < Palette.WARM_CORAL.get_saturation(),
+	assert_true(concerned.s < Palette.WARM_CORAL.s,
 		"§۳: Warm Coral «کم‌رنگ» (هرگز قرمز کامل ✗)")
 	assert_true(not (concerned.r > 0.85 and concerned.g < 0.45 and concerned.b < 0.45),
 		"§۸: هیچ قرمزِ تهاجمی در هیچ حالتی نیست")

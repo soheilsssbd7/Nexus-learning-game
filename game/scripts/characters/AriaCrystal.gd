@@ -168,7 +168,7 @@ func _draw() -> void:
 	pts.resize(verts.size())
 	depth.resize(verts.size())
 	for i: int in verts.size():
-		var p: Vector3 = rot.xform(verts[i])
+		var p: Vector3 = rot * verts[i]  # `Basis.xform()` در Godot 4 وجود ندارد ✗✓
 		pts[i] = Vector2(p.x, p.y) * radius
 		depth[i] = p.z
 	# نقاشی از عقب به جلو ✓ (painter's algorithm: بی‌‌نیاز از depth-buffer در CanvasItem ✓)

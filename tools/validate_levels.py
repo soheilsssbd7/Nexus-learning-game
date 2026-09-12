@@ -1020,6 +1020,80 @@ def check_art_assets(errs: list[str]) -> dict:
     return out
 
 
+# ---------------------------------------------------------------------------
+# نگهبانِ API (ADR-058): این‌ها در Godot 4 **وجود ندارند** ✗✓ و خطا فقط در CIِ واقعی
+# (import/load) ظاهر می‌شود ⇒ یک گیتِ متنیِ بی‌رحم روی `game/scripts` و `game/tests` ✓
+# ---------------------------------------------------------------------------
+GODOT3_ISMS: dict[str, str] = {
+	r"\.instance\(\)": ".instance() ← در Godot 4 `instantiate()` است",
+	r"\.get_hsv\(": "Color.get_hsv() ← در Godot 4 `to_hsv()`",
+	r"\.get_saturation\(": "Color.get_saturation() ← پراپرتی `s`",
+	r"\.get_luma\(": "Color.get_luma() ← پراپرتی `luma`",
+	r"\.get_[hsv]\(": "Color.get_h/s/v() ← پراپرتی `h`/`s`/`v`",
+	r"track_set_interp_mode": "Animation.track_set_interp_mode ← `track_set_interpolation_type`",
+	r"\bPool[A-Za-z]+Array\b": "Pool*Array ← در Godot 4 همان Packed*Array",
+	r"\bfuncref\(": "funcref ← `Callable(obj, method)`",
+	r"\byield\b": "yield ← `await`",
+	r"\bexport\s*\(": "export(...) ← `@export`",
+	r"\bonready\s+var\b": "onready var ← `@onready var`",
+	r"\bKinematicBody2D\b": "KinematicBody2D ← `CharacterBody2D`",
+}
+
+
+def strip_code(line: str) -> str:
+    """نظرات را حذف می‌کند تا گیت، «توضیحِ باگ» را باگ نگیرد ✗✓ (رشته‌های داخل `"` را
+    حفظ می‌کند؛ کامنت‌های `##` سندِ متد هم بی‌ضرر حذف می‌شوند ✓)"""
+    out = []
+    in_str: str = ""
+    i = 0
+    while i < len(line):
+        ch = line[i]
+        if in_str:
+            if ch == in_str and (i == 0 or line[i - 1] != "\\"):
+                in_str = ""
+        elif ch in ('"', "'"):
+            in_str = ch
+        elif ch == "#":
+            break
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def check_godot4_api(errs: list[str]) -> int:
+    """خطاهای APIِ Godot 3 را قبلِ push می‌گیرد ✓ (بازگشت: ۰ = پاک) ✓
+
+    دلیلِ وجود: `godot --check-only` (gdparse) خیلی از این‌ها را **نمی‌فهمد** ✗✓ و
+    نتیجه‌اش فاجعه است: کل script رد می‌شود، autoload نمی‌شود، و در بازیِ واقعی
+    بی‌صدا/سیاه می‌مانیم ✗✗ (تجربهٔ فاز ۷: `connect(_on_aria_state)`؛ تجربهٔ امروز:
+    `Basis.xform()` و `Color.get_h()` که همان‌جا parse error دادند ✓).
+    یک قاعدهٔ موقعیتی هم دارد: `xform(` روی `Basis` ممنوع است، ولی روی `Transform3D`
+    درست است ✗✓ پس اگر همان بلوکِ تابع `Basis` را نام برده و `.xform(` دارد → خطا ✓
+    """
+    n = 0
+    for base in ("scripts", "tests"):
+        root = GAME / base
+        if not root.exists():
+            continue
+        for f in sorted(root.rglob("*.gd")):
+            raw = f.read_text(encoding="utf-8", errors="replace")
+            rel = f.relative_to(ROOT).as_posix()
+            body = "\n".join(strip_code(l) for l in raw.splitlines())
+            for pat, why in GODOT3_ISMS.items():
+                for m in re.finditer(pat, body, re.M):
+                    ln = body.count("\n", 0, m.start()) + 1
+                    errs.append(f"{rel}:{ln}: `{m.group(0)}` ✗ ({why})")
+                    n += 1
+            # قاعدهٔ موقعیتی Basis.xform ✓ (بلوکِ تابع = از `func` تا `func` بعدی)
+            for fb in re.finditer(r"^func .*?(?=^func |\Z)", body, re.M | re.S):
+                seg = fb.group(0)
+                if "Basis" in seg and ".xform(" in seg:
+                    ln = body.count("\n", 0, seg.index(".xform(")) + 1
+                    errs.append(f"{rel}:{ln}: `Basis.xform()` در Godot 4 نیست؛ `basis * v` بنویس ✗")
+                    n += 1
+    return n
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="NEXUS content validator")
     ap.add_argument("--json", metavar="OUT", help="نوشتن گزارش JSON (برای آرشیو CI)")
@@ -1052,11 +1126,12 @@ def main() -> int:
     beats = check_story_beats(errs, l10n.get("locales", []))
     audio_items = check_audio_manifest(errs)
     art = check_art_assets(errs)
+    api_clean = check_godot4_api(errs)
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
     print(f"سطح بررسی‌شده: {total} · قابل‌حل تأییدشده: {solved}/{total} · قالب دیالوگ: {len(hints)}"
-          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items} · فایل بصری: {art['files']} ({art['kb']}KB)/شیدر {art['shaders']}")
+          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items} · فایل بصری: {art['files']} ({art['kb']}KB)/شیدر {art['shaders']} · API Godot4: {('پاک ✓' if api_clean == 0 else str(api_clean) + ' مشکل ✗')}")
 
     if args.json:
         Path(args.json).write_text(json.dumps({"levels": metas, "l10n": l10n, "errors": errs}, ensure_ascii=False, indent=2), encoding="utf-8")

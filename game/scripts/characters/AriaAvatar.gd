@@ -24,20 +24,32 @@ const STATES: Array[String] = [STATE_IDLE, STATE_THINKING, STATE_HINT, STATE_ENC
 	STATE_CELEBRATING, STATE_CONCERNED]
 
 ## رنگ هسته (§۳): بدنه همیشه طلایی می‌ماند، فقط این شش عدد عوض می‌شوند
+## §۳ + §۸ دو چیز با هم خواسته شده: «تنها هسته رنگ عوض می‌کند» و «فقط پالت رسمی» ⇒
+## جدولِ رنگ = پایه‌هایِ خودِ `Palette` (const-legal ✓) و «روشن‌تر/کم‌رنگ‌تر» یک ضریبِ
+## جداست ✓✓ چرا این شکل؟ چون `const` در GDScript با **فراخوانیِ متد** ساخته نمی‌شود ✗✓
+## (`Palette.SOFT_TEAL.lightened(0.22)` داخلِ const = خطای parse ⇒ کل اسکریپت load نمی‌شود ✗✗
+## و `static var` هم قراردادِ نامِ کلاس را می‌شکند ✗) ⇒ تفکیکِ «پایه» از «میان» ✓
 const CORE_COLORS := {
-	# همه از **پالت رسمی** مشتق می‌شوند ✗✓ (§۸ چک‌لیست: «فقط از پالت رنگ رسمی» ⇒ هگزِ
-	# دست‌نویس یعنی یک روز پالت عوض می‌شود و آریا بیرونش می‌رقصد ✓✓)
 	STATE_IDLE: Palette.AELORIA_GOLD,
 	STATE_THINKING: Palette.SOFT_TEAL,
-	STATE_HINT: Palette.SOFT_TEAL.lightened(0.22),
-	STATE_ENCOURAGING: Palette.AELORIA_GOLD.lightened(0.30),
-	# §۳ «ترکیب Gold + Teal» ⇒ هسته طلاییِ روشن می‌ماند و Teal را رگه‌ها حمل می‌کنند ✓
-	STATE_CELEBRATING: Palette.AELORIA_GOLD.lightened(0.12),
-	STATE_CONCERNED: Palette.WARM_CORAL.lightened(0.42),
+	STATE_HINT: Palette.SOFT_TEAL,
+	STATE_ENCOURAGING: Palette.AELORIA_GOLD,
+	STATE_CELEBRATING: Palette.AELORIA_GOLD,
+	STATE_CONCERNED: Palette.WARM_CORAL,
 }
 
-## حسِّ بصری هر حالت روی بدنه (چرخش/رگه‌ها) ✓§۳ — تنها جایی که «سرعتِ نور» تعریف می‌شود
-## [spin_rate, streak_rate, streak_alpha, streak_tint] ✓ (تستِ ۸.۱ همین جدول را می‌سنجد)
+## §۳: «Soft Teal روشن‌تر» / «Aeloria Gold درخشان» / «ترکیب Gold + Teal» /
+## «Warm Coral کم‌رنگ (هرگز قرمز کامل)» ⇒ میزانِ روشنایی، نه رنگِ سوم ✗✓
+const CORE_LIFT := {
+	STATE_IDLE: 0.0,
+	STATE_THINKING: 0.0,
+	STATE_HINT: 0.22,
+	STATE_ENCOURAGING: 0.30,
+	STATE_CELEBRATING: 0.12,
+	STATE_CONCERNED: 0.42,
+}
+
+
 const MOODS := {
 	STATE_IDLE: [0.30, 0.35, 0.55, Color(1.0, 1.0, 1.0)],
 	STATE_THINKING: [0.16, 0.14, 0.50, Color(1.0, 1.0, 1.0)],
@@ -127,8 +139,9 @@ static func mood_for(state: String) -> Array:
 
 
 static func core_color_for(state: String) -> Color:
-	var c: Variant = CORE_COLORS.get(state, Palette.AELORIA_GOLD)
-	return c as Color if c is Color else Palette.AELORIA_GOLD
+	var base: Color = CORE_COLORS.get(state, Palette.AELORIA_GOLD) as Color
+	var lift: float = float(CORE_LIFT.get(state, 0.0))
+	return base.lightened(clampf(lift, 0.0, 0.6))  # «کم‌رنگ» یعنی هرگز سفیدِ شسته ✗
 
 
 func core_modulate() -> Color:
@@ -136,8 +149,8 @@ func core_modulate() -> Color:
 
 
 func _core_color(state: String) -> Color:
-	var c: Variant = CORE_COLORS.get(state, Palette.AELORIA_GOLD)
-	return c as Color if c is Color else Palette.AELORIA_GOLD
+	# تنها یک مسیرِ محاسبه ✓ (ترَکِ رنگِ clip و `core_modulate()` هم‌عدد می‌مانند ✗✓)
+	return core_color_for(state)
 
 
 # --------------------------------------------------------------------------
