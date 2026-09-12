@@ -1378,6 +1378,13 @@ def check_typography(errs: list[str]) -> int:
             bad += 1
         rel = m.group(1).replace("res://", "")
         theme = GAME / rel
+        if theme.exists() and theme.suffix == ".theme":
+            head = theme.read_text(encoding="utf-8").lstrip()
+            if head.startswith("[gd_resource") or head.startswith("[gd_load_steps"):
+                errs.append(f"check_typography: تمِ متنی با پسوندِ `{theme.suffix}` بارگذاری "
+                            "نمی‌شود ✗✓ (Godot 4 پسوند `.theme` را باینری می‌خواند ⇒ "
+                            "«Unrecognized binary resource file»؛ به `.tres` تغییرش بدهد)")
+                bad += 1
         if not theme.exists():
             errs.append(f"check_typography: تمِ اعلام‌شده وجود ندارد ✗ ({m.group(1)})")
             bad += 1
@@ -1468,6 +1475,56 @@ def check_icon_assets(errs: list[str]) -> int:
         if "موقت" in app.read_text(encoding="utf-8") or "فاز ۰" in app.read_text(encoding="utf-8"):
             errs.append("check_icon_assets: آیکونِ اپ هنوز «موقتِ فاز ۰» است ✗ (تسک ۸.۴)")
             bad += 1
+    return bad
+
+
+_CONST_HEAD = re.compile(r"^const\s+(\w+)\s*:?=[ \t]*(.*)$")
+_CONST_MEMBER_CALL = re.compile(r"\.([A-Za-z_]\w*)\s*\(")
+
+
+def check_const_expressions(errs: list[str]) -> int:
+    """`const` فقط عبارتِ ثابت می‌پذیرد ⇒ هیچ `.method(` داخل مقدارِ const ✗✓
+
+    چرا این گیت هست؟ در ۸.۴ دقیقاً همین خطا کل `UIKit` را از کامپایل انداخت ✗✗:
+    `const TONES := {"stone": {"bg": Palette.STONE_GREY.darkened(0.25)}}` — سازندهٔ
+    `Color(...)` مجاز است ولی **صالحِ عضو** (`darkened/lerp/lightened`) در const
+    مجاز نیست؛ gdparse محلی این را نمی‌گرفت و CI ۱۰۵ تست را قرمز کرد ✓✓ (سومین بارِ
+    همین خانوادهٔ خطا ⇒ پس از این، «قاعدهٔ عددی/ثابت» باید در گیت باشد نه در حافظه).
+    سازنده‌های مجازِ builtin مثل `Color("...")`/`Vector2(1, 2)`/`Rect2(...)` آزادند ✓
+    (خطوطِ کامنت شمارده نمی‌شوند ✓ و دامنه فقط `game/scripts` است ✓✓ درسِ ۸.۴:
+    تست‌ها گاهی همان الگوی ممنوع را داخل assert می‌خواهند تا وفاداری سنجیده شود).
+    """
+    bad = 0
+    for f in sorted((GAME / "scripts").rglob("*.gd")):
+        lines = f.read_text(encoding="utf-8").splitlines()
+        i = 0
+        while i < len(lines):
+            code = re.split(r"\s+#", lines[i], maxsplit=1)[0]
+            m = _CONST_HEAD.match(code.strip()) if code.startswith("const") else None
+            if m is None:
+                i += 1
+                continue
+            # بدنهٔ const را تا ترازِ پرانتز/آکولاد جمع می‌کنیم (دیکشنری چندخطی ✓)
+            body = m.group(2)
+            depth = body.count("(") + body.count("{") + body.count("[") \
+                - body.count(")") - body.count("}") - body.count("]")
+            j = i
+            while depth > 0 and j + 1 < len(lines):
+                j += 1
+                nxt = re.split(r"\s+#", lines[j], maxsplit=1)[0]
+                depth += nxt.count("(") + nxt.count("{") + nxt.count("[") \
+                    - nxt.count(")") - nxt.count("}") - nxt.count("]")
+                body += "\n" + nxt
+            for call in _CONST_MEMBER_CALL.finditer(body):
+                rel = f.relative_to(ROOT)
+                errs.append(
+                    f"{rel}:{i + 1}: check_const_expressions: `const {m.group(1)}` مقدارش "
+                    f"`.{call.group(1)}(...)` دارد ✗ (عبارتِ ثابت نیست ⇒ کل کلاس کامپایل "
+                    "نمی‌شود؛ عدد/هگز را در `Palette` ثابت کنید ✓§۲)"
+                )
+                bad += 1
+                break
+            i = j + 1
     return bad
 
 
@@ -1624,6 +1681,7 @@ def main() -> int:
     typo = check_typography(errs)
     icons = check_icon_assets(errs)
     i18n_ui = check_ui_string_i18n(errs)
+    consts = check_const_expressions(errs)
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
@@ -1636,6 +1694,8 @@ def main() -> int:
         print("آیکون‌های SVG: زنده، پالتی، بی‌متن، صفر باینری ✓")
     if i18n_ui == 0:
         print("متنِ UI در کد: هیچ رشتهٔ فارسیِ hard-code نیست ✓§۷")
+    if consts == 0:
+        print("عبارت‌های `const`: هیچ صالحِ عضو () در مقدارِ ثابت نیست ✓✓")
 
     if iso == 0:
         print("استاتیک/اینستانس: جدا ✓ (static تابعِ instance را لخت صدا نمی‌زند)")
