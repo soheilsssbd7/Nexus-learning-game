@@ -79,9 +79,9 @@ func row_text(index: int) -> String:
 func _draw() -> void:
 	var top: float = 56.0
 	if rows.is_empty():
-		draw_string(ThemeDB.fallback_font, Vector2(0.0, top + 40.0),
+		draw_string(Palette.ui_font(), Vector2(0.0, top + 40.0),
 			Loc.t("dashboard.no_data"), HORIZONTAL_ALIGNMENT_LEFT, size.x - 8.0,
-			UIKit.DIALOG_FONT_PX, Palette.STONE_GREY)
+			UIKit.DIALOG_FONT_PX, Palette.MUTED_TEXT)
 		return
 	for i: int in range(rows.size()):
 		var row: Dictionary = rows[i]
@@ -95,10 +95,10 @@ func _draw() -> void:
 		var conf_bar := Rect2(track.position.x, track.position.y + track.size.y + 6.0,
 			track.size.x * float(row["confidence"]), 8.0)
 		draw_rect(conf_bar, Color(Palette.SOFT_TEAL, 0.7))
-		var f := ThemeDB.fallback_font
+		var f: Font = Palette.ui_font()  # §۷ خانوادهٔ Vazirmatn ✓✗ fallback جعبه می‌دهد
 		draw_string(f, Vector2(0.0, y + 30.0), str(row["label"]),
 			HORIZONTAL_ALIGNMENT_LEFT, LABEL_WIDTH - 12.0, UIKit.DIALOG_FONT_PX + 2,
 			Palette.CLOUD_WHITE)
 		draw_string(f, Vector2(track.end.x + 12.0, y + 30.0), row_text(i),
 			HORIZONTAL_ALIGNMENT_LEFT, VALUE_WIDTH, UIKit.DIALOG_FONT_PX - 2,
-			Palette.STONE_GREY)
+			Palette.MUTED_TEXT)

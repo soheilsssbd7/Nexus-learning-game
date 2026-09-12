@@ -19,11 +19,20 @@ const MIN_TOUCH_DP := 48.0
 const CANVAS_PX_PER_DP := 3.0
 const MIN_TOUCH_PX: float = MIN_TOUCH_DP * CANVAS_PX_PER_DP
 
+## §۷ | تنها مرجعِ مسیرِ تمِ پروژه ✓ — `project.godot` هم باید دقیقاً همین رشته را در
+## `[gui] theme/custom` داشته باشد؛ گیتِ `check_typography` برابریِ این دو را می‌سنجد ✓✓
+## (تم تنها راهی است که کنترل‌های ساخته‌شده در کد را هم می‌پوشاند ✗ ADR-062)
+const THEME_PATH := "res://themes/Nexus.theme"
+
+
 const BUTTON_RADIUS := 16.0
 const PRESSED_SCALE := 0.95
 const HAPTIC_MS := 15
 
 const DIALOG_FONT_PX := 24
+
+## کفِ مطلقِ اندازهٔ متن در UI (§۷: ۲۴px) ✓ — همان عددِ گفت‌وگو؛ هر override
+## ریزتر از این، در گیتِ `check_typography` خطاست ✓✓
 const BUTTON_FONT_PX := 40
 const TITLE_FONT_PX := 56
 const GAP := 24.0
@@ -37,7 +46,10 @@ const TONES := {
 	"gold": {"bg": Palette.AELORIA_GOLD, "fg": Palette.DEEP_INDIGO},
 	"teal": {"bg": Palette.SOFT_TEAL, "fg": Palette.DEEP_INDIGO},
 	"cloud": {"bg": Palette.CLOUD_WHITE, "fg": Palette.DEEP_INDIGO},
-	"stone": {"bg": Palette.STONE_GREY, "fg": Palette.CLOUD_WHITE},
+	# `STONE_GREY` خالص با متنِ ابری فقط ۳٫۰۵ می‌دهد ✗ (DoD ۸.۴: «کنتراست قابل‌قبول») ⇒
+	# همان هوی §۲ با ۲۵٪ تیره‌تر = ۵٫۰۲ ✓✓ AA (تستِ `test_ui_skin.gd` عدد را می‌سنجد،
+	# و اگر روزی رنگ عوض شد، این تست می‌گوید کدام تُن افتاده ✓✓).
+	"stone": {"bg": Palette.STONE_GREY.darkened(0.25), "fg": Palette.CLOUD_WHITE},
 }
 
 
@@ -119,7 +131,7 @@ static func _release_up(btn: Button) -> void:
 
 
 static func make_button(key: String, tone: String = "gold",
-		size: Vector2 = DEFAULT_BUTTON_SIZE) -> Button:
+		size: Vector2 = DEFAULT_BUTTON_SIZE, icon_name: String = "") -> Button:
 	var btn := Button.new()
 	btn.name = key.replace(".", "_")
 	btn.text = Loc.t(key)
@@ -128,17 +140,21 @@ static func make_button(key: String, tone: String = "gold",
 	btn.set_meta(&"loc_key", key)
 	btn.custom_minimum_size = size
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if icon_name != "":
+		attach_icon(btn, icon_name)
 	return style_button(btn, tone)
 
 
 static func make_label(key: String, px: int = DIALOG_FONT_PX,
-		color: Color = Palette.CLOUD_WHITE) -> Label:
+		color: Color = Palette.CLOUD_WHITE, bold: bool = false) -> Label:
 	var label := Label.new()
 	label.name = key.replace(".", "_")
 	label.text = Loc.t(key)
 	label.set_meta(&"loc_key", key)
 	label.add_theme_font_size_override("font_size", px)
 	label.add_theme_color_override("font_color", color)
+	if bold:
+		label.add_theme_font_override("font", Palette.ui_font_bold())
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.max_lines_visible = 3
 	label.clip_text = true
@@ -236,6 +252,42 @@ static func haptics_allowed() -> bool:
 	if not DisplayServer.is_touchscreen_available():
 		return false
 	return bool(SettingsStore.get_value("haptics_enabled"))
+
+
+## ── آیکون‌های ایستا (§۸: «ترجیحاً SVG برای UI static» ✓✓ صفر باینری ✓ ADR-057) ──
+## چهار آیکون که برای کودک ۹-۱۵ واقعاً بارِ معنایی دارند ✗ «تزئین» نداریم; هر کدام
+## `viewBox` + پالتِ §۲ ✓✗ و گیتِ `check_icon_assets()` وجودشان را با این جدول یکی می‌کند
+const ICON_PATHS := {
+	"hint": "res://assets/art/icons/hint.svg",
+	"pause": "res://assets/art/icons/pause.svg",
+	"back": "res://assets/art/icons/back.svg",
+	"done": "res://assets/art/icons/done.svg",  ## تیکِ «تمام» ✓ (به‌جای گلیف ✗§۷)
+}
+
+## آیکون در متنِ راست‌به‌چپ باید سمتِ «شروع» باشد ⇒ در فارسی راست ✓✗ چپ نیست ✗✓ (این یکی
+## از آن چیزهایی است که در اسکرین‌شاتِ دسکتاپ درست به‌نظر می‌رسد و روی گوشیِ واقعی برعکس ✓)
+static func icon_alignment() -> int:
+	return HORIZONTAL_ALIGNMENT_RIGHT if Loc.is_rtl() else HORIZONTAL_ALIGNMENT_LEFT
+
+
+static func icon_texture(name: String) -> Texture2D:
+	var path: String = String(ICON_PATHS.get(name, ""))
+	if path == "" or not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
+
+
+## «متن + آیکون» نه «آیکون تنها»: برچسب ترجمه‌شده لازمۀ i18n است ✓§۷ و آیکون فقط
+## سرعتِ درک را بالا می‌برد ✓✓ (کودکِ کم‌خوان با واژه هم باید بتواند ادامه دهد ✓).
+static func attach_icon(btn: Button, icon_name: String) -> Button:
+	var tex := icon_texture(icon_name)
+	if tex == null:
+		return btn
+	btn.icon = tex
+	btn.icon_alignment = icon_alignment()
+	btn.expand_icon = false
+	btn.add_theme_constant_override("h_separation", int(GAP * 0.5))
+	return btn
 
 
 static func kick_haptic(ms: int = HAPTIC_MS) -> void:

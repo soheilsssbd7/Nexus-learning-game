@@ -103,7 +103,8 @@
    "skill.multi_step": "چند مرحله‌ای",
    "skill.fractions": "کسرها",
    "skill.balance_both_sides": "تعادل هر دو کفه",
-   "skill.equality": "برابری"
+   "skill.equality": "برابری",
+   "map.locked_hint": "قفل — اول سطح %s را تمام کن"
   },
   "en": {
    "main.title": "Nexus — Balance Realm",
@@ -198,7 +199,8 @@
    "skill.multi_step": "Multi-step",
    "skill.fractions": "Fractions",
    "skill.balance_both_sides": "Balance both sides",
-   "skill.equality": "Equality"
+   "skill.equality": "Equality",
+   "map.locked_hint": "locked — finish level %s first"
   }
  }
 }

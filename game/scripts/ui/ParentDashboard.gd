@@ -96,7 +96,7 @@ func _build() -> void:
 
 	box.add_child(UIKit.make_label("dashboard.title", UIKit.TITLE_FONT_PX - 6))
 	empty_label = UIKit.make_label("dashboard.no_data", UIKit.DIALOG_FONT_PX + 2,
-		Palette.STONE_GREY)
+		Palette.MUTED_TEXT)
 	empty_label.name = "EmptyNote"
 	empty_label.visible = false
 	box.add_child(empty_label)
@@ -143,12 +143,12 @@ func _build() -> void:
 	export_button.name = "ExportButton"
 	export_button.pressed.connect(export_for_review)
 	row.add_child(export_button)
-	export_label = UIKit.make_label("common.ok", UIKit.DIALOG_FONT_PX, Palette.STONE_GREY)
+	export_label = UIKit.make_label("common.ok", UIKit.DIALOG_FONT_PX, Palette.MUTED_TEXT)
 	export_label.name = "ExportNote"
 	export_label.visible = false
 	row.add_child(export_label)
 
-	var back: Button = UIKit.make_button("common.back", "stone")
+	var back: Button = UIKit.make_button("common.back", "stone", UIKit.DEFAULT_BUTTON_SIZE, "back")
 	back.name = "BackButton"
 	back.pressed.connect(leave)
 	row.add_child(back)
@@ -164,7 +164,7 @@ func _build() -> void:
 
 
 func _caption(key: String) -> Label:
-	return UIKit.make_label(key, UIKit.DIALOG_FONT_PX + 2, Palette.STONE_GREY)
+	return UIKit.make_label(key, UIKit.DIALOG_FONT_PX + 2, Palette.MUTED_TEXT)
 
 
 ## یک ردیف «برچسب: مقدار» — مقدار را `refresh()` از مدل پر می‌کند.
@@ -278,7 +278,7 @@ func _refresh_transcript(model: PlayerModel) -> void:
 	_clear(transcript_box)
 	if model.aria_transcript_log.is_empty():
 		transcript_box.add_child(_data_row("TranscriptEmpty",
-			Loc.t("dashboard.no_data"), Palette.STONE_GREY))
+			Loc.t("dashboard.no_data"), Palette.MUTED_TEXT))
 		return
 	# §۲ سند داده‌ها: «کامل و بدون حذف» ⇒ هیچ slice[-N:] نمی‌زنیم؛ فقط یک ScrollContainer.
 	for entry: Variant in model.aria_transcript_log:

@@ -74,7 +74,6 @@ func _build() -> void:
 			var btn := Button.new()
 			btn.name = "Locale_" + code
 			btn.set_meta(&"locale_code", code)
-			btn.custom_minimum_size = Vector2(420.0, UIKit.MIN_TOUCH_PX)
 			btn.custom_minimum_size = Vector2(UIKit.MIN_TOUCH_PX, UIKit.MIN_TOUCH_PX)
 			btn.focus_mode = Control.FOCUS_NONE
 			btn.pressed.connect(_choose_locale.bind(code))

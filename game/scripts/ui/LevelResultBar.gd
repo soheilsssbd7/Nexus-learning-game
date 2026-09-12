@@ -39,16 +39,17 @@ func _ready() -> void:
 	size = BAR_SIZE
 
 
+## تسک ۸.۴ | قبلاً این‌جا `Button.new()` دستی بود ✗✓ یعنی §۷ (گوشۀ ۱۶px، RTL،
+## کوچک‌شدنِ ۰٫۹۵ + لرزش، کفِ لمسی) فقط در `UIKit` نوشته شده بود و این دو دکمه از آن
+## می‌گریختند ⇒ sweepِ `test_a11y_scenes.gd` همین را گرفت ✓✓ حالا همه از یک مسیرند ✓
 func _make_button(label: String, at: Vector2) -> Button:
 	var btn := Button.new()
 	btn.name = label
 	btn.text = label
 	btn.position = at
 	btn.size = BUTTON_SIZE
-	btn.focus_mode = Control.FOCUS_NONE
-	btn.add_theme_font_size_override("font_size", 40)
-	btn.add_theme_color_override("font_color", Palette.DEEP_INDIGO)
-	btn.add_theme_color_override("font_hover_color", Palette.DEEP_INDIGO)
+	btn.custom_minimum_size = BUTTON_SIZE
+	UIKit.style_button(btn, "gold")
 	add_child(btn)
 	return btn
 

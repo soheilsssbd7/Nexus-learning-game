@@ -145,7 +145,7 @@ func _build_avatar_step() -> void:
 ## `tooltip_text` و اندازهٔ لمسی §۷ را دارد.
 func _add_swatch_row(box: VBoxContainer, row_name: String, caption_key: String,
 		count: int, part: String) -> Array[Button]:
-	var caption := UIKit.make_label(caption_key, UIKit.DIALOG_FONT_PX, Palette.STONE_GREY)
+	var caption := UIKit.make_label(caption_key, UIKit.DIALOG_FONT_PX, Palette.MUTED_TEXT)
 	caption.name = row_name + "_Caption"
 	box.add_child(caption)
 	var grid := GridContainer.new()

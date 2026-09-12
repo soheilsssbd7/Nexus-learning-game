@@ -173,6 +173,10 @@ func _build_page_nodes() -> void:
 		btn.position = center - NODE_SIZE * 0.5
 		btn.focus_mode = Control.FOCUS_NONE
 		btn.add_theme_font_size_override("font_size", 40)
+		btn.text_direction = Loc.text_direction()
+		# §۷ | این گره‌ها `Button.new()` مستقیم‌اند (پوسته را `refresh_locks` می‌سازد) ✗✓ پس
+		# فقط فشار/لرزش را از `UIKit` می‌گیرند؛ stylebox را دوتایی ننویس تا نجنگند ✓✓
+		UIKit.pressed_feedback(btn)
 		btn.pressed.connect(request_level.bind(global_index))
 		add_child(btn)
 		buttons.append(btn)
@@ -249,7 +253,7 @@ func goto_page(page: int) -> void:
 func _ensure_menu_button() -> void:
 	if has_node("BackToMenu"):
 		return
-	var btn: Button = UIKit.make_button("common.back", "stone", Vector2(240.0, UIKit.MIN_TOUCH_PX))
+	var btn: Button = UIKit.make_button("common.back", "stone", Vector2(240.0, UIKit.MIN_TOUCH_PX), "back")
 	btn.name = "BackToMenu"
 	btn.position = Vector2(60.0, 60.0)
 	btn.pressed.connect(_on_menu_pressed)
@@ -290,10 +294,30 @@ func refresh_locks() -> void:
 		var done: bool = model != null and model.is_level_completed(id)
 		var open: bool = is_unlocked(index)
 		btn.disabled = not open
-		btn.text = str(index + 1) + (" ✓" if done else "")
-		btn.tooltip_text = id if open else "%s — قفل (اول سطح %d را تمام کن)" % [id, index]
-		btn.add_theme_color_override("font_color", Palette.CLOUD_WHITE if open else Palette.STONE_GREY)
-		btn.add_theme_color_override("font_disabled_color", Palette.STONE_GREY)
+		# §۷ «i18n-ready» ⇒ نه گلیفِ یونیکد چسبیده به عدد، نه رشتهٔ فارسیِ hard-code ✗✓ رقم‌ها
+		# از `Loc.digits`، پیامِ قفل از `ui_strings.json` و تیکِ «تمام» SVG است ✓§۸ (ADR-062)
+		btn.text = Loc.digits(str(index + 1))
+		btn.icon = UIKit.icon_texture("done") if done else null
+		btn.icon_alignment = UIKit.icon_alignment()
+		btn.tooltip_text = id if open else (
+				"%s — %s" % [id, Loc.t("map.locked_hint") % Loc.digits(str(index))])
+		# پوستهٔ §۷ (گوشۀ ۱۶px ✓) با سه حالتِ معنایی ✓§۶: طلایی=تمام، ابری=باز، سنگی=قفل
+		var tone: String = "gold" if done else ("cloud" if open else "stone")
+		var spec: Dictionary = UIKit.TONES[tone] as Dictionary
+		var bg: Color = spec["bg"]
+		btn.add_theme_stylebox_override("normal",
+				UIKit.stylebox(bg, UIKit.BUTTON_RADIUS, 1.0 if open else 0.55))
+		btn.add_theme_stylebox_override("hover",
+				UIKit.stylebox(bg.lightened(0.06), UIKit.BUTTON_RADIUS))
+		btn.add_theme_stylebox_override("pressed",
+				UIKit.stylebox(bg.darkened(0.08), UIKit.BUTTON_RADIUS))
+		btn.add_theme_stylebox_override("disabled",
+				UIKit.stylebox(bg, UIKit.BUTTON_RADIUS, 0.55))
+		btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		btn.add_theme_color_override("font_color", Palette.text_on(bg))
+		# رنگِ متنِ قفل عمداً کم‌نور است: WCAG 1.4.3 اجزای غیرفعال را معاف می‌کند ✓ و
+		# همان قراردادِ `UIKit.style_button` است (سنگی ۰٫۵ + ابری) ✓✓ نه سلیقۀ جدید
+		btn.add_theme_color_override("font_disabled_color", Palette.CLOUD_WHITE)
 
 
 func level_count() -> int:

@@ -57,17 +57,65 @@ static func imbalance_color(strength: float) -> Color:
 	return WARM_CORAL.lerp(STONE_GREY, clampf(1.0 - strength, 0.0, 1.0))
 
 
-## رنگ متن مناسب روی این پالت (کنتراست ≥ ۴.۵ روی تیره‌ها)
-static func text_on(background: Color) -> Color:
-	return DEEP_INDIGO if background.get_luminance() > 0.55 else CLOUD_WHITE
+## §۷ (تسک ۸.۴): خانواده = **Vazirmatn** ✓ «Medium برای بدنه، Bold برای تیتر» ✗✓ دو فایل
+## TTF از قبل در `assets/fonts/`‌اند و در بودجۀ `check_art_assets` شمرده‌اند ⇒ این‌جا فقط
+## سیم‌کشی می‌شود ✓✗ دانلود/باینریِ تازه ممنوع (ADR-057).
+const FONT_MEDIUM := "res://assets/fonts/Vazirmatn-Medium.ttf"
+const FONT_BOLD := "res://assets/fonts/Vazirmatn-Bold.ttf"
+
+## آستانۀ «قابل‌قبول» §۷ = **WCAG 2.2 AA** (1.4.3) ✓✓ عددِ سلیقه‌ای نیست: متن عادی ≥ ۴٫۵
+## (و ما استثنای «متن بزرگ» را هم نمی‌گیریم ✗✓ چون کودک این بازی را در آفتاب بازی می‌کند
+## §۷ «روی موبایل» ⇒ هر جفتی که زیر ۴٫۵ باشد رنگش را عوض می‌کنیم، نه آستانه را ✓✓).
+const AA_TEXT_RATIO := 4.5
+
+## متنِ کم‌اهمیت (کپشن/محور چارت/راهنمای داشبورد) ✗✓ `STONE_GREY` مستقیم روی `DEEP_INDIGO`
+## فقط ۳٫۶۸ است ⇒ زیرِ AA؛ همین تُنِ سنگی را **روشن** می‌کنیم تا هوی §۲ حفظ شود و عدد برسد
+## = ۵٫۴۶ روی `DEEP_INDIGO` ✓✓ (اندازه‌گیریِ WCAG در `test_ui_skin.gd`، نه ادعا).
+const MUTED_TEXT := Color("AEAFC0")
 
 
 static func ui_font() -> Font:
-	# placeholder تا تم نهایی (تسک ۸.۴). اگر import فونت آماده نبود، font پیش‌فرض
-	# موتور برگردانده می‌شود تا هیچ صحنه‌ای به‌خاطر دارایی نشکند.
+	# بدنه (§۷: Medium). اگر import آماده نبود، fallbackِ موتور ✓ تا صحنه هیچ‌وقت نشکند.
 	var f: Font = null
-	if ResourceLoader.exists("res://assets/fonts/Vazirmatn-Bold.ttf"):
-		f = load("res://assets/fonts/Vazirmatn-Bold.ttf")
+	if ResourceLoader.exists(FONT_MEDIUM):
+		f = load(FONT_MEDIUM)
+	if f == null and ResourceLoader.exists(FONT_BOLD):
+		f = load(FONT_BOLD)
 	if f == null:
 		f = ThemeDB.fallback_font
 	return f
+
+
+static func ui_font_bold() -> Font:
+	# تیترها/عددِ روی کره (§۶ «عدد ملموس» ⇒ Bold روی شیدرِ متحرک) ✓
+	var f: Font = null
+	if ResourceLoader.exists(FONT_BOLD):
+		f = load(FONT_BOLD)
+	return f if f != null else ui_font()
+
+
+## کنتراستِ WCAG ✓ (خطی‌سازی sRGB ⇒ luminance نسبی ⇒ نسبت). عمداً همین‌جا نشسته:
+## هر جا رنگی انتخاب می‌شود باید بتواند **سنجیده** شود ✗✓ و تستِ دسترس‌پذیریِ ۸.۴
+## (DoD: «کنتراست متن/پس‌زمینه قابل‌قبول») از همین یک تابع می‌پرسد ✓✓.
+static func relative_luminance(c: Color) -> float:
+	return 0.2126 * _lin(c.r) + 0.7152 * _lin(c.g) + 0.0722 * _lin(c.b)
+
+
+static func _lin(v: float) -> float:
+	return v / 12.92 if v <= 0.03928 else pow((v + 0.055) / 1.055, 2.4)
+
+
+static func contrast_ratio(a: Color, b: Color) -> float:
+	var la: float = relative_luminance(a)
+	var lb: float = relative_luminance(b)
+	var hi: float = maxf(la, lb)
+	var lo: float = minf(la, lb)
+	return (hi + 0.05) / (lo + 0.05)
+
+
+## رنگ متنِ مناسب روی این پس‌زمینه ✓✗ دو نامزدِ §۲ و انتخاب با **نسبتِ واقعی** است،
+## نه آستانۀ لومینانسِ حدسی ✓✓ (نسخۀ قبلی `> 0.55` بود که روی خاکستریِ سنگی می‌سوخت ✗).
+static func text_on(background: Color) -> Color:
+	var white: float = contrast_ratio(CLOUD_WHITE, background)
+	var indigo: float = contrast_ratio(DEEP_INDIGO, background)
+	return CLOUD_WHITE if white >= indigo else DEEP_INDIGO

@@ -121,7 +121,9 @@ func _draw() -> void:
 		draw_arc(center + Vector2(-radius * 0.22, -radius * 0.24), radius * 0.52, PI * 0.95, PI * 1.85, 20,
 			Color(1, 1, 1, highlight_alpha_for(kind, highlight)), 4.0, true)
 	if not glyph.is_empty():
-		var font: Font = Palette.ui_font()
+		# §۶ «عدد ملموس» + §۷ «Bold برای تأکید» ⇒ عددِ روی کفه/کره با وزنِ Bold ✓✓
+		# (متنِ بدنه از تم، Medium است ✓ — دو مصرف، دو وزن، یک خانواده ✓)
+		var font: Font = Palette.ui_font_bold()
 		var text_size: Vector2 = font.get_string_size(glyph, HORIZONTAL_ALIGNMENT_CENTER, -1, glyph_size)
 		draw_string(font, center - Vector2(text_size.x * 0.5, -text_size.y * 0.34), glyph,
 			HORIZONTAL_ALIGNMENT_CENTER, -1, glyph_size, _glyph_color())

@@ -70,13 +70,15 @@ func _ready() -> void:
 
 
 func _build() -> void:
-	hint_button = UIKit.make_button("hud.hint", "teal", HINT_SIZE)
+	# §۸ | آیکونِ ایستا در کنارِ متن (نه به‌جایش): کودکِ کم‌خوان با واژه هم ادامه می‌دهد ✓
+	# و جهتِ آیکون از `Loc` می‌آید ⇒ در فارسی سمتِ شروع می‌نشیند ✓✓ (تستِ ۸.۴)
+	hint_button = UIKit.make_button("hud.hint", "teal", HINT_SIZE, "hint")
 	hint_button.name = "HintButton"
 	hint_button.position = HINT_AT
 	hint_button.pressed.connect(request_hint)
 	add_child(hint_button)
 
-	pause_button = UIKit.make_button("hud.pause", "cloud", PAUSE_SIZE)
+	pause_button = UIKit.make_button("hud.pause", "cloud", PAUSE_SIZE, "pause")
 	pause_button.name = "PauseButton"
 	pause_button.position = PAUSE_AT
 	pause_button.pressed.connect(pause_level)

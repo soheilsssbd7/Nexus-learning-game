@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- NEXUS | تسک ۸.۴ §۸ «SVG برای UI static» — راهنمای آریا (فوانوسِ کوچک با فیلامانِ طلایی §۲) ✓ پالت §۲، صفر متن، صفر ارجاع بیرونی ✓ -->
+  <path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2z"
+        fill="#2B2F77" fill-opacity="0.92"/>
+  <rect x="9" y="19.5" width="6" height="1.6" rx="0.8" fill="#2B2F77"/>
+  <path d="M11 5.5l2.6 3.2-2.2 1 1.6 2.4" fill="none" stroke="#F4C95D" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
