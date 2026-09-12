@@ -75,7 +75,7 @@ func _ready() -> void:
 	EventBus.level_started.connect(_on_level_started)
 	EventBus.level_completed.connect(_on_level_completed)
 	EventBus.attempt_failed.connect(_on_attempt_failed)
-	EventBus.aria_state_changed.connect(_on_aria_state)
+	EventBus.aria_state_changed.connect(_on_aria_state_changed)
 	_ready_ok = true
 	Log.debug(TAG, "آماده: %d باس، %d صدا، %d شناسه در manifest"
 		% [AudioServer.bus_count, SFX_VOICES, _manifest_asset_ids().size()])
