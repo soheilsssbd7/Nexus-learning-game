@@ -1234,6 +1234,56 @@ def check_script_duplicates(errs: list[str]) -> int:
     return dups
 
 
+def check_static_isolation(errs: list[str]) -> int:
+    """تسک ۸.۳ | امروز CI را دقیقاً همین قرمز کرد ✗✗: `	_ensure_backdrop()` ته‌نشین‌شده در
+    انتهای `static func default_config()` ⇒ Godot: «Cannot call non-static function» ⇒ اسکریپت
+    بارگذاری نمی‌شود ⇒ `LevelLoader.create_level_scene()` نال برمی‌گرداند ⇒ ۶۲ تستِ بی‌گناه قرمز ✓
+    `gdparse` هم چیزی نمی‌گفت ✗ پس گیتِ خودمان را داریم ✓✓ (قاعده‌ای که تکرارش قابل‌قبول نیست).
+
+    محافظه‌کارانه و بدونِ false-positive روی `obj.method()` ✓: فقط فراخوانیِ **لختِ** یک تابعِ
+    instance در همان فایل، داخلِ بدنهٔ یک `static func`. متدهای چرخۀ عمر استثنا‌اند ✓
+    """
+    bad = 0
+    scripts: list[Path] = []
+    for sub in ("scripts", "tests"):
+        d = GAME / sub
+        if d.exists():
+            scripts += sorted(d.rglob("*.gd"))
+    head = re.compile(r"^(?:static\s+)?func\s+([A-Za-z_]\w*)")
+    lifecycle = {"_ready", "_process", "_physics_process", "_draw", "_init", "_enter_tree",
+                 "_exit_tree", "_input", "_unhandled_input", "_notification", "_to_string",
+                 "_gui_input", "_mouse_entered", "_mouse_exited"}
+    for f in scripts:
+        lines = [strip_code(x) for x in f.read_text(encoding="utf-8", errors="replace").splitlines()]
+        inst: set[str] = set()
+        statics: list[tuple[str, int]] = []
+        starts: list[int] = []
+        for i, line in enumerate(lines):
+            m = head.match(line)
+            if m is None:
+                continue
+            starts.append(i)
+            if line.startswith("static"):
+                statics.append((m.group(1), i))
+            else:
+                inst.add(m.group(1))
+        if not statics:
+            continue
+        inst -= lifecycle
+        for nm, at in statics:
+            ends = [b for b in starts if b > at]
+            end = min(ends) if ends else len(lines)
+            for ln in range(at + 1, end):
+                for callee in sorted(inst):
+                    if re.search(r"(?<![\w.])" + re.escape(callee) + r"\(", lines[ln]):
+                        errs.append(f"{f.relative_to(ROOT).as_posix()}:{ln + 1}: تابعِ استاتیکِ "
+                                    f"`{nm}` تابعِ instance «{callee}» را لخت صدا می‌زند ✗ "
+                                    f"(در Godot یعنی «Cannot call non-static function» ⇒ کلِ "
+                                    f"اسکریپت بارگذاری نمی‌شود ✗✓)")
+                        bad += 1
+                        break
+    return bad
+
 def check_text_hygiene(errs: list[str], notes: list[str] | None = None) -> int:
     """`notes` = یافته‌های اسنادِ مالک ✓ گزارش می‌شوند، خطا نیستند ✓ (سندِ مالک را
     ویرایش نمی‌کنیم و گیت را هم کور نمی‌کنیم ✗✓ هر دو در یک خطِ ⚠ زنده می‌مانند ✓)"""
@@ -1311,11 +1361,15 @@ def main() -> int:
     hygiene = check_text_hygiene(errs, notes)
     vocab = check_ambient_art_vocab(errs)
     dup_count = check_script_duplicates(errs)
+    iso = check_static_isolation(errs)
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
     print(f"سطح بررسی‌شده: {total} · قابل‌حل تأییدشده: {solved}/{total} · قالب دیالوگ: {len(hints)}"
           f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items} · فایل بصری: {art['files']} ({art['kb']}KB)/شیدر {art['shaders']} · API Godot4: {('پاک ✓' if api_clean == 0 else str(api_clean) + ' مشکل ✗')} · کلاس‌های عمومی: {classes} · بهداشتِ متن: {('پاک ✓' if hygiene == 0 else str(hygiene) + ' مورد ✗')}")
+
+    if iso == 0:
+        print("استاتیک/اینستانس: جدا ✓ (static تابعِ instance را لخت صدا نمی‌زند)")
 
     if dup_count == 0:
         print("تکرارِ تعریف در .gd ها: پاک ✓ (gdparse این را نمی‌گیرد)")
