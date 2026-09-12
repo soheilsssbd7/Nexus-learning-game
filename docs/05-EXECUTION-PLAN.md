@@ -461,7 +461,7 @@ Teal روی رگه‌ها ✓✓). **تفسیرِ DoD برای CIِ هدلس** (
 **سه دورِ قرمزِ ۸.۳ و درس‌هایشان (ثبت ✓✓):** (۱) سه خطایی که فقط Godot می‌بیند: عضوِ enum از
 بیرونِ فایل (`RegionBackdrop.HUB` ✗✓ ⇒ `region_for_tier(0)` / `region_named("Sunlit Meadow")` — تست هم‌زمان
 قفلِ واژگان شد ✓✓)، `assert_false(bd is Control)` که خودش خطای parse است ✗✓ ⇒ `get_class()`، و
-**و (۳) نه این‌که**) `	_ensure_backdrop()` که spliceٔ خطیِ من به انتهای `static func default_config()` ته‌نشین شده بود
+و **سوم** (هر سه در یک دور، همه «فقط-Godot»): `	_ensure_backdrop()` که spliceٔ خطیِ من به انتهای `static func default_config()` ته‌نشین شده بود
 ⇒ «Cannot call non-static function» ⇒ ۶۲ تستِ بی‌گناه قرمز ✗✗ (ریشۀ من: الگوی `^func` که
 `static func` را top-level نمی‌شناخت ✓). (۲) `Window.get_visible_viewport_rect()` — نامی که **ساختم** ✗✗
 ⇒ `get_visible_rect()` ✓ و گیتِ `PHANTOM_API` زاده شد تا نامِ ساختگیِ دوم بسوزد ✓ (قاعده: هر
