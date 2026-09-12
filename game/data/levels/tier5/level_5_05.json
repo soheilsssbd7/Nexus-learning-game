@@ -1,0 +1,155 @@
+{
+  "level_id": "tier5_level_05",
+  "tier": 5,
+  "world": "balance_realm",
+  "concept_tags": [
+    "word_problem",
+    "debt",
+    "negative_numbers",
+    "two_dimensional",
+    "multi_step"
+  ],
+  "narrative_intro": "در کاروانسرای قله، یکی از بارها «بدهی» است: روی کفه‌ی راست نشسته و آن کفه را سبک‌تر می‌کند. نگهبانِ حساب می‌گوید اگر دیدی کفه بالا رفته، دقیق‌تر بشمار.",
+  "left_side": {
+    "fixed_orbs": [],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 12,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 9,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 3,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 1.5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 6,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 4.5,
+        "count": 1
+      }
+    ]
+  },
+  "scales": [
+    {
+      "id": "left_a",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 8
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [
+        {
+          "type": "negative",
+          "value": 4
+        }
+      ],
+      "right_ghost_orbs": [],
+      "target_value": 12.0
+    },
+    {
+      "id": "right_b",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 6.5
+        },
+        {
+          "type": "negative",
+          "value": 2
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [],
+      "right_ghost_orbs": [],
+      "target_value": 4.5
+    }
+  ],
+  "tolerance": 0.0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "negative_weight_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "twin_pans_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "check_your_own_balance_01"
+    }
+  ],
+  "expected_solve_time_sec": 220,
+  "difficulty_elo": 1940,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        {
+          "value": 9,
+          "scale": 0
+        },
+        {
+          "value": 3,
+          "scale": 0
+        },
+        {
+          "value": 4.5,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        {
+          "value": 6,
+          "scale": 0
+        },
+        {
+          "value": 3,
+          "scale": 0
+        },
+        {
+          "value": 1.5,
+          "scale": 1
+        },
+        {
+          "value": 1.5,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}

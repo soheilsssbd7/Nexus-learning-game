@@ -1,0 +1,211 @@
+{
+  "level_id": "tier5_level_10",
+  "tier": 5,
+  "world": "balance_realm",
+  "concept_tags": [
+    "word_problem",
+    "multi_step",
+    "system_balance",
+    "balance_both_sides",
+    "ghost_algebra",
+    "fractions"
+  ],
+  "narrative_intro": "ساعتِ بزرگِ قله دو زنگ دارد و نگهبانِ آخر فقط یک حرف می‌زند: «صدای اول بدون صدای دوم، سکوت است». دو شبح، یک بدهی و کره‌های شکسته — هر دو زنگ را با هم به صدا در بیاور.",
+  "left_side": {
+    "fixed_orbs": [],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 6,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 3.5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 2.5,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 4.75,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 2.25,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 1.75,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 12,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 8.75,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 0.5,
+        "count": 1
+      }
+    ]
+  },
+  "scales": [
+    {
+      "id": "left_a",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 14
+        }
+      ],
+      "left_ghost_orbs": [
+        {
+          "type": "ghost",
+          "hidden_value": 3.75
+        }
+      ],
+      "right_orbs": [
+        {
+          "type": "number",
+          "value": 1.25
+        }
+      ],
+      "right_ghost_orbs": [
+        {
+          "type": "ghost",
+          "hidden_value": 4.5
+        }
+      ],
+      "target_value": 12.0
+    },
+    {
+      "id": "right_b",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 9.5
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [],
+      "right_ghost_orbs": [
+        {
+          "type": "ghost",
+          "hidden_value": 0.75
+        }
+      ],
+      "target_value": 8.75
+    }
+  ],
+  "tolerance": 0.0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "idle_45s",
+      "hint_id": "plan_before_placing_01"
+    },
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "twin_pans_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "both_sides_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "bubble_peek_01"
+    }
+  ],
+  "expected_solve_time_sec": 300,
+  "difficulty_elo": 1990,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        {
+          "value": 6,
+          "scale": 0
+        },
+        {
+          "value": 3.5,
+          "scale": 0
+        },
+        {
+          "value": 2.5,
+          "scale": 0
+        },
+        {
+          "value": 4.75,
+          "scale": 1
+        },
+        {
+          "value": 2.25,
+          "scale": 1
+        },
+        {
+          "value": 1.75,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        {
+          "value": 3.5,
+          "scale": 0
+        },
+        {
+          "value": 6,
+          "scale": 0
+        },
+        {
+          "value": 0.5,
+          "scale": 0
+        },
+        {
+          "value": 2.25,
+          "scale": 1
+        },
+        {
+          "value": 2.25,
+          "scale": 1
+        },
+        {
+          "value": 3.5,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}

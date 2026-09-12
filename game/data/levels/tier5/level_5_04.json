@@ -1,0 +1,96 @@
+{
+  "level_id": "tier5_level_04",
+  "tier": 5,
+  "world": "balance_realm",
+  "concept_tags": [
+    "fractions",
+    "word_problem",
+    "equality"
+  ],
+  "narrative_intro": "سبدِ پشم روی ترازوی پیرِ قله عددِ دقیق ندارد؛ پیرمرد می‌گوید «تا اندازه‌ی یک نفسِ کوتاه فاصله داشتی، کافی است». با سه کره بار را به کفه برسان.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 8
+      },
+      {
+        "type": "number",
+        "value": 3.75
+      }
+    ],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "target_value": 11.75,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 8,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 3.75,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 4,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 3.5,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 0.25,
+        "count": 2
+      }
+    ]
+  },
+  "tolerance": 0.5,
+  "tolerance_strategy": "approx",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "almost_there_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "bubble_peek_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "patience_01"
+    }
+  ],
+  "expected_solve_time_sec": 205,
+  "difficulty_elo": 1930,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        8,
+        3.75
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        4,
+        3.5,
+        0.25
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}
