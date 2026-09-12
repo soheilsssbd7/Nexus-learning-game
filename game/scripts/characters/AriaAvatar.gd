@@ -25,12 +25,26 @@ const STATES: Array[String] = [STATE_IDLE, STATE_THINKING, STATE_HINT, STATE_ENC
 
 ## رنگ هسته (§۳): بدنه همیشه طلایی می‌ماند، فقط این شش عدد عوض می‌شوند
 const CORE_COLORS := {
+	# همه از **پالت رسمی** مشتق می‌شوند ✗✓ (§۸ چک‌لیست: «فقط از پالت رنگ رسمی» ⇒ هگزِ
+	# دست‌نویس یعنی یک روز پالت عوض می‌شود و آریا بیرونش می‌رقصد ✓✓)
 	STATE_IDLE: Palette.AELORIA_GOLD,
 	STATE_THINKING: Palette.SOFT_TEAL,
-	STATE_HINT: Color("#7FE7DC"),
-	STATE_ENCOURAGING: Color("#FFE9A8"),
-	STATE_CELEBRATING: Color("#C9F0E4"),
-	STATE_CONCERNED: Color("#FFB9A8"),
+	STATE_HINT: Palette.SOFT_TEAL.lightened(0.22),
+	STATE_ENCOURAGING: Palette.AELORIA_GOLD.lightened(0.30),
+	# §۳ «ترکیب Gold + Teal» ⇒ هسته طلاییِ روشن می‌ماند و Teal را رگه‌ها حمل می‌کنند ✓
+	STATE_CELEBRATING: Palette.AELORIA_GOLD.lightened(0.12),
+	STATE_CONCERNED: Palette.WARM_CORAL.lightened(0.42),
+}
+
+## حسِّ بصری هر حالت روی بدنه (چرخش/رگه‌ها) ✓§۳ — تنها جایی که «سرعتِ نور» تعریف می‌شود
+## [spin_rate, streak_rate, streak_alpha, streak_tint] ✓ (تستِ ۸.۱ همین جدول را می‌سنجد)
+const MOODS := {
+	STATE_IDLE: [0.30, 0.35, 0.55, Color(1.0, 1.0, 1.0)],
+	STATE_THINKING: [0.16, 0.14, 0.50, Color(1.0, 1.0, 1.0)],
+	STATE_HINT: [0.24, 1.20, 0.80, Color(1.0, 1.0, 1.0)],
+	STATE_ENCOURAGING: [0.42, 0.80, 0.72, Color(1.0, 1.0, 1.0)],
+	STATE_CELEBRATING: [0.85, 1.60, 0.85, Palette.SOFT_TEAL],
+	STATE_CONCERNED: [0.12, 0.18, 0.30, Color(1.0, 1.0, 1.0)],
 }
 
 ## حالت‌هایی که روی هم می‌مانند (idle/thinking) و باید لوپ شوند
@@ -41,6 +55,9 @@ const LOOPING: Array[String] = [STATE_IDLE, STATE_THINKING, STATE_CONCERNED]
 @export var build_placeholder_clips: bool = true
 @export var start_state: String = STATE_IDLE
 
+## جهتِ پالسِ `hint_light` (LevelScene می‌تواند کفهٔ مرتبط را بدهد ✗✓ اگر صفر بود،
+## پالس شعاعی می‌ماند ⇒ آواتار به گیم‌پلی وابسته نیست ✓)
+@export var hint_target: Vector2 = Vector2.ZERO
 var current_state: String = ""
 var _player: AnimationPlayer = null
 var _core: CanvasItem = null
@@ -85,6 +102,14 @@ func play_state(state: String) -> bool:
 	# تفکیک‌پذیریِ بصری هیچ‌وقت به salute بودن clipها وابسته نباشد.
 	if _core != null:
 		_core.self_modulate = _core_color(state)
+	var body := get_node_or_null("Body") as AriaCrystal
+	if body != null:
+		var m: Array = mood_for(state)
+		body.set_mood(float(m[0]), float(m[1]), float(m[2]), m[3] as Color)
+	if state == STATE_HINT and body != null:
+		# §۳: «یک پالس نور مختصر به‌سمت بخشِ مرتبط از ترازو» ✓ جهت را هرکس می‌داند که
+		# صحنه را می‌شناسد ⇒ `hint_target` ست می‌شود؛ اگر ست نشد، پالسِ شعاعی ✓
+		body.pulse_toward(hint_target if hint_target != Vector2.ZERO else Vector2.RIGHT)
 	# 0.18 = blend کوتاه؛ §۳ «تغییر حالت نباید پرش داشته باشد»
 	_player.play(state, 0.18)
 	return true
@@ -96,6 +121,11 @@ func _on_state_requested(state: String) -> void:
 
 
 ## رنگ هسته‌ی یک حالت (§۳) — تنها نقطه‌ی تعریف، پس آواتار و تست یک عدد می‌بینند.
+## جدولِ حسّ بصریِ یک حالت ✓ (یکجا، تا آواتار/تست/فاز ۸ یک منبع داشته باشند)
+static func mood_for(state: String) -> Array:
+	return MOODS.get(state, MOODS[STATE_IDLE]) as Array
+
+
 static func core_color_for(state: String) -> Color:
 	var c: Variant = CORE_COLORS.get(state, Palette.AELORIA_GOLD)
 	return c as Color if c is Color else Palette.AELORIA_GOLD
