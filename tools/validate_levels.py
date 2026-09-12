@@ -1299,6 +1299,250 @@ def check_static_isolation(errs: list[str]) -> int:
                         break
     return bad
 
+def _palette_hexes() -> set[str]:
+    """hex‌های مجاز = **همین** آنچه `Palette.gd` می‌نویسد ✓✗ فهرستِ دومی در ابزار نیست ✓
+    (سند ۰۲ §۲ را کد منبعِ حقیقت کرده‌ایم؛ اگر رنگی به پالت اضافه شود، این‌جا هم می‌آید ✓)"""
+    src = (GAME / "scripts/data/Palette.gd").read_text(encoding="utf-8", errors="replace")
+    return {h.upper() for h in re.findall(r'Color\("?([0-9A-Fa-f]{6})"?\)', src)}
+
+
+def _const_int_map(files: list[Path]) -> dict[str, int]:
+    """`{ "UIKit.TITLE_FONT_PX": 56, "TITLE_FONT_PX": 56, ... }` ✓ فقط const های عددیِ صحیح؛
+    برای این‌که گیتِ تایپوگرافی `X - 8` را هم بفهمد ✗✓ (بی این، «عبارت» = بی‌حساب و گیت کور است)
+    """
+    out: dict[str, int] = {}
+    for f in files:
+        if not f.exists():
+            continue
+        head = f.stem
+        for m in re.finditer(r"^const\s+([A-Z0-9_]+)\s*(?::\s*int)?\s*:=?\s*(-?\d+)\s*$",
+                             f.read_text(encoding="utf-8", errors="replace"), re.M):
+            out[f"{head}.{m.group(1)}"] = int(m.group(2))
+            out.setdefault(m.group(1), int(m.group(2)))
+    return out
+
+
+def _eval_font_expr(expr: str, table: dict[str, int], local: dict[str, int]) -> int | None:
+    """عبارت‌های ساده: عدد، نام، نام±عدد، نام±نام ✓ هر چیز پیچیده‌تر ⇒ None ✓✗ عمداً:
+    گیتِ مبهم بهتر از گیتِ false-positive نیست ✓ (تستِ GUT همان مقدارِ واقعی را می‌سنجد ✓✓)
+    """
+    def val(tok: str) -> int | None:
+        tok = tok.strip()
+        if tok.isdigit() or (tok.startswith("-") and tok[1:].isdigit()):
+            return int(tok)
+        if tok in local:
+            return local[tok]
+        return table.get(tok)
+    m = re.fullmatch(r"([A-Za-z0-9_.]+)\s*([+-])\s*([A-Za-z0-9_.]+)", expr)
+    if m is not None:
+        a, b = val(m.group(1)), val(m.group(3))
+        if a is None or b is None:
+            return None
+        return a + b if m.group(2) == "+" else a - b
+    return val(expr)
+
+
+def check_typography(errs: list[str]) -> int:
+    """§۷ | تسک ۸.۴: فونت و کفِ اندازه باید **در تم** باشد، نه در سلیقهٔ هر صحنه ✓✗
+    چهار چیز نگهبانی می‌شود (همه با regex روی سورس ✓ بدونِ اجرای Godot ✓):
+      ۱) `project.godot` باید `[gui] theme/custom` را داشته باشد و آن فایل وجود +
+         `default_font_size ≥ ۲۴` ✓ (بیدونِ تم، هر `Label.new()` دستی ۱۶px موتور می‌گیرد ✗✗)
+      ۲) هیچ `font_size`ِ **عددیِ** زیر ۲۴ در کد ✗✓ (§۷ «حداقل ۲۴px برای متن»)
+      ۳) هیچ ثابتِ `*_FONT_PX` زیر ۲۴ ✗✓ (دور زدنِ ممنوعیت با ثابت ✗)
+      ۴) `ThemeDB.fallback_font` فقط در `Palette.gd` (به‌عنوان fallbackِ آخر) ✓✗ فونتِ
+         موتور روی Android گلیف فارسی ندارد ⇒ «جعبهٔ توپُر» می‌شود ✗✓ (امروز در
+         `MasteryChart` بود و با همین گیت گرفته می‌شود ✓✓)
+    """
+    bad = 0
+    proj = GAME / "project.godot"
+    if not proj.exists():
+        errs.append("check_typography: game/project.godot پیدا نشد ✗")
+        return 1
+    psrc = proj.read_text(encoding="utf-8")
+    m = re.search(r'^theme/custom="([^"]+)"', psrc, re.M)
+    if m is None:
+        errs.append("check_typography: `[gui] theme/custom` در project.godot نیست ✗ "
+                    "(§۷ «خانوادۀ Vazirmatn + کفِ ۲۴px» باید سراسری باشد، نه هر صحنه ✓)")
+        bad += 1
+    else:
+        # `UIKit.THEME_PATH` تنها مرجعِ کدِ تم است ⇒ باید همان رشته باشد ✓✓ (دو منبعِ
+        # مسیر یعنی تست‌ها چیزی را می‌سنجند که بازی بارگذاری نمی‌کند ✗ ADR-062)
+        uikit = GAME / "scripts/ui/UIKit.gd"
+        cm = None
+        if uikit.exists():
+            cm = re.search(r'^const THEME_PATH := "([^"]+)"',
+                           uikit.read_text(encoding="utf-8"), re.M)
+        if cm is None or cm.group(1) != m.group(1):
+            errs.append("check_typography: `UIKit.THEME_PATH` (%s) با `[gui] theme/custom` (%s) "
+                        "یکی نیست ✗" % (cm.group(1) if cm else "—", m.group(1)))
+            bad += 1
+        rel = m.group(1).replace("res://", "")
+        theme = GAME / rel
+        if not theme.exists():
+            errs.append(f"check_typography: تمِ اعلام‌شده وجود ندارد ✗ ({m.group(1)})")
+            bad += 1
+        else:
+            t = theme.read_text(encoding="utf-8")
+            if "Vazirmatn" not in t:
+                errs.append("check_typography: تم، Vazirmatn را ارجاع نمی‌دهد ✗✓ §۷")
+                bad += 1
+            fm = re.search(r"^default_font_size\s*=\s*(\d+)", t, re.M)
+            if fm is None or int(fm.group(1)) < 24:
+                got = fm.group(1) if fm else "None"
+                errs.append(f"check_typography: default_font_size={got} < 24 ✗ (کفِ §۷)")
+                bad += 1
+    table = _const_int_map([GAME / "scripts/ui/UIKit.gd", GAME / "scripts/data/Palette.gd"])
+    # ⚠ دامنه: **کدِ ارسال‌شده** ✓ `tests/` عمداً بیرون است — یک فیکسچرِ ۱۲px یا
+    # `ThemeDB.fallback_font` داخل assert (برای این‌که بگوییم «فونتِ موتور نیست!») لازمۀ
+    # تست است ✗✓ گیتِ بی‌دامنه، نگهبان را به دشمنِ خودش تبدیل می‌کند ✓ (درسی که دیروز با
+    # گیتِ بهداشتِ متن بخوردیم ✓ ADR-060)
+    for base in ("scripts",):
+        root = GAME / base
+        if not root.exists():
+            continue
+        for f in sorted(root.rglob("*.gd")):
+            rel_f = f.relative_to(ROOT).as_posix()
+            local = _const_int_map([f])
+            body = "\n".join(strip_code(l) for l in f.read_text(encoding="utf-8", errors="replace").splitlines())
+            for mm in re.finditer(r'font_size"\s*,\s*([^)\n]+)', body):
+                got = _eval_font_expr(mm.group(1).strip(), table, local)
+                if got is not None and got < 24:
+                    ln = body.count("\n", 0, mm.start()) + 1
+                    errs.append(f"{rel_f}:{ln}: متنِ «{mm.group(1).strip()}» = {got}px ✗ "
+                                f"(کفِ §۷ = ۲۴px ⇒ روی موبایلِ کودک خوانده نمی‌شود)")
+                    bad += 1
+            for mm in re.finditer(r"const\s+([A-Z0-9_]*FONT_PX)\s*:?=?\s*(\d+)", body):
+                if int(mm.group(2)) < 24:
+                    ln = body.count("\n", 0, mm.start()) + 1
+                    errs.append(f"{rel_f}:{ln}: ثابتِ `{mm.group(1)} = {mm.group(2)}` زیرِ کفِ §۷ ✗")
+                    bad += 1
+            if "ThemeDB.fallback_font" in body and f.name != "Palette.gd":
+                ln = body.count("\n", 0, body.index("ThemeDB.fallback_font")) + 1
+                errs.append(f"{rel_f}:{ln}: `ThemeDB.fallback_font` ✗ (فقط `Palette.ui_font()` "
+                            f"مجاز است؛ فونتِ موتور گلیف فارسی ندارد ⇒ روی Android جعبه می‌بینیم ✓)")
+                bad += 1
+    return bad
+
+
+def check_icon_assets(errs: list[str]) -> int:
+    """§۸ | تسک ۸.۴: «ترجیحاً SVG برای UI static» ✓✗ پس آیکون‌ها SVG‌اند، صفر باینری ✓✓
+    و همان بیماریِ «هنرِ مرده» اینجا هم گرفته می‌شود ✓ (قبلاً برای محیط‌ها گرفتیم ✓✓):
+      • هر مسیرِ `UIKit.ICON_PATHS` روی دیسک هست ✓
+      • هر `.svg` داخل `assets/art/icons/` از همان‌جا ارجاع داده شده ✓ (بی‌ارجاع = مرده ✗)
+      • هر SVG: `viewBox` دارد ✗ `<text>` ندارد (متنِ رندرشده = i18n را می‌شکند ✗✓ §۷)
+        ✗ ارجاع بیرونی ندارد (آفلاین/کودک ✗§۱۱) و هر رنگش از پالتِ §۲ است ✓✓
+      • `game/icon.svg` (آیکون اپ) هم فقط پالت ✓ و زیر ۴KB ✓ (اندازۀ APK §۹)
+    """
+    bad = 0
+    icons = GAME / "assets/art/icons"
+    ui = GAME / "scripts/ui/UIKit.gd"
+    if not ui.exists():
+        errs.append("check_icon_assets: UIKit.gd پیدا نشد ✗")
+        return 1
+    body = "\n".join(strip_code(l) for l in ui.read_text(encoding="utf-8", errors="replace").splitlines())
+    declared = dict(re.findall(r'"([a-z_]+)":\s*"(res://[^"]+\.svg)"', body))
+    if not declared:
+        errs.append("check_icon_assets: `ICON_PATHS` در UIKit خالی/یافت‌نشدنی ✗")
+        return 1
+    allowed = _palette_hexes()
+    on_disk: set[str] = set()
+    if icons.exists():
+        on_disk = {p.name for p in icons.glob("*.svg")}
+    for name, path in declared.items():
+        f = GAME / path.replace("res://", "")
+        if not f.exists():
+            errs.append(f"check_icon_assets: آیکونِ «{name}» اعلام شده ولی فایل نیست ✗ ({path})")
+            bad += 1
+            continue
+        bad += _audit_svg(f, allowed, f"check_icon_assets[{name}]", errs)
+    dead = sorted(on_disk - {p.split("/")[-1] for p in declared.values()})
+    if dead:
+        errs.append(f"check_icon_assets: آیکونِ بی‌ارجاع (هنرِ مرده): {dead} ✗")
+        bad += 1
+    app = GAME / "icon.svg"
+    if not app.exists():
+        errs.append("check_icon_assets: game/icon.svg (آیکون اپ) نیست ✗")
+        bad += 1
+    else:
+        bad += _audit_svg(app, allowed, "check_icon_assets[app-icon]", errs)
+        if "موقت" in app.read_text(encoding="utf-8") or "فاز ۰" in app.read_text(encoding="utf-8"):
+            errs.append("check_icon_assets: آیکونِ اپ هنوز «موقتِ فاز ۰» است ✗ (تسک ۸.۴)")
+            bad += 1
+    return bad
+
+
+_UI_TEXT_ASSIG = re.compile(r"(?:^[\t ]*|\.)\b(?:self\.)?(text|tooltip_text|placeholder_text)\s*=\s*(.*)$")
+_UI_STR_LIT = re.compile(r'^"((?:[^"\\\\]|\\\\.)*)"')
+_FA_LETTER = re.compile(r"[\u0600-\u06FF\uFB50-\uFDFF]")
+
+
+def check_ui_string_i18n(errs: list[str]) -> int:
+    """§۷ «i18n-ready»: متنِ قابل‌مشاهده نباید درون کد hard-code شود ✓ (ADR-062)
+
+    یافتهٔ واقعیِ ۸.۴: `tooltip_text` گره‌های قفلِ WorldMap یک جملهٔ فارسی درون کد داشت
+    و گلیفِ U+2713 به رقمِ سطح می‌چسبید ✗✓ (هر دو در همین تسک درست شد).
+    قاعده: هر `.text/.tooltip_text/.placeholder_text` که literalِ دارای حرفِ عربی/فارسی
+    باشد و از `Loc.` نیاید ⇒ خطا. نمادها («—»، «×»، ارقام) آزادند ✓ و خطِ کامنت شمارده
+    نمی‌شود ✓. محدودیتِ صادقانه: assignِ چندخطی را نمی‌بیند ⇒ سنجشِ دقیقِ «رشته در JSON
+    هست» با `check_l10n` و تست‌های GUT انجام می‌شود ✗✓ (این گیت «ساده و بی‌فریاد» است).
+    """
+    bad = 0
+    for f in sorted((GAME / "scripts").rglob("*.gd")):
+        if "/tests/" in f.as_posix():
+            continue
+        lines = f.read_text(encoding="utf-8").splitlines()
+        for i, raw in enumerate(lines, 1):
+            code = re.split(r"\s+#", raw, maxsplit=1)[0]
+            m = _UI_TEXT_ASSIG.search(code)
+            if m is None or "Loc." in m.group(2):
+                continue
+            rhs = m.group(2).strip()
+            if rhs.startswith("(") or rhs.endswith("()") or rhs.endswith("("):
+                # assignِ چندخطی ⇒ literal در سطرِ ادامه است ✓ (WorldMap این شکل را دارد)
+                rhs = (lines[i] if i < len(lines) else "").strip()
+            if "Loc." in rhs:
+                continue
+            lit = _UI_STR_LIT.match(rhs.lstrip("(").strip())
+            if lit is None or not _FA_LETTER.search(lit.group(1)):
+                continue
+            rel = f.relative_to(ROOT)
+            errs.append(
+                f"{rel}:{i}: check_ui_string_i18n: متنِ UI در کد hard-code شده ✗§۷ "
+                f"(به `ui_strings.json` + `Loc.t` ببرید) «{lit.group(1)[:34]}»"
+            )
+            bad += 1
+    return bad
+
+
+def _audit_svg(f: Path, allowed: set[str], tag: str, errs: list[str]) -> int:
+    """قواعدِ مشترکِ هر SVG ایستا ✓ (تک‌منبع؛ هم آیکون UI هم آیکون اپ از همین‌جا می‌گذرند)"""
+    bad = 0
+    text = f.read_text(encoding="utf-8", errors="replace")
+    rel = f.relative_to(ROOT).as_posix()
+    if "viewBox" not in text:
+        errs.append(f"{tag}: {rel} `viewBox` ندارد ✗ (با `expand_icon` کشیده می‌شود و لبه‌ها می‌شکنند)")
+        bad += 1
+    if "<text" in text:
+        errs.append(f"{tag}: {rel} متنِ رندرشده دارد ✗ (ترجمه‌ناپذیر ⇒ نقضِ §۷ i18n ✓)")
+        bad += 1
+    # `xmlns` لازمۀ خودِ SVG است و شبکه را صدا نمی‌زند ✓ پس فقط *بقیهٔ* متن باید پاک باشد ✓✗
+    # (اولین اجرای همین گیت این باگ را نشان داد ⇒ دندان دارد ✓✓)
+    stripped = text.replace("http://www.w3.org/2000/svg", "")
+    if "http://" in stripped or "https://" in stripped or "xlink:href" in stripped \
+            or "<image" in stripped:
+        errs.append(f"{tag}: {rel} ارجاعِ بیرونی دارد ✗ (بازی آفلاین است §۱۱ ✓)")
+        bad += 1
+    hexes = {h.upper() for h in re.findall(r"#([0-9A-Fa-f]{6})\b", text)}
+    off = sorted(hexes - allowed)
+    if off:
+        errs.append(f"{tag}: {rel} رنگِ بیرونِ پالت §۲ دارد ✗ {off} (فقط پالتِ رسمی ✓§۸)")
+        bad += 1
+    if f.stat().st_size > 4096:
+        errs.append(f"{tag}: {rel} بزرگ‌تر از ۴KB است ✗ ({f.stat().st_size}B ⇒ §۹ اندازۀ APK)")
+        bad += 1
+    return bad
+
+
 def check_text_hygiene(errs: list[str], notes: list[str] | None = None) -> int:
     """`notes` = یافته‌های اسنادِ مالک ✓ گزارش می‌شوند، خطا نیستند ✓ (سندِ مالک را
     ویرایش نمی‌کنیم و گیت را هم کور نمی‌کنیم ✗✓ هر دو در یک خطِ ⚠ زنده می‌مانند ✓)"""
@@ -1377,11 +1621,21 @@ def main() -> int:
     vocab = check_ambient_art_vocab(errs)
     dup_count = check_script_duplicates(errs)
     iso = check_static_isolation(errs)
+    typo = check_typography(errs)
+    icons = check_icon_assets(errs)
+    i18n_ui = check_ui_string_i18n(errs)
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
     print(f"سطح بررسی‌شده: {total} · قابل‌حل تأییدشده: {solved}/{total} · قالب دیالوگ: {len(hints)}"
           f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items} · فایل بصری: {art['files']} ({art['kb']}KB)/شیدر {art['shaders']} · API Godot4: {('پاک ✓' if api_clean == 0 else str(api_clean) + ' مشکل ✗')} · کلاس‌های عمومی: {classes} · بهداشتِ متن: {('پاک ✓' if hygiene == 0 else str(hygiene) + ' مورد ✗')}")
+
+    if typo == 0:
+        print("تایپوگرافی §۷: تم + کفِ ۲۴px + فونتِ خانوادگی ✓")
+    if icons == 0:
+        print("آیکون‌های SVG: زنده، پالتی، بی‌متن، صفر باینری ✓")
+    if i18n_ui == 0:
+        print("متنِ UI در کد: هیچ رشتهٔ فارسیِ hard-code نیست ✓§۷")
 
     if iso == 0:
         print("استاتیک/اینستانس: جدا ✓ (static تابعِ instance را لخت صدا نمی‌زند)")
