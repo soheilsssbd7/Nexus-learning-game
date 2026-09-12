@@ -40,6 +40,7 @@ DATA = ROOT / "game" / "data"
 LEVELS_DIR = DATA / "levels"
 DIALOGUE_FILE = DATA / "dialogue" / "aria_templates.json"
 NARRATIVE_FILE = DATA / "narrative" / "story_beats.json"
+AUDIO_MANIFEST = DATA / "audio" / "audio_assets.json"
 
 ALLOWED_ORB_TYPES = {"number", "ghost", "negative"}
 ALLOWED_WORLDS = {"balance_realm"}
@@ -848,6 +849,95 @@ def check_story_beats(errs: list[str], locales: list[str]) -> int:
     return len(beats)
 
 
+
+# ---------------------------------------------------------------- ۷.۶ صوت
+AUDIO_KINDS = {"sfx", "music"}
+AUDIO_BUSES = {"SFX", "Music"}
+AUDIO_MAX_SEC = 1.4
+AUDIO_ID_RE = re.compile(r"^[a-z][a-z0-9_]{2,32}$")
+
+
+def check_audio_manifest(errs: list[str]) -> int:
+    """`data/audio/audio_assets.json` — فهرستِ داراییِ صوتی برای سفارش/تولید ✓
+
+    سه چیز را می‌بندد، چون هر سه «بعداً درست می‌شود» نیست ✗✓:
+    ۱) بودجهٔ حجم: اگر روزی فایل‌های واقعی به `assets/audio/` آمدند، مجموعِ آن‌ها سقف
+       manifest را نمی‌شکند ✗ (APK روی گوشی ارزان + سقفِ دانلودِ Play = حجم مهم است ✓);
+    ۲) `target_bus` باید همان دو باسی باشد که `AudioManager` می‌سازد و `SettingsStore`
+       روی آن‌ها volume/mute می‌گذارد ✗✓ باسِ اشتباه = صدایی که اسلایدرِ والدین
+       خاموشش نمی‌کند (نقضِ «کنترلِ والد» در §۶.۵ ✗✗ جدی‌ترین نوعِ باگِ این بازی ✓);
+    ۳) `when` باید یا `event:<سیگنالِ واقعی EventBus>` باشد یا `manual:<چرا>` ⇒ هیچ
+       دارایی‌ای «بعداً وصلش می‌کنیم» باقی نمی‌ماند ✗✓ (هر event باید در EventBus باشد ✓
+       وگرنه صامت‌ترین باگِ ممکن: پخش‌کننده‌ای که هیچ‌کس صدا نمی‌زند ✓✓).
+    """
+    if not AUDIO_MANIFEST.exists():
+        errs.append("فایل `game/data/audio/audio_assets.json` نیست (تسک ۷.۶ بسته نشده ✗)")
+        return 0
+    doc = load_json(AUDIO_MANIFEST, errs) or {}
+    if not isinstance(doc, dict):
+        errs.append("audio_assets.json باید object باشد")
+        return 0
+    policy = doc.get("policy") if isinstance(doc.get("policy"), dict) else {}
+    if policy.get("commit_binaries") is True:
+        errs.append("audio policy: `commit_binaries` باید false باشد ✗ (باینری در گیت نداریم ✓)")
+    budget_kb = policy.get("budget_total_kb")
+    if not isinstance(budget_kb, (int, float)) or budget_kb <= 0:
+        errs.append("audio policy: `budget_total_kb` لازم است ✗ (سقفِ حجمِ فایل‌های نهایی)")
+        budget_kb = 0
+    audio_dir = ROOT / "game" / "assets" / "audio"
+    if audio_dir.exists():
+        total = sum(f.stat().st_size for f in audio_dir.rglob("*") if f.is_file() and f.suffix.lower()
+                    in (".wav", ".ogg", ".mp3", ".flac"))
+        if budget_kb and total > budget_kb * 1024:
+            errs.append(f"assets/audio: {total // 1024}KB از سقفِ {int(budget_kb)}KB گذشته ✗ "
+                        f"(حجمِ APK روی گوشی ارزان §۹)")
+
+    # سیگنال‌های واقعیِ EventBus ✗✓ (متنِ فایل را خوانده می‌شود؛ اسکریپت‌خوانیِ GDScript
+    # در ابزارِ python ممکن نیست ⇒ همین الگوی `TRIGGER_RE` که در سطوح استفاده شده ✓)
+    bus_path = ROOT / "game" / "scripts" / "autoload" / "EventBus.gd"
+    signals: set[str] = set()
+    if bus_path.exists():
+        signals = set(re.findall(r"^signal ([a-z_][a-z0-9_]*)", bus_path.read_text(encoding="utf-8"), re.M))
+
+    assets = doc.get("assets")
+    if not isinstance(assets, list) or not assets:
+        errs.append("audio_assets: `assets` خالی است")
+        return 0
+    seen: set[str] = set()
+    for a in assets:
+        if not isinstance(a, dict):
+            errs.append("audio_assets: هر مورد باید object باشد")
+            continue
+        aid = str(a.get("id", ""))
+        if not AUDIO_ID_RE.match(aid):
+            errs.append(f"audio_assets: `id` نامعتبر `{aid}`")
+            continue
+        if aid in seen:
+            errs.append(f"audio_assets: `id` تکراری `{aid}` ✗")
+        seen.add(aid)
+        if a.get("kind") not in AUDIO_KINDS:
+            errs.append(f"audio_assets.{aid}: `kind` باید {sorted(AUDIO_KINDS)} باشد")
+        if a.get("target_bus") not in AUDIO_BUSES:
+            errs.append(f"audio_assets.{aid}: `target_bus` باید یکی از {sorted(AUDIO_BUSES)} باشد "
+                        f"(باسِ دیگر ⇒ اسلایدرِ والدین بی‌اثر ✗§۶.۵)")
+        ms = a.get("max_sec")
+        if not isinstance(ms, (int, float)) or ms < 0 or ms > AUDIO_MAX_SEC:
+            errs.append(f"audio_assets.{aid}: `max_sec` باید ۰..{AUDIO_MAX_SEC} باشد "
+                        f"(صدای بلند = آزارِ حسی در بازیِ کودک ✗)")
+        if len(str(a.get("note", "").strip())) < 12:
+            errs.append(f"audio_assets.{aid}: `note` لازم است (چرا این صدا، نه آن ✓)")
+        when = str(a.get("when", ""))
+        if when.startswith("event:"):
+            name = when[len("event:"):].split(":")[0]
+            if signals and name not in signals:
+                errs.append(f"audio_assets.{aid}: `when` به سیگنالِ `{name}` اشاره می‌کند که در "
+                            f"EventBus نیست ⇒ پخش‌کنندهٔ بی‌صاحب ✗✓")
+        elif not when.startswith("manual:"):
+            errs.append(f"audio_assets.{aid}: `when` باید `event:<signal>` یا `manual:<چرا>` باشد")
+        if not str(a.get("final_file", "")).startswith("res://assets/audio/"):
+            errs.append(f"audio_assets.{aid}: `final_file` باید زیر `res://assets/audio/` باشد")
+    return len(assets)
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="NEXUS content validator")
     ap.add_argument("--json", metavar="OUT", help="نوشتن گزارش JSON (برای آرشیو CI)")
@@ -878,11 +968,12 @@ def main() -> int:
     check_narrative_uniqueness(metas, errs)
     check_answer_leaks(metas, hints, errs)
     beats = check_story_beats(errs, l10n.get("locales", []))
+    audio_items = check_audio_manifest(errs)
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
     print(f"سطح بررسی‌شده: {total} · قابل‌حل تأییدشده: {solved}/{total} · قالب دیالوگ: {len(hints)}"
-          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats}")
+          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items}")
 
     if args.json:
         Path(args.json).write_text(json.dumps({"levels": metas, "l10n": l10n, "errors": errs}, ensure_ascii=False, indent=2), encoding="utf-8")

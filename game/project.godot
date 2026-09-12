@@ -37,7 +37,11 @@ LevelLoader="*res://scripts/autoload/LevelLoader.gd"
 ; می‌خواند) و بعد از GameState/SaveSystem (رتبه را در مدل می‌نویسد). seam ورودی‌اش
 ; LevelLoader.next_selector است (docs/06 ADR-035/038).
 DifficultyEngine="*res://scripts/autoload/DifficultyEngine.gd"
-; فازهای بعد: AudioManager (P7) → AnalyticsManager (P10) → NetworkClient (P9)
+; AudioManager در تسک ۷.۶: **بعد** از EventBus (سیگنال می‌گیرد) و SettingsStore (باس‌ها را
+; از او می‌گیرد) ✓✓ خودِ باس‌ها را هم می‌سازد، چون `SettingsStore.apply_volume` بی‌باسِ
+; SFX/Music بی‌صدا work-around می‌کرد ✗✓ (بندِ ADR-016: ترتیبِ ثبت = ترتیبِ وابستگی).
+AudioManager="*res://scripts/autoload/AudioManager.gd"
+; فازهای بعد: AnalyticsManager (P10) → NetworkClient (P9)  ⟨AudioManager در ۷.۶ اضافه شد ✓⟩
 
 [display]
 

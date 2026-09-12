@@ -40,6 +40,8 @@ func test_every_registered_autoload_exists_in_the_tree() -> void:
 	assert_true(expected.has("SaveSystem"))
 	assert_true(expected.has("GameState"))
 	assert_true(expected.has("LevelLoader"), "LevelLoader در فاز ۳ ثبت می‌شود (تسک ۳.۲)")
+	assert_true(expected.has("AudioManager"),
+		"AudioManager در تسک ۷.۶ ثبت می‌شود؛ بی‌او هیچ‌کدام از ۱۷ دارایی صوتی پخش نمی‌شود ✗")
 	var root_node: Node = get_tree().root
 	for name: String in expected:
 		assert_not_null(root_node.get_node_or_null(NodePath(name)),
