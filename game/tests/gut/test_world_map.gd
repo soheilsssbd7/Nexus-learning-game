@@ -81,7 +81,8 @@ func test_scene_exists_and_builds_one_node_per_level() -> void:
 		assert_true(seen.has(i + 1), "سطح %d هیچ نودی روی هیچ صفحه‌ای ندارد" % (i + 1))
 	_map.goto_page(0)
 	assert_eq(_map.buttons[0].name, "Level_01")
-	assert_eq(_map.buttons[0].text, "1")
+	assert_eq(_map.buttons[0].text, Loc.digits("1"),
+			"§۷: رقمِ نود از `Loc.digits` می‌آید (fa ⇒ «۱») ✓✓ (قبلاً hard-codeِ لاتین بود ✗)")
 
 
 func test_touch_targets_and_on_screen_bounds() -> void:
@@ -126,7 +127,11 @@ func test_locks_open_in_order_as_progress_is_recorded() -> void:
 	_map.refresh_locks()
 	assert_false(_map.buttons[1].disabled, "۲ باز شد")
 	assert_true(_map.buttons[2].disabled, "۳ هنوز قفل است")
-	assert_true(_map.buttons[0].text.contains("✓"), "سطح تمام‌شده علامت می‌گیرد")
+	# §۸ (ADR-062): علامتِ «تمام» دیگر گلیفِ U+2713 چسبیده به رقم نیست ✗✓ (در Vazirmatn
+	# نیست ⇒ روی Android جعبه می‌شد)؛ تیکِ SVG به دکمه وصل می‌شود ✓✓
+	assert_not_null(_map.buttons[0].icon, "سطح تمام‌شده تیکِ SVG می‌گیرد ✓§۸")
+	assert_null(_map.buttons[1].icon, "سطحِ بازِ تمام‌نشده تیک ندارد ✓ (ضدِ دروغ‌گویی)")
+	assert_false(String(_map.buttons[0].text).contains("✓"), "هیچ گلیفی به رقمِ نود نمی‌چسبد ✗✓")
 
 
 func test_completed_level_unlocks_the_next_one_through_eventbus() -> void:

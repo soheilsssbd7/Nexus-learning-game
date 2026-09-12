@@ -53,11 +53,27 @@ func test_text_on_picks_by_measured_ratio() -> void:
 	# نسخهٔ قبلی با آستانۀ لومینانس (`> 0.55`) کار می‌کرد ✗ روی خاکستریِ سنگی می‌سوخت ✓✓
 	assert_eq(Palette.text_on(Palette.DEEP_INDIGO), Palette.CLOUD_WHITE, "روی تیره ⇒ ابری ✓")
 	assert_eq(Palette.text_on(Palette.AELORIA_GOLD), Palette.DEEP_INDIGO, "روی طلایی ⇒ ایندیگو ✓")
+	# (الف) تعهدِ واقعیِ تابع: **بهترینِ دو جوهر** را انتخاب کند ✗✓ نه «همیشه AA» — چون برای
+	# یک رنگِ میانی هیچ‌کدام از دو جوهرِ §۲ به ۴٫۵ نمی‌رسد و ادعایِ «همیشه» دروغ بود ✓✓
 	for c: Color in [Palette.CLOUD_WHITE, Palette.AELORIA_GOLD, Palette.SOFT_TEAL,
-			Palette.WARM_CORAL, Palette.STONE_GREY, Palette.GHOST_VIOLET, Palette.DEEP_INDIGO]:
+			Palette.WARM_CORAL, Palette.STONE_GREY, Palette.GHOST_VIOLET, Palette.MUTED_TEXT,
+			Palette.STONE_UI, Palette.DEEP_INDIGO]:
 		var picked: Color = Palette.text_on(c)
-		assert_true(Palette.contrast_ratio(picked, c) >= Palette.AA_TEXT_RATIO,
-				"انتخابِ خودکار باید همیشه از AA رد شود (شد %f) ✗✓" % Palette.contrast_ratio(picked, c))
+		var best: float = maxf(Palette.contrast_ratio(Palette.CLOUD_WHITE, c),
+				Palette.contrast_ratio(Palette.DEEP_INDIGO, c))
+		assert_true(Palette.contrast_ratio(picked, c) >= best - 0.001,
+				"«%s»: جوهرِ %s بهترین نیست (%f < %f) ✗" % [c.to_html(), picked.to_html(),
+				Palette.contrast_ratio(picked, c), best])
+	# (ب) و روی **هر پس‌زمینۀ واقعیِ UI** (تُن‌های دکمه) کفِ AA برقرار است ✓§۷ DoD
+	for tone: String in UIKit.TONES.keys():
+		var bg: Color = (UIKit.TONES[tone] as Dictionary)["bg"] as Color
+		assert_true(Palette.contrast_ratio(Palette.text_on(bg), bg) >= Palette.AA_TEXT_RATIO,
+				"تُن «%s» با جوهرِ انتخابی AA نیست (شد %f) ✗✓" % [tone,
+				Palette.contrast_ratio(Palette.text_on(bg), bg)])
+	# (ج) محدودیت را می‌دانیم و ثبت می‌کنیم: خاکستریِ ویرانی هیچ‌جا سطحِ متنِ کدساز نیست؛
+	# اگر روزی بشود، باید زیرِ رقم plate گرفت ✓ (نه این‌که تست را شل کنیم ✗✓)
+	assert_true(Palette.contrast_ratio(Palette.text_on(Palette.STONE_GREY), Palette.STONE_GREY)
+			< Palette.AA_TEXT_RATIO, "خاکستریِ میانی با هیچ جوهرِ §۲ AA نمی‌شود ✓ (مستند)")
 
 
 # --------------------------------------------------------------------------
