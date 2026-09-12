@@ -286,10 +286,10 @@ def validate_level(path: Path, errs: list[str], hints: dict[str, dict]) -> dict:
     spec = raw.get("solution_spec") if isinstance(raw.get("solution_spec"), dict) else {}
     intended = spec.get("intended") if isinstance(spec.get("intended"), dict) else {}
     if isinstance(intended.get("right_orbs"), list) and intended["right_orbs"]:
-        meta["intended_sum"] = sum(_row_values(intended["right_orbs"]))
+        meta["intended_sum"] = sum(_row_values(intended["right_orbs"], errs, f"{rel}: solution_spec.intended.right_orbs"))
     wrong = spec.get("wrong_ops") if isinstance(spec.get("wrong_ops"), dict) else {}
     if isinstance(wrong.get("right_orbs"), list) and wrong["right_orbs"]:
-        meta["wrong_orbs"] = _row_values(wrong["right_orbs"])
+        meta["wrong_orbs"] = _row_values(wrong["right_orbs"], errs, f"{rel}: solution_spec.wrong_ops.right_orbs")
         meta["wrong_sum"] = sum(meta["wrong_orbs"])
 
     tol = raw.get("tolerance")
@@ -433,17 +433,34 @@ def check_concept_labels(metas: list[dict], key_sets: dict[str, list[str]], errs
                                 f"«{code}» تعریف نشده (§۶.۵)")
 
 
-def _row_values(raw_list) -> list[float]:
+def _row_values(raw_list, errs: list[str] | None = None, loc: str = "") -> list[float]:
     """`solution_spec.*.right_orbs` دو شکل دارد: عدد (تک‌کفه) یا `{"value","scale"}`
     (چندکفه ✓ ADR-055) ⇒ هر دو به فهرستِ عددی تبدیل می‌شوند تا هیچ شاخه‌ای در
     چک‌های بعدی «نیمه‌کامل» نماند ✗✓."""
     out: list[float] = []
     if not isinstance(raw_list, list):
         return out
-    for x in raw_list:
+    for i, x in enumerate(raw_list):
         if isinstance(x, dict):
             v = x.get("value", 0)
-            out.append(float(v) if isinstance(v, (int, float)) else 0.0)
+            if not isinstance(v, (int, float)):
+                out.append(0.0)
+                continue
+            v = float(v)
+            # `type` در ورودیِ `solution_spec` الزامی نبود؛ ولی اگر آمد، **علامت باید
+            # معنای موتور را بدهد** ✗✓ (NegativeOrb در موتور `‎-abs(value)` است و ابزار
+            # بی‌علامت، «۴+۳٫۵ = ۷٫۵» را با نیاز ۷٫۵ می‌سنجید ⇒ حلِ دروغین سبز ✗)
+            if x.get("type") == "negative":
+                v = -abs(v)
+            elif x.get("type") == "ghost":
+                # شبح هیچ‌وقت چیده نمی‌شود (در `*_ghost_orbsِ` کفه می‌نشیند) ⇒ دیدنش در
+                # `solution_spec` یعنی داده «ضربدرِ» دو مدل را نوشته ✗✓ صفر نمی‌گذاریم که
+                # مجموع تصادفی درست نشود؛ صریح خطا می‌دهیم.
+                if errs is not None:
+                    errs.append(f"{loc}[{i}] کره‌ی شبح در `solution_spec` معنا ندارد "
+                                f"(چیده نمی‌شود ✗ ADR-028)")
+                continue
+            out.append(v)
         elif isinstance(x, (int, float)):
             out.append(float(x))
     return out
