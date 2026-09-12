@@ -41,6 +41,8 @@ LEVELS_DIR = DATA / "levels"
 DIALOGUE_FILE = DATA / "dialogue" / "aria_templates.json"
 NARRATIVE_FILE = DATA / "narrative" / "story_beats.json"
 AUDIO_MANIFEST = DATA / "audio" / "audio_assets.json"
+GAME = ROOT / "game"
+ASSETS = GAME / "assets"
 
 ALLOWED_ORB_TYPES = {"number", "ghost", "negative"}
 ALLOWED_WORLDS = {"balance_realm"}
@@ -938,6 +940,86 @@ def check_audio_manifest(errs: list[str]) -> int:
             errs.append(f"audio_assets.{aid}: `final_file` باید زیر `res://assets/audio/` باشد")
     return len(assets)
 
+ART_BUDGET_KB = 240          # §۱ سند هنری: «رندر ارزان» ⇒ هنرِ بصری باید تقریباً صفر بایت باشد ✓
+ASSETS_BUDGET_KB = 3400      # سقفِ کل `game/assets` (۳۰۰۰KB صوتِ manifest + هنرِ برداری + سرِش‌ها) ✓
+RASTER_EXT = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tga", ".exr", ".hdr", ".ktx2"}
+SHADER_DIR = ASSETS / "shaders"
+
+
+def check_art_assets(errs: list[str]) -> dict:
+    """ممیزیِ دارایی‌های بصری (تسک ۸.۱ · ADR-007/ADR-058) ✓
+
+    سه قانونی که در CIِ بدون‌رندر شدنی‌اند ✓✗ و اگر نباشند، فاز ۸ «چشمی» می‌سوزد ✗:
+    ۱) **هیچ باینریِ تصویری** در `game/assets/art/**` ✗✓ (هنرِ خام = ۱۰MB در APK روی
+       گوشی ارزان §۹؛ سیاستِ مخزن: SVG/کد ✓ و گیتِ صوت از فاز ۷ همین را می‌گوید ✓✓)
+    ۲) **سقفِ وزنِ `game/assets`** ✓ (همان دلیل: سقفِ دانلودِ Play + بودجهٔ manifest)
+    ۳) هر `.gdshader` باید (الف) `shader_type` داشته باشد و (ب) **از کجا به کار رفته**
+       باشد ✓✓ «شیدرِ یتیم» یعنی کسی path را عوض کرده و هنر بی‌صدا به fallback رفته ✗
+       (دقیقاً همان حالتی که `AriaCore` با `Log.error` می‌گوید ⇒ اینجا هم گیت می‌گذاریم)
+    """
+    art_dir = ASSETS / "art"
+    out = {"files": 0, "kb": 0, "shaders": 0, "svg": 0}
+    if not ASSETS.exists():
+        errs.append("`game/assets` نیست (ساختارِ فاز ۰ ✗)")
+        return out
+    total = 0
+    for f in sorted(ASSETS.rglob("*")):
+        if not f.is_file():
+            continue
+        suffix = f.suffix.lower()
+        if suffix == ".import":
+            continue  # فایل‌های کناریِ Godot (generate شده، در گیت نیستند) ✓
+        total += f.stat().st_size
+        out["files"] += 1
+        if suffix in RASTER_EXT:
+            rel = f.relative_to(ROOT).as_posix()
+            errs.append(f"{rel}: تصویرِ raster در مخزن ✗ (سیاستِ SVG/کد — ADR-007/058؛ "
+                        f"خروجیِ AI را commit نکن ✓)")
+        if suffix == ".svg":
+            out["svg"] += 1
+            rel = f.relative_to(ROOT).as_posix()
+            body = f.read_text(encoding="utf-8", errors="replace")
+            if "<svg" not in body:
+                errs.append(f"{rel}: فایل SVG با `<svg` شروع نمی‌شود/بدنش svg نیست ✗")
+            if "xmlns" not in body:
+                errs.append(f"{rel}: SVG بدون `xmlns` در Godot load نمی‌شود ✗")
+    out["kb"] = total // 1024
+    if total > ASSETS_BUDGET_KB * 1024:
+        errs.append(f"game/assets: {out['kb']}KB از سقفِ {ASSETS_BUDGET_KB}KB گذشته ✗ "
+                    f"(حجمِ APK §۹ سند ۰۲)")
+    art_total = sum(f.stat().st_size for f in art_dir.rglob("*") if f.is_file()) if art_dir.exists() else 0
+    if art_total > ART_BUDGET_KB * 1024:
+        errs.append(f"game/assets/art: {art_total // 1024}KB از بودجهٔ هنرِ {ART_BUDGET_KB}KB "
+                    f"خارج شده ✗ (§۱ سند هنری: بردار تخت/رندر ارزان)")
+
+    gd_scripts = sorted((GAME / "scripts").rglob("*.gd")) if (GAME / "scripts").exists() else []
+    scenes = sorted((GAME / "scenes").rglob("*.tscn")) if (GAME / "scenes").exists() else []
+    corpus = ""
+    for f in gd_scripts + scenes:
+        corpus += f.read_text(encoding="utf-8", errors="replace")
+    if SHADER_DIR.exists():
+        for sh in sorted(SHADER_DIR.glob("*.gdshader")):
+            out["shaders"] += 1
+            body = sh.read_text(encoding="utf-8", errors="replace")
+            if "shader_type" not in body:
+                errs.append(f"{sh.name}: شیدر بدون `shader_type` ✗ (Godot رد می‌کند)")
+            if "void fragment" not in body and "void vertex" not in body:
+                errs.append(f"{sh.name}: هیچ تابعِ fragment/vertex ندارد ⇒ شیدر بی‌اثر ✗")
+            if sh.name not in corpus:
+                errs.append(f"{sh.name}: به هیچ اسکریپت/صحنه‌ای وصل نیست ✗ (شیدرِ یتیم ⇒ "
+                            f"هنر بی‌صدا به fallback می‌رود؛ ADR-058)")
+    # مسیرهای ExtResource در صحنه‌ها باید وجود داشته باشند ✓ (شکستنِ هنرِ فاز ۸ معمولاً
+    # با جابه‌جاییِ یک فایل شروع می‌شود و پیامش فقط در لاگِ load دیده می‌شود ✗)
+    for sc in scenes:
+        body = sc.read_text(encoding="utf-8", errors="replace")
+        for m in re.finditer(r'path="res://([^"]+)"', body):
+            target = GAME / m.group(1)
+            if not target.exists():
+                errs.append(f"{sc.relative_to(ROOT).as_posix()} → `res://{m.group(1)}` نیست ✗ "
+                            f"(ExtResource شکسته)")
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="NEXUS content validator")
     ap.add_argument("--json", metavar="OUT", help="نوشتن گزارش JSON (برای آرشیو CI)")
@@ -969,11 +1051,12 @@ def main() -> int:
     check_answer_leaks(metas, hints, errs)
     beats = check_story_beats(errs, l10n.get("locales", []))
     audio_items = check_audio_manifest(errs)
+    art = check_art_assets(errs)
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
     print(f"سطح بررسی‌شده: {total} · قابل‌حل تأییدشده: {solved}/{total} · قالب دیالوگ: {len(hints)}"
-          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items}")
+          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items} · فایل بصری: {art['files']} ({art['kb']}KB)/شیدر {art['shaders']}")
 
     if args.json:
         Path(args.json).write_text(json.dumps({"levels": metas, "l10n": l10n, "errors": errs}, ensure_ascii=False, indent=2), encoding="utf-8")
