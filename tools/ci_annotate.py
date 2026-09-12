@@ -37,8 +37,13 @@ PATTERNS = [
     re.compile(r"^ERROR:", re.I),
     re.compile(r"at line (\d+)", re.I),
     re.compile(r"\borphan\b", re.I),
-    re.compile(r"✖|✗|FAILED", re.I),
+    re.compile(r"\bFAILED\b", re.I),
 ]
+## `✗/✖` عمداً الگو **نیست** ✓✗ پیام‌های تستِ ما (`assert_true(x, "... ✗✓")`) این علامت‌ها را
+## دارند، پس هر `[Passed]` هم «خطا» حساب می‌شد: در ۸.۴ دقیقاً همین، ۱۰ انوتیشنِ اول را با
+## سطرهای Passed پُر کرد و نامِ ۴ تستِ شکسته هیچ‌وقت دیده نشد ✗✗ (دو دور CI سوخت ✓✓).
+NOISE = re.compile(r"^\[Passed\]|^\[Reset\]", re.I)
+SERIOUS = re.compile(r"\[Failed\]|SCRIPT ERROR|Parse Error|^ERROR:", re.I)
 
 AT_LINE = re.compile(r"at line (\d+)", re.I)
 
@@ -80,7 +85,7 @@ def annotate(text: str, title: str, path: str) -> int:
     picked: list[tuple[int, str]] = []
     for i, raw in enumerate(lines):
         s = raw.strip()
-        if not s:
+        if not s or NOISE.search(s):
             continue
         if any(p.search(s) for p in PATTERNS):
             for ctx in _context_for(lines, i):
@@ -106,6 +111,9 @@ def annotate(text: str, title: str, path: str) -> int:
             continue
         else:
             merged.append((lineno, s))
+    # GitHub از مسیر `::error::` تنها **۱۰** انوتیشن را نگه می‌دارد ⇒ هرچه جدی‌تر،
+    # زودتر ✓ (قبلاً به ترتیبِ لاگ بود و سطرهای پر‌سروصدا جلوی خطای واقعی را می‌گرفتند ✗✓)
+    merged.sort(key=lambda t: 0 if SERIOUS.search(t[1]) else 1)
     if not merged:
         tail = lines[-MAX_LINES:] if lines else [f"{title}: لاگی یافت نشد"]
         merged = [(len(lines) - len(tail) + i + 1, t) for i, t in enumerate(tail)]
