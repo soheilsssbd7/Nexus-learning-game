@@ -1128,12 +1128,67 @@ def check_class_registry(errs: list[str]) -> int:
     return len(found)
 
 
+## بهداشتِ متن ✗✓ دو سانحهٔ واقعی در این مخزن از همین جنس بود: «Politic» در ADR-057
+## (بعد از dedupe پاک شد ✓) و «\u8fd0\u884c\u65f6» در کامنتِ `UIKit.gd` ✗✓ تولیدکنندهٔ متن، گاهی
+## کاراکترِ الفبایِ دیگری می‌اندازد و **هیچ ابزارِ standardی** گیرش نمی‌گیرد ✗✓ پس خودمان
+## می‌گیریم: در سورس‌ها فقط فارسی/عربی/لاتین/ارقام/نشانه‌ها مجازند ✓
+OWNER_DOC_PREFIXES = {"00", "01", "02", "03", "04"}  # اسنادِ مالک ✗✓ هشدار، نه خطا ✓
+BANNED_CODEPOINTS: list[tuple[int, int, str]] = [
+	(0x0900, 0x097F, "دِوناگاری"),
+	(0x0E00, 0x0E7F, "تای"),
+	(0x3040, 0x30FF, "کانایی"),
+	(0x4E00, 0x9FFF, "چینی/CJK"),
+	(0xAC00, 0xD7AF, "هنگول"),
+	(0x0400, 0x04FF, "سیریلیک"),
+]
+
+
+def check_text_hygiene(errs: list[str], notes: list[str] | None = None) -> int:
+    """`notes` = یافته‌های اسنادِ مالک ✓ گزارش می‌شوند، خطا نیستند ✓ (سندِ مالک را
+    ویرایش نمی‌کنیم و گیت را هم کور نمی‌کنیم ✗✓ هر دو در یک خطِ ⚠ زنده می‌مانند ✓)"""
+    bad = 0
+    note_list = notes if notes is not None else []
+    targets = sorted((GAME / "scripts").rglob("*.gd")) if (GAME / "scripts").exists() else []
+    targets += sorted((GAME / "tests").rglob("*.gd")) if (GAME / "tests").exists() else []
+    targets += [Path(__file__).resolve()]
+    # اسنادِ مالک (۰۰..۰۴) بایت‌به‌بایتِ آپلودِ اولیه‌اند ⇒ هشدار، نه خطا ✓
+    # (در §۳ سند ۰۲ یک حاشیهٔ ترجمه مانده: «کوچک (\u5c0f polyhedron)» ✓✓ اگر گیت خطا
+    #  می‌داد، یا سندِ مالک دست‌خورده بود یا گیت را خاموش می‌کردیم ✗✗ هیچ‌کدام ✓)
+    if (ROOT / "docs").exists():
+        targets += sorted((ROOT / "docs").glob("*.md"))
+    for f in targets:
+        text = f.read_text(encoding="utf-8", errors="replace")
+        if text.startswith("\ufeff"):
+            errs.append(f"{f.relative_to(ROOT).as_posix()}: BOM دارد ✗ (Godot/Python هر دو بد واکنش می‌دهند)")
+            bad += 1
+        if "\u200b" in text:
+            errs.append(f"{f.relative_to(ROOT).as_posix()}: ZWSP (\u200b) در متن ✗ "
+                        f"جای آن ZWNJ (\u200c) است ✓ (نیم‌فاصلهٔ فارسی)")
+            bad += 1
+        is_owner_doc = f.suffix == ".md" and f.name[:2] in OWNER_DOC_PREFIXES
+        for ln, line in enumerate(text.splitlines(), 1):
+            for lo, hi, name in BANNED_CODEPOINTS:
+                hit = next((ch for ch in line if lo <= ord(ch) <= hi), "")
+                if not hit:
+                    continue
+                msg = (f"{f.relative_to(ROOT).as_posix()}:{ln}: کاراکترِ {name} "
+                       f"({hex(ord(hit))}) در متن ✗ (متنِ دُپلسازِ مولد ✓ ADR-060)")
+                if is_owner_doc:
+                    note_list.append(msg + " ← سندِ مالک؛ برای تأییدِ owner ✓")
+                else:
+                    errs.append(msg)
+                    bad += 1
+                break
+    return bad
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="NEXUS content validator")
     ap.add_argument("--json", metavar="OUT", help="نوشتن گزارش JSON (برای آرشیو CI)")
     args = ap.parse_args()
 
     errs: list[str] = []
+    notes: list[str] = []
     l10n = check_l10n(errs)  # مستقل از وجود سطح: رشته‌های UI از فاز ۶ لازم‌اند
     if not LEVELS_DIR.exists() or not sorted(LEVELS_DIR.glob("tier*/level_*.json")):
         print("· هنوز هیچ game/data/levels/tier*/level_*.json وجود ندارد (طبیعی در فاز ۰..۲) → skip")
@@ -1162,12 +1217,15 @@ def main() -> int:
     art = check_art_assets(errs)
     api_clean = check_godot4_api(errs)
     classes = check_class_registry(errs)
+    hygiene = check_text_hygiene(errs, notes)
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
     print(f"سطح بررسی‌شده: {total} · قابل‌حل تأییدشده: {solved}/{total} · قالب دیالوگ: {len(hints)}"
-          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items} · فایل بصری: {art['files']} ({art['kb']}KB)/شیدر {art['shaders']} · API Godot4: {('پاک ✓' if api_clean == 0 else str(api_clean) + ' مشکل ✗')} · کلاس‌های عمومی: {classes}")
+          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items} · فایل بصری: {art['files']} ({art['kb']}KB)/شیدر {art['shaders']} · API Godot4: {('پاک ✓' if api_clean == 0 else str(api_clean) + ' مشکل ✗')} · کلاس‌های عمومی: {classes} · بهداشتِ متن: {('پاک ✓' if hygiene == 0 else str(hygiene) + ' مورد ✗')}")
 
+    for n in notes:
+        print("⚠ " + n)
     if args.json:
         Path(args.json).write_text(json.dumps({"levels": metas, "l10n": l10n, "errors": errs}, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"گزارش JSON → {args.json}")

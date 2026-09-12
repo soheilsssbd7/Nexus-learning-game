@@ -191,7 +191,7 @@ static func make_vbox(separation: float = GAP) -> VBoxContainer:
 static func apply_flow(node: Node) -> void:
 	# فقط کلاس‌هایی که **واقعاً** این خصوصیت‌ها را دارند لمس می‌شوند: `ColorRect`/
 	# `PanelContainer`/`BoxContainer` در Godot ۴ عضو `text_direction` ندارند و انتساب به
-	# آنها خطای运行时 است (GUT هر خطای موتور را «Unexpected Error» می‌شمارد ⇒ CI قرمز،
+	# آنها خطای زمان‌اجرا (runtime) است (GUT هر خطای موتور را «Unexpected Error» می‌شمارد ⇒ CI قرمز،
 	# بدون آنکه حتی یک assert نقض شده باشد) ✓ RichTextLabel ارث‌برِ Label است ⇒ پوشش داده شد.
 	for child: Node in node.get_children():
 		if child is Label:
