@@ -18,7 +18,7 @@ const STONE_GREY := Color("8A8FA3")     ## ساختارهای شکسته/غیر�
 ## چرا ثابتِ جدا؟ چون `STONE_GREY.darkened(0.25)` در `const` **مجاز نیست** ✗✓ و همان یک
 ## خط، کل `UIKit` را از کامپایل می‌انداخت (۱۰۵ تست قرمز ⇒ درسِ ADR-062)؛ عددِ هگز از
 ## همان عبارت حساب شده و تست، وفاداریش را می‌سنجد ✓✓ (گیتِ `check_const_expressions`)
-const STONE_UI := Color("676B7A")
+const STONE_UI := Color("686B7A")
 const GHOST_VIOLET := Color("B79CED")    ## کره‌ی روح — همیشه، در کل بازی ثابت
 
 ## مقیاس «گرمایی» کره‌های عددی: Teal (کوچک) → Gold (بزرگ) — §۶ سند هنری

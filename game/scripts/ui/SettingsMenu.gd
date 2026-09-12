@@ -65,7 +65,8 @@ func _build() -> void:
 	music_slider = _add_slider(box, "settings.music", "music_volume")
 	sfx_slider = _add_slider(box, "settings.sfx", "sfx_volume")
 
-	_add_label(box, "settings.language", UIKit.DIALOG_FONT_PX + 4, Palette.STONE_GREY)
+	# §۷ کنتراست: `STONE_GREY` روی پنلِ نیلی ۳٫۶۸ ✗ (AA = ۴٫۵) ⇒ `MUTED_TEXT` = ۵٫۴۶ ✓
+	_add_label(box, "settings.language", UIKit.DIALOG_FONT_PX + 4, Palette.MUTED_TEXT)
 	var lang_row := UIKit.make_vbox(UIKit.GAP * 0.5)
 	lang_row.name = "LanguageRow"
 	box.add_child(lang_row)
@@ -76,6 +77,11 @@ func _build() -> void:
 			btn.set_meta(&"locale_code", code)
 			btn.custom_minimum_size = Vector2(UIKit.MIN_TOUCH_PX, UIKit.MIN_TOUCH_PX)
 			btn.focus_mode = Control.FOCUS_NONE
+			# §۷ | یافتهٔ sweepِ ۸.۴: این دو دکمه از `Button.new()` خام می‌آمدند ✗✗ یعنی نه
+			# گوشۀ ۱۶px، نه کنتراستِ متن روی پس‌زمینه، نه RTL، نه کوچک‌شدنِ فشار ⇒ پوستۀ
+			# ابری (INDIGO روی CLOUD = 11.24 ✓✓) از همان منبعِ `UIKit` ✓
+			UIKit.style_button(btn, "cloud")
+			UIKit.pressed_feedback(btn)
 			btn.pressed.connect(_choose_locale.bind(code))
 			lang_row.add_child(btn)
 			locale_buttons.append(btn)
@@ -88,7 +94,7 @@ func _build() -> void:
 	haptics_toggle.toggled.connect(_choose_haptics)
 	box.add_child(haptics_toggle)
 
-	_add_label(box, "settings.adaptive_hint", UIKit.DIALOG_FONT_PX, Palette.STONE_GREY)
+	_add_label(box, "settings.adaptive_hint", UIKit.DIALOG_FONT_PX, Palette.MUTED_TEXT)
 
 	var close_button: Button = UIKit.make_button("common.close", "gold")
 	close_button.name = "CloseButton"

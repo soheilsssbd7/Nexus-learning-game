@@ -47,7 +47,8 @@ const TONES := {
 	"teal": {"bg": Palette.SOFT_TEAL, "fg": Palette.DEEP_INDIGO},
 	"cloud": {"bg": Palette.CLOUD_WHITE, "fg": Palette.DEEP_INDIGO},
 	# `STONE_GREY` خالص با متنِ ابری فقط ۳٫۰۵ می‌دهد ✗ (DoD ۸.۴: «کنتراست قابل‌قبول») ⇒
-	# همان هوی §۲ با ۲۵٪ تاریکی، ولی **به‌صورت ثابتِ از پیش حساب‌شده** در `Palette` ✓✗
+	# همان هوی §۲ با ۲۵٪ تاریکی (`Palette.STONE_UI` = 5.04 روی ابری ✓ AA)، ولی **ثابتِ
+# از پیش حساب‌شده** در `Palette` ✓✗
 	# `STONE_GREY.darkened(0.25)` در `const` خطاست («isn't a constant expression») و کل
 	# این کلاس را می‌سوزاند ⇒ `Palette.STONE_UI` ✓✓ (ADR-062 + گیتِ `check_const_expressions`)
 	"stone": {"bg": Palette.STONE_UI, "fg": Palette.CLOUD_WHITE},

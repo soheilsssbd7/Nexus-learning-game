@@ -105,7 +105,8 @@ func test_captions_no_longer_use_the_weak_grey() -> void:
 		if f.ends_with(".gd"):
 			scanned += 1
 			for line: String in _read(SKIN_DIR + "/" + f).split("\n"):
-				if line.contains("make_label(") and line.contains("Palette.STONE_GREY"):
+				if (line.contains("make_label(") or line.contains("_add_label(")) \
+						and line.contains("Palette.STONE_GREY"):
 					assert_true(false, "%s: کپشن با خاکستریِ ضعیف ✗ (%s)" % [f, line.strip_edges()])
 		f = dir.get_next()
 	assert_gt(scanned, 8, "ممیزی واقعاً فایل‌ها را خوانده (وگرنه این تست دروغگو است ✗✓)")
