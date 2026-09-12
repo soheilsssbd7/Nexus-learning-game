@@ -1094,6 +1094,40 @@ def check_godot4_api(errs: list[str]) -> int:
     return n
 
 
+## `class_name` یک قراردادِ عمومی است ✓ (هر کلاسی که نامِ جهانی می‌گیرد، بخشی از API است:
+## صحنه‌ها، تست‌ها و ADRها به آن ارجاع می‌دهند). دو اتفاق باید قرمز شوند:
+##  (الف) **محو شدنش** ✗✓ — بازنویسیِ کاملِ یک فایل با `cat >` یک روز نام را می‌بلعد
+##      و نتیجه‌اش «Could not find type» در هر مصرف‌کننده است (تجربهٔ ۸.۱: `AriaCrystal`
+##      و `AriaCore` هر دو class_name را از دست دادند ✗✗ و فقط در CIِ واقعی پیدا شد);
+##  (ب) **اضافه شدنِ بی‌ثبت** ⇒ فهرست باید آگاهانه بزرگ شود ✓ (نامِ جهانیِ تازه = تصمیم)
+CLASS_REGISTRY: set[str] = {
+	"AriaAvatar", "AriaController", "AriaCore", "AriaCrystal", "BalancePan", "BalanceScale",
+	"DialogueBox", "DialogueTemplate", "ErrorClassifier", "GhostOrb", "HUD", "HintTimingSystem",
+	"LevelController", "LevelData", "LevelResultBar", "LiveAIProvider", "Loc", "MainMenu",
+	"MasteryChart", "NegativeOrb", "Onboarding", "OrbVisual", "Palette", "ParentDashboard",
+	"ParentGate", "PauseMenu", "PlayerAvatarPreview", "PlayerModel", "SettingsMenu",
+	"SettingsStore", "SkillRating", "UIKit", "WeightOrb", "WorldMap",
+}
+
+
+def check_class_registry(errs: list[str]) -> int:
+    root = GAME / "scripts"
+    if not root.exists():
+        return 0
+    found: set[str] = set()
+    for f in sorted(root.rglob("*.gd")):
+        for m in re.finditer(r"^class_name\s+([A-Za-z_][A-Za-z0-9_]*)", f.read_text(
+                encoding="utf-8", errors="replace"), re.M):
+            found.add(m.group(1))
+    for gone in sorted(CLASS_REGISTRY - found):
+        errs.append(f"class_name `{gone}` از `game/scripts` ناپدید شد ✗ (یا فایل رفته یا "
+                    f"بازنویسیِ فایل، سرِ کلاس را برده — مصرف‌کننده‌ها می‌شکنند ✗✓ ADR-058)")
+    for fresh in sorted(found - CLASS_REGISTRY):
+        errs.append(f"class_name تازهٔ `{fresh}` در `CLASS_REGISTRY` ثبت نشده ✗ "
+                    f"(نامِ جهانی = قرارداد؛ یک خط به فهرست اضافه‌اش کن ✓)")
+    return len(found)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="NEXUS content validator")
     ap.add_argument("--json", metavar="OUT", help="نوشتن گزارش JSON (برای آرشیو CI)")
@@ -1127,11 +1161,12 @@ def main() -> int:
     audio_items = check_audio_manifest(errs)
     art = check_art_assets(errs)
     api_clean = check_godot4_api(errs)
+    classes = check_class_registry(errs)
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
     print(f"سطح بررسی‌شده: {total} · قابل‌حل تأییدشده: {solved}/{total} · قالب دیالوگ: {len(hints)}"
-          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items} · فایل بصری: {art['files']} ({art['kb']}KB)/شیدر {art['shaders']} · API Godot4: {('پاک ✓' if api_clean == 0 else str(api_clean) + ' مشکل ✗')}")
+          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items} · فایل بصری: {art['files']} ({art['kb']}KB)/شیدر {art['shaders']} · API Godot4: {('پاک ✓' if api_clean == 0 else str(api_clean) + ' مشکل ✗')} · کلاس‌های عمومی: {classes}")
 
     if args.json:
         Path(args.json).write_text(json.dumps({"levels": metas, "l10n": l10n, "errors": errs}, ensure_ascii=False, indent=2), encoding="utf-8")

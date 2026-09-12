@@ -1,3 +1,4 @@
+class_name AriaCrystal
 extends Node2D
 # ===========================================================================
 # NEXUS — AriaCrystal: بدنه‌ی Aria (§۳ Art Bible | تسک ۵.۴ placeholder → ۸.۱ نهایی)
