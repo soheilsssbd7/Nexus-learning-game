@@ -1039,6 +1039,16 @@ GODOT3_ISMS: dict[str, str] = {
 	r"\bKinematicBody2D\b": "KinematicBody2D ← `CharacterBody2D`",
 }
 
+# نام‌هایی که **وجود ندارند** ولی «منطقی» به‌نظر می‌رسند ⇒ مولد دوستشان دارد ✗✓ و فقط
+# اجرای واقعی می‌فهمد (امروز: `Window.get_visible_viewport_rect()` ⇒ ۳۱ تستِ بی‌گناه قرمز
+# ⇒ هر بار که Godot چنین خطایی داد، نام را این‌جا بگذار ✓ تا تکرار نشود ✓✓).
+# نام‌های Godot-3 که قبلاً در `GODOT3_ISMS`‌اند عمداً این‌جا تکرار نمی‌شوند ✓ (پیامِ دوتایی
+# = صدایِ گیت را کم‌اعتبار می‌کند ✗✓) و `xform` هم قاعدهٔ موقعیتیِ خودش را دارد ✓.
+PHANTOM_API: dict[str, str] = {
+    r"get_visible_viewport_rect\(": "در Godot 4 نیست؛ `get_visible_rect()` بنویس ✓",
+}
+
+
 
 def strip_code(line: str) -> str:
     """نظرات را حذف می‌کند تا گیت، «توضیحِ باگ» را باگ نگیرد ✗✓ (رشته‌های داخل `"` را
@@ -1083,6 +1093,11 @@ def check_godot4_api(errs: list[str]) -> int:
                 for m in re.finditer(pat, body, re.M):
                     ln = body.count("\n", 0, m.start()) + 1
                     errs.append(f"{rel}:{ln}: `{m.group(0)}` ✗ ({why})")
+                    n += 1
+            for pat, why in PHANTOM_API.items():
+                for m in re.finditer(pat, body, re.M):
+                    ln = body.count("\n", 0, m.start()) + 1
+                    errs.append(f"{rel}:{ln}: APIِ ساختگی `{m.group(0)}` ✗ ({why})")
                     n += 1
             # قاعدهٔ موقعیتی Basis.xform ✓ (بلوکِ تابع = از `func` تا `func` بعدی)
             for fb in re.finditer(r"^func .*?(?=^func |\Z)", body, re.M | re.S):

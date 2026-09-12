@@ -374,5 +374,7 @@ static func design_size() -> Vector2:
 	var vp := Vector2(1280.0, 720.0)
 	var loop := Engine.get_main_loop() as SceneTree
 	if loop != null and loop.root != null:
-		vp = loop.root.get_visible_viewport_rect().size
+		vp = loop.root.get_visible_rect().size
+		# `Viewport.get_visible_rect()` ✓ (امروز `get_visible_viewport_rect()` نوشتم و فقط در
+		# اجرای واقعی ترکید ✗✓ پس گیتِ PHANTOM_API در tools/ این نام را ممنوع می‌کند ✓✓)
 	return Vector2(maxf(vp.x, 640.0), maxf(vp.y, 360.0))
