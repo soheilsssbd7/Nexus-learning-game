@@ -136,7 +136,32 @@ static func default_config() -> Dictionary:
 		],
 	}
 
+	_ensure_backdrop()
 
+
+
+## §۵ | تسک ۸.۳: محیطِ همان Tier پشتِ صحنه، با میزانِ بازیابیِ **پیشرفتِ همان Tier** ✓
+## (placeholder فاز ۳ یعنی `Sky` خاموش می‌ماند ولی حذف نمی‌شود ✓ fallback اگر هنر
+## روزی از کار بیفتد ✗✓ و تستِ لایه‌بندی همین را می‌بیند)
+func _ensure_backdrop() -> void:
+	var bd := RegionBackdrop.new()
+	bd.name = "Backdrop"
+	var tier: int = GameState.current_tier  # LevelLoader.start_level آن را ست می‌کند ✓
+	bd.region = RegionBackdrop.region_for_tier(tier)
+	bd.set_restoration(GameState.tier_restoration(tier), false)
+	add_child(bd)
+	var sky := get_node_or_null("Sky") as ColorRect
+	if sky != null:
+		sky.visible = false
+	if not EventBus.level_completed.is_connected(_on_level_completed_backdrop):
+		EventBus.level_completed.connect(_on_level_completed_backdrop)
+
+
+func _on_level_completed_backdrop(_level_id: String, _stats: Dictionary) -> void:
+	var bd := get_node_or_null("Backdrop") as RegionBackdrop
+	if bd == null:
+		return
+	bd.set_restoration(GameState.tier_restoration(GameState.current_tier), true)
 ## فاز ۳: LevelLoader این را با داده‌ی JSON صدا می‌زند (قبل یا بعد از add_child).
 func configure(p_config: Dictionary) -> void:
 	config = p_config

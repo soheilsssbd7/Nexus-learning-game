@@ -186,6 +186,31 @@ func commit_playtime() -> void:
 		SaveSystem.request_save()
 
 
+## §۵ «قانونِ کلیدیِ محیط»: میزانِ ویرانیِ هر منطقه باید **مستقیماً** با پیشرفتِ بازیکن در
+## همان Tier کم شود ✓✗ پس تنها ورودیِ `RegionBackdrop.restoration` همین نسبت است ✓
+## (سطح‌پوشده / کلِ سطوحِ آن Tier ✓ بدونِ وزن‌دهی/انحرافِ دیگری ⇒ کودک رابطه‌ی «تلاش من →
+## دنیای دارد ساخته می‌شود» را واقعاً می‌بیند ✓✓ و تستِ عددی دارد ✓)
+func tier_restoration(tier: int) -> float:
+	var ids: Array[String] = LevelLoader.levels_for_tier(tier)
+	if ids.is_empty():
+		return 0.0
+	var done := 0
+	if active_model != null:
+		for id: String in ids:
+			if active_model.is_level_completed(id):
+				done += 1
+	return float(done) / float(ids.size())
+
+
+## کلِ پادشاهی (برای Hubِ نقشه) ⇒ میانگینِ پنج Tier ✓§۵ (Hub «با پیشرفت بازیکن» ساخته
+## می‌شود، نه با یک Tier خاص ✓)
+func world_restoration() -> float:
+	var total := 0.0
+	for tier: int in range(1, 6):
+		total += tier_restoration(tier)
+	return clampf(total / 5.0, 0.0, 1.0)
+
+
 func _tier_from_level_id(level_id: String) -> int:
 	if not level_id.begins_with("tier"):
 		return current_tier

@@ -55,6 +55,8 @@ var level_ids: Array[String] = []
 ## «جهان» همیشه یک‌تکه دیده شود (GDD §۵).
 var pages: Array = []
 var current_page: int = 0
+var _backdrop: RegionBackdrop = null  ## §۵ | تسک ۸.۳: نقشهٔ جهان هم «Hub زنده» دارد ✓
+
 
 
 func _ready() -> void:
@@ -78,6 +80,8 @@ func rebuild() -> void:
 	current_page = clampi(_page_of(_first_open_index()), 0, pages.size() - 1)
 	_build_page_nodes()
 	_sync_page_controls()
+	_ensure_backdrop()
+	_refresh_backdrop(false)
 	refresh_locks()
 
 
@@ -239,6 +243,7 @@ func goto_page(page: int) -> void:
 	_build_page_nodes()
 	_sync_page_controls()
 	refresh_locks()
+	_refresh_backdrop(true)
 
 
 func _ensure_menu_button() -> void:
@@ -315,3 +320,27 @@ func request_level(index: int) -> void:
 
 func _on_level_completed(_level_id: String, _stats: Dictionary) -> void:
 	refresh_locks()
+	# §۵ | هر برد باید در دنیا دیده شود ⇒ همان Tier یک پل جلو می‌آید ✓
+	_refresh_backdrop(true)
+
+
+## تسک ۸.۳ | یک Node2Dِ خالص پشتِ کنترل‌ها (بدونِ `Control` ✗✓ همان درسی که از فازِ ۷.۴
+## گرفتیم: گرهٔ بک‌گراند اگر Control باشد کلیک‌های بچه‌ها را می‌خورد ✗✗ ⇒ `z_index = -30`
+## و نوعِ Node2D ✓✓). صفحهٔ ۰ = Hub (میانگینِ کلِ پادشاهی ✓) و صفحهٔ n = منطقۀ Tier n ✓
+func _ensure_backdrop() -> void:
+	if _backdrop != null and is_instance_valid(_backdrop):
+		return
+	_backdrop = RegionBackdrop.new()
+	_backdrop.name = "Backdrop"
+	add_child(_backdrop)
+
+
+func _refresh_backdrop(animate: bool) -> void:
+	if _backdrop == null or not is_instance_valid(_backdrop):
+		return
+	if current_page <= 0:
+		_backdrop.region = RegionBackdrop.HUB
+		_backdrop.set_restoration(GameState.world_restoration(), animate)
+		return
+	_backdrop.region = RegionBackdrop.region_for_tier(current_page)
+	_backdrop.set_restoration(GameState.tier_restoration(current_page), animate)

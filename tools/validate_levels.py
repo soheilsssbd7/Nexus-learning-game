@@ -1105,7 +1105,7 @@ CLASS_REGISTRY: set[str] = {
 	"DialogueBox", "DialogueTemplate", "ErrorClassifier", "GhostOrb", "HUD", "HintTimingSystem",
 	"LevelController", "LevelData", "LevelResultBar", "LiveAIProvider", "Loc", "MainMenu",
 	"MasteryChart", "NegativeOrb", "Onboarding", "OrbVisual", "Palette", "ParentDashboard",
-	"ParentGate", "PauseMenu", "PlayerAvatarPreview", "PlayerModel", "SettingsMenu",
+	"ParentGate", "PauseMenu", "PlayerAvatarPreview", "PlayerModel", "RegionBackdrop", "SettingsMenu",
 	"SettingsStore", "SkillRating", "UIKit", "WeightOrb", "WorldMap",
 }
 
@@ -1141,6 +1141,97 @@ BANNED_CODEPOINTS: list[tuple[int, int, str]] = [
 	(0xAC00, 0xD7AF, "هنگول"),
 	(0x0400, 0x04FF, "سیریلیک"),
 ]
+
+
+def check_ambient_art_vocab(errs: list[str]) -> int:
+    """§۵ | تسک ۸.۳: واژگانِ «محیطِ روایت» و «منطقۀ کد» باید یکی باشد ✓✗ هر `ambient_art`
+    در `story_beats.json` باید به یک منطقۀ شناخته‌شده نگاشت شود و هر منطقۀ غیر از Hub باید
+    در روایت صدا زده شود — وگرنه کودک در صحنه‌ای با نامی می‌نشیند که نقشۀ جهان نمی‌شناسد
+    ✗✓ (و برعکس: منطقۀ بی‌روایت = هنری که هیچ‌وقت دیده نمی‌شود ✗).
+
+    نام‌ها این‌جا **تکرار نمی‌شوند**: با regex از خودِ `RegionBackdrop.REGION_NAMES` خوانده
+    می‌شوند ✓ (Godot در CI اجرا نمی‌شود، ولی متنِ سورس منبعِ حقیقت است ⇒ یک فهرست، دو مصرف
+    ✓✓). بازگشت = تعدادِ منطقۀ هم‌نام (برای چاپِ وضعیت در خلاصه) ✓
+    """
+    reg = GAME / "scripts/environments/RegionBackdrop.gd"
+    beats_path = GAME / "data/narrative/story_beats.json"
+    if not reg.exists():
+        errs.append("check_ambient_art_vocab: RegionBackdrop.gd پیدا نشد ✗ (تسک ۸.۳)")
+        return 0
+    if not beats_path.exists():
+        errs.append("check_ambient_art_vocab: story_beats.json پیدا نشد ✗")
+        return 0
+    src = reg.read_text(encoding="utf-8")
+    # REGION_NAMES یک Array[String] مرتب است ✓ (ایندکس = مقدارِ `enum Region` ⇒
+    # ترتیب، بخشی از قرارداد است و اگر جابه‌جا شود این گیت متوجه می‌شود ✓)
+    block = re.search(r"const REGION_NAMES: Array\[String\] = \[(.*?)\n\]", src, re.S)
+    if block is None:
+        errs.append("check_ambient_art_vocab: REGION_NAMES (Array[String]) در RegionBackdrop "
+                    "پیدا نشد ✗ — شکلِ اعلام را تغییر نده ✓")
+        return 0
+    regions = list(enumerate(re.findall(r'"([^"]+)"', block.group(1))))
+    order = [n for _, n in regions]
+    expected_first = "Aeloria Hub"
+    if order and order[0] != expected_first:
+        errs.append(f"check_ambient_art_vocab: منطقۀ ایندکس ۰ باید Hub باشد، شد «{order[0]}» ✗")
+    if len(regions) != 6:
+        errs.append(f"check_ambient_art_vocab: REGION_NAMES باید ۶ منطقه داشته باشد "
+                    f"(Hub + ۵)، شد {len(regions)} ✗")
+    names = [n for _, n in regions]
+    if len(set(names)) != len(names):
+        errs.append("check_ambient_art_vocab: نامِ تکراری در REGION_NAMES ✗")
+    try:
+        beats = json.loads(beats_path.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001 - پیامِ خطا به errs می‌رود ✓
+        errs.append(f"check_ambient_art_vocab: story_beats.json قابل‌پارس نیست ✗ ({exc})")
+        return 0
+    arts: list[str] = []
+    for b in beats.get("beats", []):
+        if isinstance(b, dict) and b.get("ambient_art"):
+            arts.append(str(b["ambient_art"]))
+    if not arts:
+        errs.append("check_ambient_art_vocab: هیچ ambient_art در بیت‌های روایت نیست ✗")
+        return 0
+    unknown = sorted({a for a in arts if a not in set(names)})
+    if unknown:
+        errs.append(f"check_ambient_art_vocab: ambient_art‌های بیرونِ REGION_NAMES: {unknown} ✗")
+    dead = sorted({n for k, n in regions if k != 0 and n not in set(arts)})
+    if dead:
+        errs.append(f"check_ambient_art_vocab: منطقۀ بی‌روایت (هنرِ مرده): {dead} ✗")
+    return len([1 for k, n in regions if k != 0 and n in set(arts)])
+
+
+def check_script_duplicates(errs: list[str]) -> int:
+    """تسک ۸.۳ | `--check-only`ِ Godotِ هدلس **تابعِ تکراری را رد نمی‌کند** ✗✗ (امروز تجربه
+    شد: دو `func _ready()` در یک فایل parse-ok گرفت و فقط در اجرای واقعی می‌ترکید ⇒ در CI
+    بدونِ رانرِ Godot باید خودمان بگیریم ✓). همچنین `const`/`var` هم‌نام در یک فایل.
+
+    فقط سطحِ فایل (ایندنتِ صفر) دیده می‌شود؛ `class` داخلی عمداً بی‌حساب است ✓ (فاز ۸ این
+    الگو را ندارد) و این دقیقاً همان چیزی است که کلاس‌های ما را می‌سازد ✓
+    """
+    dups = 0
+    scripts: list[Path] = []
+    for sub in ("scripts", "tests"):
+        d = GAME / sub
+        if d.exists():
+            scripts += sorted(d.rglob("*.gd"))
+    for f in scripts:
+        seen: dict[str, int] = {}
+        for ln, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+            m = re.match(r"^(?:static\s+)?func\s+([A-Za-z_][A-Za-z0-9_]*)", line)
+            if m is None:
+                m = re.match(r"^(?:const|var)\s+([A-Za-z_][A-Za-z0-9_]*)", line)
+            if m is None:
+                continue
+            name = m.group(1)
+            if name in seen:
+                errs.append(f"{f.relative_to(ROOT).as_posix()}:{ln}: `{name}` تکراری ✗ "
+                            f"(اولین بار خط {seen[name]} — Godot در اجرا می‌شکند، "
+                            f"gdparse می‌بخشد ✗✓)")
+                dups += 1
+            else:
+                seen[name] = ln
+    return dups
 
 
 def check_text_hygiene(errs: list[str], notes: list[str] | None = None) -> int:
@@ -1218,11 +1309,19 @@ def main() -> int:
     api_clean = check_godot4_api(errs)
     classes = check_class_registry(errs)
     hygiene = check_text_hygiene(errs, notes)
+    vocab = check_ambient_art_vocab(errs)
+    dup_count = check_script_duplicates(errs)
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
     print(f"سطح بررسی‌شده: {total} · قابل‌حل تأییدشده: {solved}/{total} · قالب دیالوگ: {len(hints)}"
           f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats} · دارایی صوتی: {audio_items} · فایل بصری: {art['files']} ({art['kb']}KB)/شیدر {art['shaders']} · API Godot4: {('پاک ✓' if api_clean == 0 else str(api_clean) + ' مشکل ✗')} · کلاس‌های عمومی: {classes} · بهداشتِ متن: {('پاک ✓' if hygiene == 0 else str(hygiene) + ' مورد ✗')}")
+
+    if dup_count == 0:
+        print("تکرارِ تعریف در .gd ها: پاک ✓ (gdparse این را نمی‌گیرد)")
+
+    if vocab:
+        print(f"واژگانِ محیط: {vocab}/5 منطقۀ روایتی با RegionBackdrop هم‌نام ✓")
 
     for n in notes:
         print("⚠ " + n)
