@@ -131,8 +131,9 @@ func test_prop_densities_are_all_different() -> void:
 func test_signature_is_deterministic() -> void:
 	# قطعی‌بودن لازمهٔ «اسکرین‌شاتِ مقایسه‌ای» در فاز ۱۰ است ✓ (هر تصادفِ seedless یعنی
 	# دو اجرا دو دنیا ✗✓) — همه‌چیز از جدول‌های const می‌آید، نه `randf()`
-	var a: Dictionary = BD.signature(RegionBackdrop.RUINS, 0.37)
-	var b: Dictionary = BD.signature(RegionBackdrop.RUINS, 0.37)
+	var ruins: int = BD.region_named("Ghostlight Ruins")
+	var a: Dictionary = BD.signature(ruins, 0.37)
+	var b: Dictionary = BD.signature(ruins, 0.37)
 	assert_eq(str(a), str(b), "دو بار فراخوانی ⇒ یک امضا ✓")
 	assert_false(_read(SRC_PATH).contains("randf("), "هیچ تصادفی در محیط نیست ✓")
 

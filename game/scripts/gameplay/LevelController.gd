@@ -110,6 +110,8 @@ func _ready() -> void:
 		add_child(pause_menu)
 	if build_on_ready:
 		build()
+	# §۵ | تسک ۸.۳: محیطِ همان Tier پشتِ صحنه ✓ (آخر از همه: گره‌ها ساخته شده‌اند)
+	_ensure_backdrop()
 
 
 static func default_config() -> Dictionary:
@@ -135,8 +137,6 @@ static func default_config() -> Dictionary:
 			{"type": "number", "value": 5.0, "count": 3},
 		],
 	}
-
-	_ensure_backdrop()
 
 
 

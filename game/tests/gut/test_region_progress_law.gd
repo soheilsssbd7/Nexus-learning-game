@@ -123,14 +123,14 @@ func test_hub_restoration_is_the_average_of_five_tiers() -> void:
 
 
 func test_region_for_tier_mapping() -> void:
-	assert_eq(BD.region_for_tier(0), RegionBackdrop.HUB, "صفحۀ ۰ نقشه = Hub ✓")
-	assert_eq(BD.region_for_tier(1), RegionBackdrop.MEADOW, "Tier 1 = Sunlit Meadow ✓§۵")
-	assert_eq(BD.region_for_tier(2), RegionBackdrop.CAVERNS, "Tier 2 = Whisper Caverns ✓")
-	assert_eq(BD.region_for_tier(3), RegionBackdrop.RUINS, "Tier 3 = Ghostlight Ruins ✓")
-	assert_eq(BD.region_for_tier(4), RegionBackdrop.OBSERVATORY, "Tier 4 = Twin Observatory ✓")
-	assert_eq(BD.region_for_tier(5), RegionBackdrop.SUMMIT, "Tier 5 = Summit of Equilibrium ✓")
-	assert_eq(BD.region_for_tier(99), RegionBackdrop.SUMMIT, "خارجِ بازه ⇒ سوراخ/NaN نه ✓")
-	assert_eq(BD.region_for_tier(-5), RegionBackdrop.HUB, "منفی ⇒ Hub ✓")
+	assert_eq(BD.region_for_tier(0), BD.region_named("Aeloria Hub"), "صفحۀ ۰ نقشه = Hub ✓")
+	assert_eq(BD.region_for_tier(1), BD.region_named("Sunlit Meadow"), "Tier 1 = Sunlit Meadow ✓§۵")
+	assert_eq(BD.region_for_tier(2), BD.region_named("Whisper Caverns"), "Tier 2 = Whisper Caverns ✓")
+	assert_eq(BD.region_for_tier(3), BD.region_named("Ghostlight Ruins"), "Tier 3 = Ghostlight Ruins ✓")
+	assert_eq(BD.region_for_tier(4), BD.region_named("Twin Observatory"), "Tier 4 = Twin Observatory ✓")
+	assert_eq(BD.region_for_tier(5), BD.region_named("Summit of Equilibrium"), "Tier 5 = Summit of Equilibrium ✓")
+	assert_eq(BD.region_for_tier(99), BD.region_named("Summit of Equilibrium"), "خارجِ بازه ⇒ سوراخ/NaN نه ✓")
+	assert_eq(BD.region_for_tier(-5), BD.region_named("Aeloria Hub"), "منفی ⇒ Hub ✓")
 
 
 # --------------------------------------------------------------------------
@@ -141,8 +141,9 @@ func test_region_for_tier_mapping() -> void:
 func test_backdrop_is_a_non_control_node_behind_everything() -> void:
 	# درسِ فاز ۷.۴ ✗✓: گرهٔ بک‌گراند اگر Control باشد کلیک‌های بچه‌ها را می‌خورد
 	var bd := RegionBackdrop.new()
-	assert_true(bd is Node2D, "Node2D است ✓")
-	assert_false(bd is Control, "Control نیست ⇒ هیچ کلیکی نمی‌خورد ✗✓")
+	# `is Control` را خودِ تحلیلگر رد می‌کند ✗✓ («از RegionBackdrop نمی‌توان Control بود») ⇒
+	# سنجشِ نوع با `get_class()` ✓ که همان حرف را بی‌داوریِ ایستا می‌زند ✓
+	assert_eq(bd.get_class(), "Node2D", "Node2Dِ خالص است ✓")
 	add_child(bd)
 	assert_true(bd.z_index < 0, "پشتِ HUD/گیم‌پلی است (z_index=%d)" % bd.z_index)
 	assert_eq(bd.z_index, -20, "منبعِ واحدِ لایه‌بندی: خودِ کلاس ست می‌کند، نه صحنه‌ها ✓")

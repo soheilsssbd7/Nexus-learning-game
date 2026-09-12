@@ -339,7 +339,9 @@ func _refresh_backdrop(animate: bool) -> void:
 	if _backdrop == null or not is_instance_valid(_backdrop):
 		return
 	if current_page <= 0:
-		_backdrop.region = RegionBackdrop.HUB
+		# عضوهای enum از بیرونِ فایل با `Klass.NAME` دیده نمی‌شوند ✗✓ (درسِ CI) ⇒ همان
+		# نگاشتِ رسمی: صفحۀ ۰ = Tier صفر = Hub ✓ (یک منبع، دو مصرف ✓)
+		_backdrop.region = RegionBackdrop.region_for_tier(0)
 		_backdrop.set_restoration(GameState.world_restoration(), animate)
 		return
 	_backdrop.region = RegionBackdrop.region_for_tier(current_page)
