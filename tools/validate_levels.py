@@ -39,6 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "game" / "data"
 LEVELS_DIR = DATA / "levels"
 DIALOGUE_FILE = DATA / "dialogue" / "aria_templates.json"
+NARRATIVE_FILE = DATA / "narrative" / "story_beats.json"
 
 ALLOWED_ORB_TYPES = {"number", "ghost", "negative"}
 ALLOWED_WORLDS = {"balance_realm"}
@@ -724,6 +725,129 @@ def check_l10n(errs: list[str]) -> dict:
     return summary
 
 
+
+# ---------------------------------------------------------------- ۷.۵ روایت
+MAX_BEAT_LINE = 90   # سقفِ GDD برای `narrative_intro` — همان `DialogueBox` (۳ خط × ۲۴px) ✗✓
+MIN_BEAT_LINE = 25   # «جملهٔ پراکنده» نه ✗✓ (DoD ۷.۵: داستان منسجم، نه یادداشت)
+COHERENCE_ANCHOR = "ترازوی بنیادین"
+REGION_BY_TIER = {
+    1: "Sunlit Meadow", 2: "Whisper Caverns", 3: "Ghostlight Ruins",
+    4: "Twin Observatory", 5: "Summit of Equilibrium",
+}
+
+
+def check_story_beats(errs: list[str], locales: list[str]) -> int:
+    """قاعده‌های `story_beats.json` (docs/04 ۷.۵ + docs/07 §۵-ب + Art Bible §۵).
+
+    چرا این‌ها چک می‌شوند و «قشنگیِ متن» چک نمی‌شود: ساختارِ قوس (افتتاحیه ← سه نقطهٔ عطفِ
+    ورودِ Tier ← پایان) و پیوندِ متن با داراییِ هنری، **قابلِ سنجش‌اند** ✗✓ و اگر نشکنند،
+    روایت هیچ‌وقت «جملاتِ پراکنده» نمی‌شود ✓ ولی قضاوتِ ادبی با بازیِ واقعی است (فاز ۱۰) ✗
+    """
+    if not NARRATIVE_FILE.exists():
+        errs.append("فایل `game/data/narrative/story_beats.json` نیست (تسک ۷.۵ بسته نشده ✗)")
+        return 0
+    doc = load_json(NARRATIVE_FILE, errs) or {}
+    if not isinstance(doc, dict):
+        errs.append("story_beats.json باید object باشد")
+        return 0
+    if doc.get("schema_version") != 1:
+        errs.append("story_beats: `schema_version` باید ۱ باشد")
+    arc = str(doc.get("arc_id", ""))
+    if not re.fullmatch(r"[a-z0-9_]{3,40}", arc):
+        errs.append(f"story_beats: `arc_id` نامعتبر `{arc}`")
+    loc = str(doc.get("locale", ""))
+    if locales and loc not in locales:
+        # جهتِ متن از داده می‌آید نه hardcode ✓ (همان قاعدهٔ `rtl_locales` در l10n ✓)
+        errs.append(f"story_beats: `locale` باید یکی از {sorted(locales)} باشد (این: {loc})")
+
+    beats = doc.get("beats")
+    if not isinstance(beats, list) or not beats:
+        errs.append("story_beats: `beats` خالی است")
+        return 0
+
+    seen: set[str] = set()
+    starts = [b for b in beats if isinstance(b, dict) and b.get("trigger") == "game_start"]
+    ends = [b for b in beats if isinstance(b, dict) and b.get("trigger") == "game_complete"]
+    for b in beats:
+        if not isinstance(b, dict):
+            errs.append("story_beats: هر بیت باید object باشد")
+            continue
+        bid = str(b.get("beat_id", ""))
+        if not re.fullmatch(r"beat_[a-z0-9_]{2,40}", bid):
+            errs.append(f"story_beats: `beat_id` نامعتبر `{bid}`")
+        elif bid in seen:
+            errs.append(f"story_beats: `beat_id` تکراری `{bid}` ⇒ موتورِ روایت کدام را پخش کند؟ ✗")
+        seen.add(bid)
+        if b.get("trigger") not in ("game_start", "tier_start", "game_complete"):
+            errs.append(f"{bid}: `trigger` باید game_start/tier_start/game_complete باشد")
+        tier = b.get("tier")
+        if not isinstance(tier, int) or not 1 <= tier <= 5:
+            errs.append(f"{bid}: `tier` باید ۱..۵ باشد")
+            continue
+        # پیوندِ متن ↔ هنر (docs/04 ۷.۵): هر بیت **باید** بگوید کدام دارایی محیطی لازم است ✗✓
+        # و همان دارایی باید منطقهٔ همان Tier باشد (بیتِ غار با «دشتِ آفتابی» = داراییِ گم‌شده ✓)
+        if b.get("ambient_art") != REGION_BY_TIER[tier]:
+            errs.append(f"{bid}: `ambient_art` باید `{REGION_BY_TIER[tier]}` باشد "
+                        f"(این: `{b.get('ambient_art')}`) — Art Bible §۵")
+        if len(str(b.get("art_note", "")).strip()) < 8:
+            errs.append(f"{bid}: `art_note` لازم است (چه چیزی از Art Bible §۵ این بیت می‌خواهد ✗)")
+
+        lines = b.get("lines")
+        if not isinstance(lines, list) or not 3 <= len(lines) <= 6:
+            errs.append(f"{bid}: `lines` باید ۳..۶ خط باشد (نه یادداشت، نه دیوارِ متن ✗)")
+            continue
+        aria_lines: list[str] = []
+        for i, ln in enumerate(lines):
+            if not isinstance(ln, dict):
+                errs.append(f"{bid}.lines[{i}] باید object باشد")
+                continue
+            spk = str(ln.get("speaker", ""))
+            if spk not in ("aria", "narrator"):
+                errs.append(f"{bid}.lines[{i}] `speaker` باید aria/narrator باشد (این: {spk})")
+            txt = str(ln.get("text", "")).strip()
+            if len(txt) < MIN_BEAT_LINE:
+                errs.append(f"{bid}.lines[{i}] کوتاه‌تر از {MIN_BEAT_LINE} نویسه ⇒ جملهٔ پراکنده ✗")
+            if len(txt) > MAX_BEAT_LINE:
+                errs.append(f"{bid}.lines[{i}] بیش از {MAX_BEAT_LINE} نویسه ⇒ سرریزِ DialogueBox ✗")
+            if re.search(r"\d", txt):
+                # «Aria هیچ‌وقت عددِ جواب را نمی‌گوید» ✗✓ همین قاعده در روایت هم جاری است،
+                # وگرنه یک بیتِ معجزه‌آسا همهٔ سطح‌ها را لو می‌دهد ✓✓
+                errs.append(f"{bid}.lines[{i}] رقم دارد ⇒ لو‌دادنِ جواب/وزن ✗ (GDD §۲)")
+            if spk == "aria":
+                aria_lines.append(txt)
+        if not aria_lines:
+            errs.append(f"{bid}: بیت بدون خطِ `aria` ⇒ آریا دیگر شخصیت نیست، راوی است ✗")
+        if not any(l.strip().endswith("؟") for l in aria_lines):
+            # GDD §۵-الف: «Aria سؤال می‌پرسد و جهت می‌دهد» ✓✓ این تنها قاعدهٔ *رفتاری* است
+            # که از متن قابل سنجش است ⇒ در هر بیت دست‌کم یک پرسشِ آریا الزامی است ✓
+            errs.append(f"{bid}: هیچ خطِ آریا با «؟» تمام نمی‌شود ⇒ دستور داده شده، نه پرسش ✗")
+
+    if len(starts) != 1:
+        errs.append(f"story_beats: دقیقاً یک `game_start` لازم است (این: {len(starts)})")
+    elif starts[0].get("tier") != 1:
+        errs.append("story_beats: صحنهٔ افتتاحیه باید Tier ۱ باشد (ورودِ کودک از دشت ✓)")
+    if len(ends) != 1:
+        errs.append(f"story_beats: دقیقاً یک `game_complete` لازم است (این: {len(ends)})")
+    elif isinstance(ends[0].get("tier"), int) and ends[0]["tier"] != max(
+            b.get("tier", 0) for b in beats if isinstance(b, dict)):
+        errs.append("story_beats: پایان باید روی بالاترین Tier باشد (قله ✓ GDD §۵-ب)")
+    entry = {b.get("tier") for b in beats
+             if isinstance(b, dict) and b.get("trigger") == "tier_start"}
+    if entry != {2, 3, 4, 5}:
+        # «سه نقطهٔ عطفِ میانی + ورودِ قله» ✗✓ اگر ورودِ Tier‌ای بی‌بیت بماند، آن Tier با
+        # همان دیالوگِ Tier قبلی شروع می‌شود ⇒ قوس داستانی در میانه می‌شکند ✗
+        errs.append(f"story_beats: بیتِ `tier_start` باید دقیقاً Tier های ۲..۵ را بپوشاند "
+                    f"(این: {sorted(x for x in entry if isinstance(x, int))}) ✗")
+    first_txt = " ".join(str(l.get("text", "")) for l in starts[0].get("lines", []) if isinstance(l, dict)) if starts else ""
+    last_txt = " ".join(str(l.get("text", "")) for l in ends[0].get("lines", []) if isinstance(l, dict)) if ends else ""
+    if COHERENCE_ANCHOR not in first_txt or COHERENCE_ANCHOR not in last_txt:
+        # لنگرِ همبستگی: چیزی که در افتتاحیه شکست، در پایان ترمیم می‌شود ✓✓ بدون این،
+        # «۶ بیتِ خوش‌ساخت» می‌تواند شش داستانِ جدا باشد ✗ (DoD ۷.۵ = روایتِ منسجم ✓)
+        errs.append(f"story_beats: `{COHERENCE_ANCHOR}` باید هم در افتتاحیه و هم در پایان "
+                    f"بیاید ⇒ قوس، نه مجموعه‌ی جملات ✗")
+    return len(beats)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="NEXUS content validator")
     ap.add_argument("--json", metavar="OUT", help="نوشتن گزارش JSON (برای آرشیو CI)")
@@ -753,11 +877,12 @@ def main() -> int:
     check_concept_labels(metas, l10n.get("key_sets", {}), errs)
     check_narrative_uniqueness(metas, errs)
     check_answer_leaks(metas, hints, errs)
+    beats = check_story_beats(errs, l10n.get("locales", []))
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
     print(f"سطح بررسی‌شده: {total} · قابل‌حل تأییدشده: {solved}/{total} · قالب دیالوگ: {len(hints)}"
-          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])}")
+          f" · رشته UI: {l10n['keys']}×{len(l10n['locales'])} · بیت روایت: {beats}")
 
     if args.json:
         Path(args.json).write_text(json.dumps({"levels": metas, "l10n": l10n, "errors": errs}, ensure_ascii=False, indent=2), encoding="utf-8")
