@@ -127,7 +127,20 @@ func refresh_visual() -> void:
 	if _visual == null:
 		return
 	_visual.radius = radius
+	_visual.kind = _visual_kind()
 	_visual.refresh(fill_color(), display_text(), glyph_size(), is_ghost())
+
+
+## نوعِ بصری از `orb_type` ✓ (تک‌نگارِ §۶: عدد=کریستال، روح=حلقه‌ی نور، منفی=حباب؛
+## اگر این‌جا نباشد، هر کره‌ای همان دیسکِ ساده می‌شود و تمایزِ ۸.۵ می‌میرد ✗✓)
+func _visual_kind() -> OrbVisual.Kind:
+	match orb_type:
+		OrbType.GHOST:
+			return OrbVisual.Kind.GHOST
+		OrbType.NEGATIVE:
+			return OrbVisual.Kind.BUBBLE
+		_:
+			return OrbVisual.Kind.NUMBER
 
 
 func glyph_size() -> int:

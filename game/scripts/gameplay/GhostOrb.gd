@@ -45,6 +45,9 @@ func refresh_visual() -> void:
 ## برای LevelController: مجهول را «کشف‌شده» کن (پس از حل معما می‌توان عدد را نشان داد).
 func reveal() -> void:
 	if _visual != null:
-		_visual.refresh(Palette.GHOST_VIOLET.lerp(Palette.CLOUD_WHITE, 0.25), str(int(absf(hidden_value))),
+		_visual.kind = OrbVisual.Kind.GHOST
+		# «همیشه Ghost Violet و نیمه‌شفاف» (§۶) ⇒ نه opaque، نه رنگِ سوم ✓
+		# `ghost_fill()` تنها راهِ ساختِ رنگ روح است ✓ (یک‌منبعی ✓)
+		_visual.refresh(Palette.ghost_fill(0.85), str(int(absf(hidden_value))),
 			glyph_size(), false)
 		_visual.pulsing = false
