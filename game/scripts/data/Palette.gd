@@ -24,6 +24,16 @@ const THERMAL_MAX_VALUE: float = 9.0
 const IMBALANCE_MIX: float = 0.45
 
 
+## §۴ سند هنری: شش تُن پوستِ **واقعی و فراگیر**، روشن → تیره ✗✓ تنها دو فهرستِ
+## مجازِ «بیرونِ پالت اصلی» در کل بازی (پوست و مو) — دلیلش در ADR-060: §۴ طیفِ انسانی
+## می‌خواهد که پالتِ پادشاهی (طلایی/فیروزه‌ای) پوشش نمی‌دهد ✗✓ پس قانون این است:
+## **فقط** این دو فهرست، و هیچ رنگِ پراکنده‌ای در کدِ آواتار ✗✓ (تست می‌سنجد ✓).
+const SKIN_TONES: Array[Color] = [
+	Color("F6DCC4"), Color("EFC49C"), Color("DDA97C"),
+	Color("C08657"), Color("94603C"), Color("5F3B27"),
+]
+
+
 static func thermal(value: float, max_value: float = THERMAL_MAX_VALUE) -> Color:
 	var t: float = 0.0
 	if max_value > THERMAL_MIN_VALUE:

@@ -118,6 +118,9 @@ func _build_avatar_step() -> void:
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(preview)
 	preview.position = Vector2(160.0, 150.0)
+	# §۴/۸.۲: هشت مدل مو، هشت ارتفاع ⇒ مقیاس را خودِ آواتار با جعبه تنظیم می‌کند ✗✓
+	# (عددِ ثابت ۱٫۱۵ در مدل‌های بلند به ردیفِ سواچ‌ها می‌خورد = گلیچِ DoD ✗)
+	preview.fit_box = Vector2(300.0, 280.0)
 	box.add_child(holder)
 
 	skin_buttons = _add_swatch_row(box, "SkinRow", "onboarding.skin",

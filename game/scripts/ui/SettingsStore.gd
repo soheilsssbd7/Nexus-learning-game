@@ -24,8 +24,12 @@ const FILE_PATH := "user://ui_settings.json"
 ## §۴ سند هنری: ۶ تُن پوست و ۸ مدل مو؛ رنگ مو «آزاد» است ولی کودک پالت انتخاب می‌کند.
 const SKIN_TONES := 6
 const HAIR_STYLES := 8
+## §۴ «رنگ مو آزاد» ⇒ هشت سواچ: چهار تُنِ طبیعیِ مو + نقره‌ای (Stone Grey ✓) +
+## سه رنگِ Aeloria که **مستقیماً از پالت رسمی** می‌آیند ✓✓ (تستِ ۸.۲: هر هگز باید
+## یا در `Palette` باشد یا در فهرستِ مجازِ ADR-060 ⇒ هیچ رنگِ دست‌سازِ پراکنده‌ای ✗)
 const HAIR_COLORS: Array[String] = [
 	"3B2C2A", "6E4B3A", "A9714B", "D8A05B", "E8C39E", "8A8FA3",
+	"4FD1C5", "B79CED",
 ]
 
 const MIN_DB := -40.0
