@@ -77,6 +77,11 @@ func test_stone_tone_is_the_deepened_grey_not_another_color() -> void:
 	# §۲ رنگِ تازه برای ما نمی‌سازد ✗✓ پس همان هوی سنگی با ۲۵٪ تاریکی ✓ (و تست می‌گوید چرا)
 	var spec: Dictionary = UIKit.TONES["stone"] as Dictionary
 	var bg: Color = spec["bg"]
+	assert_true(bg == Palette.STONE_UI, "تُنِ سنگی از پالت می‌آید، نه هگزِ در‌ودستی ✓§۲")
+	var ref: Color = Palette.STONE_GREY.darkened(0.25)  # همین را `const` نمی‌توانست ✗✓
+	assert_true(absf(bg.r - ref.r) < 0.012 and absf(bg.g - ref.g) < 0.012
+			and absf(bg.b - ref.b) < 0.012,
+			"ثابتِ `STONE_UI` همان ۲۵٪ تاریکی است (شد %s vs %s) ✓" % [bg.to_html(), ref.to_html()])
 	assert_true(Palette.contrast_ratio(bg, Palette.CLOUD_WHITE) >= 4.9,
 			"خاکستریِ تیره‌شده باید AA را رد کند (شد %f)" % Palette.contrast_ratio(bg, Palette.CLOUD_WHITE))
 	assert_true(Palette.contrast_ratio(Palette.STONE_GREY, Palette.CLOUD_WHITE) < 4.5,
@@ -111,7 +116,7 @@ func test_captions_no_longer_use_the_weak_grey() -> void:
 # --------------------------------------------------------------------------
 func test_theme_is_wired_globally() -> void:
 	var path: String = String(ProjectSettings.get_setting("gui/theme/custom", ""))
-	assert_eq(path, "res://themes/Nexus.theme", "§۷ باید در **تم** باشد، نه در هر صحنه ✗✓")
+	assert_eq(path, "res://themes/Nexus.tres", "§۷ باید در **تم** باشد، نه در هر صحنه ✗✓")
 	assert_true(ResourceLoader.exists(path), "فایل تم هست")
 	var th: Theme = load(path) as Theme
 	assert_not_null(th, "تم بارگذاری می‌شود ✓")
@@ -183,9 +188,11 @@ func test_four_icons_exist_and_decode() -> void:
 		var src := _read(path)
 		assert_true(src.contains("viewBox"), "«%s» viewBox دارد ✓ (با expand_icon کشیده می‌شود)")
 		assert_false(src.contains("<text"), "«%s» متنِ رندرشده ندارد ✓ (i18n §۷)")
-	for name: String in UIKit.ICON_PATHS.keys():
-		assert_true(FileAccess.file_exists(ICONS_DIR + "/" + name + ".svg"),
-				"«%s» روی دیسک هم هست ✓" % name)
+	for icon_name: String in UIKit.ICON_PATHS.keys():
+		# (نامِ حلقه عوض شد ✗✓ حلقۀ دومِ هم‌نام در همین scope خطای parse می‌داد:
+		# «The variable 'name' is already declared in the same scope»)
+		assert_true(FileAccess.file_exists(ICONS_DIR + "/" + icon_name + ".svg"),
+				"«%s» روی دیسک هم هست ✓" % icon_name)
 	# تیکِ «تمام شد» باید SVG باشد نه گلیفِ یونیکد چسبیده به عدد ✗✓ (Vazirmatn U+2713 ندارد
 	# ⇒ روی Android جعبه می‌شد؛ یافتهٔ واقعیِ ۸.۴ از sweepِ گره‌های WorldMap)
 	assert_true(UIKit.ICON_PATHS.has("done"), "تیکِ completion هم آیکون است ✓§۸")

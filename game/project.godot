@@ -76,7 +76,7 @@ enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
 ; تسک ۸.۴ | §۷ «کفِ متن ۲۴px + خانوادۀ Vazirmatn» ⇒ تمِ سراسری ✓✗ بدونِ این، هر کنترلی
 ; که اندازه ننوشته فونت ۱۶pxِ موتور می‌گیرد و روی Android گلیف فارسی ندارد ✗✗
-theme/custom="res://themes/Nexus.theme"
+theme/custom="res://themes/Nexus.tres"
 
 [input]
 

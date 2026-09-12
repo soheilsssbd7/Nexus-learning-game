@@ -57,7 +57,7 @@ func _walk(node: Node, klass: String, out: Array) -> Array:
 # ۱) خودِ ممیزی — «تمام دکمه‌ها» ✓
 # --------------------------------------------------------------------------
 func test_scene_inventory_is_discovered() -> void:
-	var found: Array[String] = _scenes(SCENES_DIR, [])
+	var found: Array[String] = _scenes(SCENES_DIR, [] as Array[String])
 	var why := "سوییپ باید %d صحنه ببیند (یافت: %d) ✗✓ اگر صحنه‌ای اضافه کرده‌اید، " % [
 			EXPECTED_SCENES, found.size()]
 	why += "EXPECTED_SCENES را با دلیل به‌روز کنید — بی این، صحنۀ جدید از ممیزی در می‌رود ✓"
@@ -67,7 +67,7 @@ func test_scene_inventory_is_discovered() -> void:
 func test_sweep_finds_real_buttons() -> void:
 	# ضدِ تستِ دروغگو ✓: اگر `_walk` چیزی پیدا نکند، همهٔ assertهای پایین سبزِ توخالی‌اند
 	var total := 0
-	for path: String in _scenes(SCENES_DIR, []):
+	for path: String in _scenes(SCENES_DIR, [] as Array[String]):
 		var scene := _scene(path)
 		total += _walk(scene, "Button", [] as Array).size()
 	assert_gt(total, 10, "سوییپ باید دکمۀ واقعی ببیند (شد %d) ✗✓" % total)

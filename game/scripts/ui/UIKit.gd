@@ -22,7 +22,7 @@ const MIN_TOUCH_PX: float = MIN_TOUCH_DP * CANVAS_PX_PER_DP
 ## §۷ | تنها مرجعِ مسیرِ تمِ پروژه ✓ — `project.godot` هم باید دقیقاً همین رشته را در
 ## `[gui] theme/custom` داشته باشد؛ گیتِ `check_typography` برابریِ این دو را می‌سنجد ✓✓
 ## (تم تنها راهی است که کنترل‌های ساخته‌شده در کد را هم می‌پوشاند ✗ ADR-062)
-const THEME_PATH := "res://themes/Nexus.theme"
+const THEME_PATH := "res://themes/Nexus.tres"
 
 
 const BUTTON_RADIUS := 16.0
@@ -47,9 +47,10 @@ const TONES := {
 	"teal": {"bg": Palette.SOFT_TEAL, "fg": Palette.DEEP_INDIGO},
 	"cloud": {"bg": Palette.CLOUD_WHITE, "fg": Palette.DEEP_INDIGO},
 	# `STONE_GREY` خالص با متنِ ابری فقط ۳٫۰۵ می‌دهد ✗ (DoD ۸.۴: «کنتراست قابل‌قبول») ⇒
-	# همان هوی §۲ با ۲۵٪ تیره‌تر = ۵٫۰۲ ✓✓ AA (تستِ `test_ui_skin.gd` عدد را می‌سنجد،
-	# و اگر روزی رنگ عوض شد، این تست می‌گوید کدام تُن افتاده ✓✓).
-	"stone": {"bg": Palette.STONE_GREY.darkened(0.25), "fg": Palette.CLOUD_WHITE},
+	# همان هوی §۲ با ۲۵٪ تاریکی، ولی **به‌صورت ثابتِ از پیش حساب‌شده** در `Palette` ✓✗
+	# `STONE_GREY.darkened(0.25)` در `const` خطاست («isn't a constant expression») و کل
+	# این کلاس را می‌سوزاند ⇒ `Palette.STONE_UI` ✓✓ (ADR-062 + گیتِ `check_const_expressions`)
+	"stone": {"bg": Palette.STONE_UI, "fg": Palette.CLOUD_WHITE},
 }
 
 

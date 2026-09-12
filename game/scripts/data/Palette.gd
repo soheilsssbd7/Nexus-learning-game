@@ -14,6 +14,11 @@ const WARM_CORAL := Color("FF7A5C")      ## هشدار ملایم، کفه‌ی 
 const SOFT_TEAL := Color("4FD1C5")       ## کفه‌ی سبک‌تر، عناصر مثبت UI
 const CLOUD_WHITE := Color("FBF9F4")     ## متن روی تیره، نور اصلی
 const STONE_GREY := Color("8A8FA3")     ## ساختارهای شکسته/غیرفعال
+## همان هوی §۲ با ۲۵٪ تاریکی (= ×۰٫۷۵ روی هر کانال) ✓§۸ — برای `UIKit.TONES["stone"]`.
+## چرا ثابتِ جدا؟ چون `STONE_GREY.darkened(0.25)` در `const` **مجاز نیست** ✗✓ و همان یک
+## خط، کل `UIKit` را از کامپایل می‌انداخت (۱۰۵ تست قرمز ⇒ درسِ ADR-062)؛ عددِ هگز از
+## همان عبارت حساب شده و تست، وفاداریش را می‌سنجد ✓✓ (گیتِ `check_const_expressions`)
+const STONE_UI := Color("676B7A")
 const GHOST_VIOLET := Color("B79CED")    ## کره‌ی روح — همیشه، در کل بازی ثابت
 
 ## مقیاس «گرمایی» کره‌های عددی: Teal (کوچک) → Gold (بزرگ) — §۶ سند هنری
