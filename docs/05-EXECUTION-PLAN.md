@@ -550,7 +550,7 @@ Passing 359» ✓✓ (پایهٔ قبل از فاز ۸: ۴۰ فایل / ۳۳۵ �
 
 ۹.۱ راه‌اندازی TS/Express + `GET /health` · ۹.۲ `schema.sql` + migration · ۹.۳ `POST/GET /api/player-model/:id/sync` با zod · ۹.۴ `POST /api/events` · ۹.۵ `deviceAuth` (توکن تصادفی محلی، بدون PII) · ۹.۶ `NetworkClient.gd` + صف آفلاین ✓
 افزوده‌ها (A3، ADR-005/010): `device_tokens`، rate-limit، batch، حذف خودکار رویداد بعد از sync موفق.
-DoD: تست یکپارچه در CI با Postgres service؛ تست `pg-mem` محلی؛ صف آفلاین با قطع شبکه در GUT.
+**DoD فاز ۹ (بسته‌شده ✓✓ در `5a12352`):** «تست یکپارچه در CI با Postgres service» ⇒ jobِ `backend` با سرویس Postgres 16، `migrate` **دوبار** (بی‌ضرر ✓) و ۳۵/۳۵ `node:test` ✓ · «تست `pg-mem` محلی» ⇒ همان ۳۵ تست روی دیگرِ ماشینِ حالت، بدونِ هیچ DB بیرونی ✓ · «صف آفلاین با قطع شبکه در GUT» ⇒ ۱۸ تستِ `test_network_client.gd` با `FakeSender` (قطعِ شبیه‌سازی‌شده ⇒ بی‌کرش ✓ / وصلِ مجدد ⇒ `queue_size()==0` ✓✓) — و عددِ کل: **۴۵۳/۴۵۳ PASS** روی Godot 4.7.2 headless ✓✓ · افزونۀ Safety (A3): حذفِ خودکارِ رویدادِ sync‌شده فعلاً **نداریم** ✗✓ به‌جایش commit-on-success + سقفِ صف + cooldown (ADR-064) و بدهیِ ۰۰۳ در همین بخش ثبت است ✓
 
 ### فاز ۱۰ — QA و build اندروید
 ۱۰.۱ پوشش تست (۱۰۰٪ منطق حیاتی) · ۱۰.۲ `docs/playtest-protocol.md` · ۱۰.۳ `AnalyticsManager` (۶ رویداد) · ۱۰.۴ `export_presets.cfg` (minSdk 24 → **target/compile 36**، `INTERNET` + `VIBRATE` فقط، icon، AAB) · ۱۰.۵ smoke checklist.
