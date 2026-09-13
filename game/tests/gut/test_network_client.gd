@@ -15,7 +15,11 @@ const PID := "p_193f2a7e"
 
 
 ## پاسخ‌سازِ همگام: `send()` همان‌جا `done` را صدا می‌زند ⇒ رفتارِ قابل‌پیش‌بینی در تست ✓
-class FakeSender extends RefCounted:
+## ⚠ چرا `Node` و نه `RefCounted`؟ `NetworkClient.transport` به‌صورت `var transport: Node`
+## type شده ✓ ⇒ تزریقِ یک RefCounted در زمانِ اجرا یعنی «Invalid assignment of property 'transport'» ✗✓
+## (خطای بی‌صدا در before_each ⇒ fake هرگز نصب نشد و ۱۸ تست زنجیره‌ای قرمز شدند ✓CI این را گرفت ✓)
+## پس fake هم Node است و با add_child_autofree آزاد می‌شود تا ObjectDB لیک نگیرد ✓✓
+class FakeSender extends Node:
 	var sent: Array[Dictionary] = []
 	var results: Array[Dictionary] = []
 	var default_result: Dictionary = {"ok": true, "status": 200, "code": OK}
@@ -45,6 +49,7 @@ func before_each() -> void:
 	add_child_autofree(_net)
 	_net.set_process(false)  # تایمینگِ موتور از معادله بیرون ⇒ همه‌چیز با `tick/flush` خودمان ✓
 	_sender = FakeSender.new()
+	add_child_autofree(_sender)  # Node است ⇒ باید به درخت تا free شود ✓✓
 	_net.transport = _sender
 	_net.base_url = TEST_URL
 
