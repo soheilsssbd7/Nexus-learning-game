@@ -33,14 +33,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore Godot cache
+      - name: "Restore Godot cache"
         id: cache-godot
         uses: actions/cache@v4
         with:
           path: ~/.cache/nexus-godot
           key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
 
-      - name: Download Godot ${{ env.GODOT_VERSION }}
+      - name: "Download Godot ${{ env.GODOT_VERSION }}"
         if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
@@ -54,10 +54,10 @@ jobs:
           rm -f ~/.cache/nexus-godot/godot.zip
           ~/.cache/nexus-godot/godot --version
 
-      - name: Import project
+      - name: "Import project"
         run: ~/.cache/nexus-godot/godot --headless --path game --import
 
-      - name: Run GUT test suite
+      - name: "Run GUT test suite"
         run: |
           set -o pipefail
           GODOT=~/.cache/nexus-godot/godot
@@ -87,7 +87,7 @@ jobs:
             exit 1
           fi
 
-      - name: Test summary as notice (خوانا در تب Checks)
+      - name: "Test summary as notice (خوانا در تب Checks)"
         if: always()
         run: |
           if [ -f gut.log ]; then
@@ -96,11 +96,11 @@ jobs:
             echo "::notice::GUT 4.7.2 ${msg:-no summary line found} | files_on_disk=$files"
           fi
 
-      - name: Annotate failures (قابل‌خواندن از API، بدون artifact)
+      - name: "Annotate failures (قابل‌خواندن از API، بدون artifact)"
         if: failure()
         run: python3 tools/ci_annotate.py gut.log --title "GUT"
 
-      - name: Upload GUT log + junit
+      - name: "Upload GUT log + junit"
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -146,15 +146,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install (npm ci — قفل‌شده ✓)
+      - name: "Install (npm ci — قفل‌شده ✓)"
         run: npm ci --no-audit --no-fund
-      - name: typecheck + build (SQL هم باید به dist برسد ✓ scripts/copy-sql.mjs)
+      - name: "typecheck + build (SQL هم باید به dist برسد ✓ scripts/copy-sql.mjs)"
         run: |
           set -o pipefail
           npm run typecheck
           npm run build
           test -f dist/src/db/schema.sql || { echo "build: schema.sql کپی نشد ✗"; exit 1; }
-      - name: migrate روی Postgres واقعی (DoD ۹.۲ — دو بار: idempotent ✓)
+      - name: "migrate روی Postgres واقعی (DoD ۹.۲ — دو بار ⇒ idempotent ✓)"
         env:
           DATABASE_URL: postgres://postgres:nexus@localhost:5432/nexus
         run: |
@@ -163,14 +163,14 @@ jobs:
           # همین یک خط، کلِ «بالا آمدنِ سرویس در محیط جدید» را قابل‌اتکا می‌کند ✓)
           npm run migrate
           npm run migrate
-      - name: tests (node:test + supertest + pg-mem)
+      - name: "tests (node:test + supertest + pg-mem)"
         run: |
           set -o pipefail
           npm test 2>&1 | tee backend-test.log
-      - name: Annotate failures
+      - name: "Annotate failures"
         if: failure()
         run: python3 ../tools/ci_annotate.py backend-test.log --title "backend"
-      - name: Upload log
+      - name: "Upload log"
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -188,13 +188,13 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install --quiet "gdtoolkit==4.5.0"
-      - name: gdlint + content validation (log برای تشخیص)
+      - name: "gdlint + content validation (log برای تشخیص)"
         run: |
           set -o pipefail
           {
             find game/scripts game/tests -name '*.gd' -print0 | xargs -0 -r gdlint
             python3 tools/validate_levels.py
           } 2>&1 | tee checks.log
-      - name: Annotate failures
+      - name: "Annotate failures"
         if: failure()
         run: python3 tools/ci_annotate.py checks.log --title "checks"

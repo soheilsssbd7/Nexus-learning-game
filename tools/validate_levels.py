@@ -1712,6 +1712,58 @@ def _backend_tree(text: str) -> list[str]:
     return out
 
 
+def check_ci_yaml(errs: list[str]) -> int:
+    """`.github/workflows/*.yml` ⇒ دو سطح ✓✗ (از دلِ همین تسک بیرون آمد ✓✓)
+
+    سطح ۱ (بی‌وابستگی، همیشه کار می‌کند): هیچ `key: مقدارِ کووت‌نشده` نباید خودش `: ` داشته
+    باشد ✗✓ — «mapping values are not allowed here» دقیقاً از همین می‌آید و پیامدش **وحشتناک‌تر
+    از یک تستِ قرمز** است: workflow اصلاً parse نمی‌شود ⇒ صفر job ⇒ هیچ تستی اجرا نمی‌شود و
+    شاخه بدونِ هیچ سرنخِ قابل‌خواندنی‌ای «failure» می‌خورد ✗✗ (دقیقاً همین در ۹.۶ رخ داد ✓).
+    سطح ۲: اگر PyYAML نصب باشد (CI با `pip install pyyaml` ✓)، `safe_load` کامل هم می‌زنیم ✓
+    """
+    bad = 0
+    wfdir = ROOT / ".github" / "workflows"
+    if not wfdir.exists():
+        return 0
+    num_like = re.compile(r"^-?[\d.]+$")
+    for wf in sorted(list(wfdir.glob("*.yml")) + list(wfdir.glob("*.yaml"))):
+        rel = wf.relative_to(ROOT).as_posix()
+        text = wf.read_text(encoding="utf-8", errors="replace")
+        for ln, line in enumerate(text.splitlines(), 1):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            m = re.match(r"^\s*(?:-\s+)?([A-Za-z_][\w-]*):\s+(\S.*)$", line)
+            if m is None:
+                continue
+            val = m.group(2).strip()
+            if val[0] in "\"'" or val[0] in "|>&*":
+                continue
+            if val in ("true", "false", "null", "yes", "no", "on", "off") or num_like.match(val):
+                continue
+            if ": " in val:
+                errs.append(
+                    f"{rel}:{ln}: مقدارِ `{m.group(1)}` کووت ندارد و داخلش «: » هست ✗✓ "
+                    f"(YAML آن را mapping می‌خواند) ⇒ کووت کنید ✓ («{val[:56]}»)"
+                )
+                bad += 1
+        try:
+            import yaml  # type: ignore
+        except Exception:
+            continue  # PyYAML نیست ⇒ سطح ۲ رد می‌شود ✓ (سطح ۱ همان کار را می‌کند ✓)
+        try:
+            doc = yaml.safe_load(text)
+        except Exception as exc:
+            errs.append(f"{rel}: `yaml.safe_load` خطا داد ✗✓ ({str(exc)[:170]})")
+            bad += 1
+            continue
+        jobs = (doc or {}).get("jobs") or {}
+        if not jobs:
+            errs.append(f"{rel}: هیچ job ندارد ✗✓ (workflowِ خالی یعنی CI بی‌سروصدا تعطیل ✓)")
+            bad += 1
+    return bad
+
+
 def check_backend_contract(errs: list[str], notes: list[str] | None = None) -> int:
     """فاز ۹: قراردادِ **سند → کد** ✗✓ (اسکیما، endpointها، کلیدهای §۲/§۵، ساختارِ §۲)
 
@@ -1909,6 +1961,7 @@ def main() -> int:
     i18n_ui = check_ui_string_i18n(errs)
     consts = check_const_expressions(errs)
     backend_ok = check_backend_contract(errs, notes)
+    ci_ok = check_ci_yaml(errs)
     client_ok = check_backend_client_contract(errs)
 
     total = len(metas)
@@ -1928,6 +1981,8 @@ def main() -> int:
         print("قرارداد بک‌اند §۶/§۲/§۵ + ساختار §۲: سند و کد یکی‌اند ✓✓")
     if client_ok == 0:
         print("قرارداد دوزبانۀ NetworkClient ↔ backend: رویداد/سقف/مسیر یکی‌اند ✓✓")
+    if ci_ok == 0:
+        print("workflowهای CI: ساختارِ YAML سالم و کووت‌ها درست ✓✓")
 
     if iso == 0:
         print("استاتیک/اینستانس: جدا ✓ (static تابعِ instance را لخت صدا نمی‌زند)")
