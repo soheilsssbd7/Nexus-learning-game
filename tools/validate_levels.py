@@ -1046,6 +1046,10 @@ GODOT3_ISMS: dict[str, str] = {
 # = صدایِ گیت را کم‌اعتبار می‌کند ✗✓) و `xform` هم قاعدهٔ موقعیتیِ خودش را دارد ✓.
 PHANTOM_API: dict[str, str] = {
     r"get_visible_viewport_rect\(": "در Godot 4 نیست؛ `get_visible_rect()` بنویس ✓",
+    # تسک ۹.۶: «آیا آنلاینم؟» در Godot 4 **وجود ندارد** ⇒ `enabled()` باید نتیجهٔ درخواست را
+    # ببیند، نه این تابع ساختگی را ✓✓ (اگر کسی اختراعش کرد، همین‌جا می‌ترکد ✓)
+    r"get_network_status\(": "در Godot نیست؛ نتیجهٔ `HTTPRequest` را ببین (NetworkClient ✓§۹)",
+    r"is_network_connected\(": "در Godot نیست؛ صفِ آفلاین + پاسخِ خطا کافی است ✓ (ADR-064)",
 }
 
 
@@ -1533,6 +1537,71 @@ _UI_STR_LIT = re.compile(r'^"((?:[^"\\\\]|\\\\.)*)"')
 _FA_LETTER = re.compile(r"[\u0600-\u06FF\uFB50-\uFDFF]")
 
 
+def check_backend_client_contract(errs: list[str]) -> int:
+    """قراردادِ دوزبانه ✗✓: `NetworkClient.gd` (Godot) باید همان قول‌های `backend/` را بزند.
+
+    سه قفلی که هیچ‌کدام درون یک زبان دیده نمی‌شوند ✗ و کلاسیک‌ترین باگ‌های «همگام‌سازی»‌اند ✓:
+      ۱) شش نوعِ رویداد در `EVENT_TYPES` (GDScript) == `EVENT_TYPES` (TS) ✓ — اگر یکی جابه‌جا
+         شود، سرور ۴۲۲ می‌دهد و صفِ آفلاین تا ابد پر می‌ماند ✗✓ (بدونِ کرش، پس بی‌صدا ✓✗ بدترین)
+      ۲) `BATCH_LIMIT` (کلاینت) ≤ `MAX_EVENTS_PER_REQUEST` (سرور) ✓
+      ۳) مسیرهای `ENDPOINT_*` کلاینت باید در `backend/src/routes/*.ts` بسته شده باشند ✓
+    """
+    bad = 0
+    gd = GAME / "scripts/autoload/NetworkClient.gd"
+    ts = BACKEND / "src/schemas/events.ts"
+    if not gd.exists():
+        errs.append("check_backend_client_contract: `NetworkClient.gd` نیست ✗ (تسک ۹.۶ باز نشده؟)")
+        return 1
+    if not ts.exists():
+        errs.append("check_backend_client_contract: `backend/src/schemas/events.ts` نیست ✗ (۹.۴)")
+        return 1
+    gtxt = gd.read_text(encoding="utf-8")
+    ttxt = ts.read_text(encoding="utf-8")
+
+    def names(block: str) -> list[str]:
+        return re.findall(r'"([a-z_]{3,})"', block)
+
+    gm = re.search(r"const EVENT_TYPES: Array\[String\] = \[(.*?)\]", gtxt, re.S)
+    tm = re.search(r"export const EVENT_TYPES = \[(.*?)\] as const", ttxt, re.S)
+    g_types = names(gm.group(1)) if gm else []
+    t_types = names(tm.group(1)) if tm else []
+    if not g_types or not t_types:
+        errs.append(
+            f"check_backend_client_contract: بلوکِ EVENT_TYPES خوانده نشد ✗ (gd={len(g_types)} "
+            f"ts={len(t_types)}) — تست‌های شمارش‌محور بی‌این دروغگو می‌شوند ✓"
+        )
+        bad += 1
+    elif g_types != t_types:
+        errs.append(f"check_backend_client_contract: رویدادها یکی نیستند ✗ (Godot: {g_types} / "
+                    f"backend: {t_types}) — ترتیب هم مهم است تا diff خوانا بماند ✓")
+        bad += 1
+
+    bm = re.search(r"const BATCH_LIMIT := (\d+)", gtxt)
+    sm = re.search(r"MAX_EVENTS_PER_REQUEST = (\d+)", ttxt)
+    if bm and sm and int(bm.group(1)) > int(sm.group(1)):
+        errs.append(f"check_backend_client_contract: `BATCH_LIMIT` ({bm.group(1)}) از سقفِ سرور "
+                    f"({sm.group(1)}) بیشتر است ✗ ⇒ هر flush با ۴۲۲ برمی‌گردد ✓✓")
+        bad += 1
+    elif not bm or not sm:
+        errs.append("check_backend_client_contract: یکی از سقف‌ها پیدا نشد ✗ (BATCH_LIMIT / "
+                    "MAX_EVENTS_PER_REQUEST — با تغییرِ نام، قفل بی‌صدا می‌شکند ✓)")
+        bad += 1
+
+    routes_dir = BACKEND / "src/routes"
+    routes = "\n".join(f.read_text(encoding="utf-8") for f in sorted(routes_dir.glob("*.ts"))) \
+        if routes_dir.exists() else ""
+    for m in re.finditer(r'const ENDPOINT_(?:EVENTS|DEVICE|SYNC_FMT|MODEL_FMT) := "([^"]+)"', gtxt):
+        path = m.group(1)
+        if "%s" in path:
+            path = path.split("%s")[0]
+        if path and path not in routes:
+            errs.append(f"check_backend_client_contract: کلاینت به `{path}` می‌رود ولی در "
+                        f"`backend/src/routes/*.ts` بسته نشده ✗✓ (۴۰۴ِ بی‌صدا در production)")
+            bad += 1
+    return bad
+
+
+
 def check_ui_string_i18n(errs: list[str]) -> int:
     """§۷ «i18n-ready»: متنِ قابل‌مشاهده نباید درون کد hard-code شود ✓ (ADR-062)
 
@@ -1600,12 +1669,169 @@ def _audit_svg(f: Path, allowed: set[str], tag: str, errs: list[str]) -> int:
     return bad
 
 
+DOC01 = ROOT / "docs" / "01-ARCHITECTURE.md"
+DOC03 = ROOT / "docs" / "03-DATA-SCHEMAS.md"
+DOC04 = ROOT / "docs" / "04-BUILD-PLAN.md"
+BACKEND = ROOT / "backend"
+
+
+def _doc_block(text: str, section: str, lang: str) -> str | None:
+    """بلوکِ fencedِ داخل یک سربخشِ سند (مثلاً `## ۶.` ⇒ ```sql```) ✓ یک‌منبعه ✓"""
+    m = re.search(rf"## {re.escape(section)}\..*?```{lang}\n(.*?)```", text, re.S)
+    return m.group(1) if m else None
+
+
+def _backend_tree(text: str) -> list[str]:
+    """درختِ `backend/` از §۲ سند Architecture ⇒ مسیرهای اعلام‌شده ✓ (اسکنِ دوسویه نه:
+    افزودنی‌های ما مثل `ids.ts` خطا نمی‌دهند، فقط ⚠ — وگرنه هر فایلِ کمکیِ جدید یعنی شکست CI ✗✓)"""
+    m = re.search(r"```[a-z]*\n(.*?backend/.*?)```", text, re.S)
+    if m is None:
+        return []
+    lines = m.group(1).splitlines()
+    start = next((i for i, l in enumerate(lines) if "backend/" in l), None)
+    if start is None:
+        return []
+    out: list[str] = []
+    stack: list[tuple[int, str]] = []
+    # سطرِ `backend/` خودِ ریشه است ⇒ از فرزندش شروع می‌کنیم ✗✓ (وگرنه `backend/backend/…`
+    # می‌سازیم و گیت، فایل‌های موجود را «نیست» اعلام می‌کند ✓ — پروبِ قرمزِ همین لحظه ✓)
+    for raw in lines[start + 1 :]:
+        body = re.sub(r"^[│├└─\s]+", "", raw)
+        if not body or body.startswith("←"):
+            continue
+        depth = len(raw) - len(re.sub(r"^[│ ]*", "", raw))
+        name = body.split(" ")[0].rstrip("/")
+        if not re.match(r"^[A-Za-z0-9_.-]+$", name):
+            continue
+        while stack and stack[-1][0] >= depth:
+            stack.pop()
+        rel = "/".join([p for _, p in stack] + [name])
+        if name.endswith((".ts", ".sql", ".json")) or name.endswith("/"):
+            out.append(rel if not name.endswith("/") else rel + "/")
+        stack.append((depth, name))
+    return out
+
+
+def check_backend_contract(errs: list[str], notes: list[str] | None = None) -> int:
+    """فاز ۹: قراردادِ **سند → کد** ✗✓ (اسکیما، endpointها، کلیدهای §۲/§۵، ساختارِ §۲)
+
+    چرا؟ چون DoDِ ۹.۲ می‌گوید «دقیقاً طبق بخش ۶ سند Data Schemas» ✗ و «دقیقاً» بدونِ گیت،
+    دو هفته بعد یعنی دو نسخهٔ متفاوت از اسکیما ✓ (کد vs سند) ⇒ همین‌جا بایت‌به‌بایت قفل می‌شود
+    و اگر اسکیما عوض شود، **سند** باید اول عوض شود ✓ (تصمیمِ مالک، نه تصمیمِ فراموش‌شده ✓✓).
+    """
+    bad = 0
+    note_list = notes if notes is not None else []
+    if not BACKEND.exists():
+        errs.append("check_backend_contract: پوشۀ `backend/` نیست ✗ (فاز ۹ باز نشده)")
+        return 1
+    for need in ("package.json", "tsconfig.json", "src/db/schema.sql"):
+        if not (BACKEND / need).exists():
+            errs.append(f"check_backend_contract: `backend/{need}` نیست ✗")
+            bad += 1
+
+    doc03 = DOC03.read_text(encoding="utf-8") if DOC03.exists() else ""
+    if doc03:
+        sql = _doc_block(doc03, "۶", "sql")
+        target = BACKEND / "src/db/schema.sql"
+        if sql is None:
+            errs.append("check_backend_contract: بلوکِ ```sql``` در §۶ سند ۰۳ پیدا نشد ✗")
+            bad += 1
+        elif target.exists() and target.read_text(encoding="utf-8") != sql:
+            errs.append(
+                "check_backend_contract: `backend/src/db/schema.sql` بایت‌به‌بایت با `docs/03` §۶ "
+                "نمی‌خواند ✗✓ (یا سند را به‌روز کنید یا کد را — «تقریباً یکی» یعنی مهاجرتِ اشتباه) "
+                "— افزودنی‌ها باید به `src/db/migrations/` بروند، نه به این فایل ✓ (ADR-063)"
+            )
+            bad += 1
+
+        # (ب) کلیدهای سطح‌اولِ §۲ ⇒ باید در zodِ مدل باشند ✓ (وگرنه «syncِ نصفه‌مدل» سبز می‌ماند ✗)
+        pm_json = _doc_block(doc03, "۲", "json")
+        pm_ts = BACKEND / "src/schemas/playerModel.ts"
+        if pm_json and pm_ts.exists():
+            try:
+                keys = list(json.loads(pm_json).keys())
+            except json.JSONDecodeError as exc:
+                errs.append(f"check_backend_contract: نمونهٔ JSONِ §۲ پارس نشد ✗ ({exc})")
+                keys = []
+                bad += 1
+            src = pm_ts.read_text(encoding="utf-8")
+            for k in keys:
+                if k == "schema_version":
+                    continue  # این یکی literal است، نه کلیدِ همنام ✗✓
+                if f"{k}:" not in src:
+                    errs.append(
+                        f"check_backend_contract: `playerModel.ts` کلیدِ §۲ «{k}» را ندارد ✗✓ "
+                        "(مدلِ بازیکن با اسکیما فاصله می‌گیرد)"
+                    )
+                    bad += 1
+
+    # (پ) شش رویدادِ §۵ ⇒ دقیقاً همان enum (کم/زیاد = قرمز ✓§۹)
+    if doc03:
+        line = next((l for l in doc03.splitlines() if "رویدادهای موردنیاز حداقلی" in l), "")
+        want = re.findall(r"`([a-z_]{3,})`", line)
+        ev_ts = BACKEND / "src/schemas/events.ts"
+        if want and ev_ts.exists():
+            src = ev_ts.read_text(encoding="utf-8")
+            m = re.search(r"export const EVENT_TYPES = \[(.*?)\] as const", src, re.S)
+            got = re.findall(r'"([a-z_]{3,})"', m.group(1)) if m else []
+            if got != want:
+                errs.append(
+                    f"check_backend_contract: EVENT_TYPES با §۵ یکی نیست ✗ (سند: {want} / کد: {got})"
+                )
+                bad += 1
+        elif not want:
+            note_list.append("check_backend_contract: سطرِ «رویدادهای موردنیاز» در §۵ پیدا نشد ← سند عوض شده؟")
+
+    # (ت) endpointهای اعلام‌شده در ۹.۳/۹.۴ ⇒ باید در `src/routes/*.ts` پیدا شوند ✓
+    if DOC04.exists():
+        doc04 = DOC04.read_text(encoding="utf-8")
+        routes_dir = BACKEND / "src/routes"
+        src_all = ""
+        if routes_dir.exists():
+            src_all = "\n".join(f.read_text(encoding="utf-8") for f in sorted(routes_dir.glob("*.ts")))
+        for method, path in sorted(set(re.findall(r"`(GET|POST) (/api/[A-Za-z0-9/:_.-]+)`", doc04))):
+            if path not in src_all:
+                errs.append(f"check_backend_contract: `{method} {path}` (docs/04 §۹) در `src/routes/*.ts` نیست ✗✓")
+                bad += 1
+            elif f"router.{method.lower()}(\"{path}\"" not in src_all:
+                errs.append(
+                    f"check_backend_contract: `\"{path}\"` هست ولی با `router.{method.lower()}(...)` "
+                    f"بسته نشده ✗ (متن در کامنت ≠ مسیر ✓)"
+                )
+                bad += 1
+
+    # (ث) ساختارِ §۲ سند Architecture ⇒ فایل‌های اعلام‌شده باید باشند ✓ (اضافه‌ها ⚠ ✓)
+    if DOC01.exists():
+        declared = [p for p in _backend_tree(DOC01.read_text(encoding="utf-8")) if not p.endswith("/")]
+        for rel in declared:
+            if not (BACKEND / rel).exists():
+                errs.append(f"check_backend_contract: `backend/{rel}` در §۲ سند ۰۱ اعلام شده ولی نیست ✗✓")
+                bad += 1
+        extra = []
+        for f in sorted(BACKEND.rglob("*.ts")):
+            if "node_modules" in f.parts or "dist" in f.parts:
+                continue
+            rel = f.relative_to(BACKEND).as_posix()
+            if rel not in declared:
+                extra.append(rel)
+        if extra:
+            note_list.append(
+                "check_backend_contract: فایل‌های بک‌اندِ بی‌سند (افزودنی‌های عمدی ✓§۹/ADR-063): "
+                + ", ".join(extra[:8]) + (" …" if len(extra) > 8 else "")
+            )
+    return bad
+
+
 def check_text_hygiene(errs: list[str], notes: list[str] | None = None) -> int:
     """`notes` = یافته‌های اسنادِ مالک ✓ گزارش می‌شوند، خطا نیستند ✓ (سندِ مالک را
     ویرایش نمی‌کنیم و گیت را هم کور نمی‌کنیم ✗✓ هر دو در یک خطِ ⚠ زنده می‌مانند ✓)"""
     bad = 0
     note_list = notes if notes is not None else []
     targets = sorted((GAME / "scripts").rglob("*.gd")) if (GAME / "scripts").exists() else []
+    # فاز ۹: TypeScriptِ بک‌اند هم «متنِ ما» است ⇒ همان قانونِ CJK/BOM/ZWSP ✓✗ (سه‌بار در یک
+    # تسک، گلیچِ چینی در پیام/تستِ خودم نشست و فقط فایل‌های .gd چک می‌شدند ✗✓ پس دامنه گشاد شد)
+    targets += sorted((BACKEND / "src").rglob("*.ts")) if (BACKEND / "src").exists() else []
+    targets += sorted((BACKEND / "test").rglob("*.ts")) if (BACKEND / "test").exists() else []
     targets += sorted((GAME / "tests").rglob("*.gd")) if (GAME / "tests").exists() else []
     targets += [Path(__file__).resolve()]
     # اسنادِ مالک (۰۰..۰۴) بایت‌به‌بایتِ آپلودِ اولیه‌اند ⇒ هشدار، نه خطا ✓
@@ -1682,6 +1908,8 @@ def main() -> int:
     icons = check_icon_assets(errs)
     i18n_ui = check_ui_string_i18n(errs)
     consts = check_const_expressions(errs)
+    backend_ok = check_backend_contract(errs, notes)
+    client_ok = check_backend_client_contract(errs)
 
     total = len(metas)
     solved = sum(1 for m in metas if m["solvable"])
@@ -1696,6 +1924,10 @@ def main() -> int:
         print("متنِ UI در کد: هیچ رشتهٔ فارسیِ hard-code نیست ✓§۷")
     if consts == 0:
         print("عبارت‌های `const`: هیچ صالحِ عضو () در مقدارِ ثابت نیست ✓✓")
+    if backend_ok == 0 and BACKEND.exists():
+        print("قرارداد بک‌اند §۶/§۲/§۵ + ساختار §۲: سند و کد یکی‌اند ✓✓")
+    if client_ok == 0:
+        print("قرارداد دوزبانۀ NetworkClient ↔ backend: رویداد/سقف/مسیر یکی‌اند ✓✓")
 
     if iso == 0:
         print("استاتیک/اینستانس: جدا ✓ (static تابعِ instance را لخت صدا نمی‌زند)")
