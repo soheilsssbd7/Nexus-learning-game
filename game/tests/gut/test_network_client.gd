@@ -149,7 +149,10 @@ func test_backoff_is_monotonic_and_capped() -> void:
 
 func test_repeated_failures_cool_down_without_losing_items() -> void:
 	# این همان تستی است که «اول pop، بعد retry» را لو می‌داد ✗✓ (باگِ واقعیِ همین تسک)
-	_sender.default_result = {"ok": false, "status": 0, "code": ERR_CONNECTION_FAILURE}
+	# ⚠ `ERR_CONNECTION_FAILURE` در Godot 4 حذف شده (میراث 3.x) ✗✓ و parser آن را
+	# «not declared in the current scope» می‌خواند ⇒ همان ERR_UNAVAILABLE که خودِ
+	# NetworkClient برای «host نیست» می‌دهد ✓✓ (تست هم‌راستا با مسیرِ واقعی شد ✓)
+	_sender.default_result = {"ok": false, "status": 0, "code": ERR_UNAVAILABLE}
 	_enqueue_n(4)
 	for i: int in range(NET.MAX_ATTEMPTS):
 		_net.flush_once()
@@ -185,7 +188,9 @@ func test_sync_body_is_the_model_and_header_has_token() -> void:
 			"hint_usage_rate": 0.2})))
 	_net.flush_once()
 	var headers: PackedStringArray = _sender.sent[0].get("headers", PackedStringArray())
-	assert_true(headers.join("|").contains("Bearer tok-abc"), "توکن در هدر رفت ✓✓")
+	# ⚠ در Godot 4 متد `join` روی خودِ رشتهٔ جداکننده است ✓ — `PackedStringArray` و
+	# `Array` آن را ندارند ✗ (`headers.join("|")` = خطای پارس ✓✓)
+	assert_true("|".join(headers).contains("Bearer tok-abc"), "توکن در هدر رفت ✓✓")
 	assert_true(String(_sender.sent[0].body).contains("\"schema_version\":1"), "بدنه = مدل §۲ ✓")
 
 

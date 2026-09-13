@@ -1050,6 +1050,10 @@ PHANTOM_API: dict[str, str] = {
     # ببیند، نه این تابع ساختگی را ✓✓ (اگر کسی اختراعش کرد، همین‌جا می‌ترکد ✓)
     r"get_network_status\(": "در Godot نیست؛ نتیجهٔ `HTTPRequest` را ببین (NetworkClient ✓§۹)",
     r"is_network_connected\(": "در Godot نیست؛ صفِ آفلاین + پاسخِ خطا کافی است ✓ (ADR-064)",
+    # ← هر دو از «خاکِ همین تسک» بیرون آمدند ✗✓ (CI خطای پارس داد، نه خطای تست ✓✓)
+    r"\bERR_CONNECTION_FAILURE\b": "در Godot 4 حذف شده (میراث 3.x)؛ `ERR_UNAVAILABLE`/`FAILED` ✓",
+    r"\b[A-Za-z_]\w*\.join\(": "در Godot 4 `join` متدِ رشتهٔ جداکننده است ⇒ `sep.join(arr)`؛ "
+                               "`PackedStringArray`/`Array` این متد را ندارند ✗",
 }
 
 
