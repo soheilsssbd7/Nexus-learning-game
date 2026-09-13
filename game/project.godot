@@ -41,7 +41,10 @@ DifficultyEngine="*res://scripts/autoload/DifficultyEngine.gd"
 ; از او می‌گیرد) ✓✓ خودِ باس‌ها را هم می‌سازد، چون `SettingsStore.apply_volume` بی‌باسِ
 ; SFX/Music بی‌صدا work-around می‌کرد ✗✓ (بندِ ADR-016: ترتیبِ ثبت = ترتیبِ وابستگی).
 AudioManager="*res://scripts/autoload/AudioManager.gd"
-; فازهای بعد: AnalyticsManager (P10) → NetworkClient (P9)  ⟨AudioManager در ۷.۶ اضافه شد ✓⟩
+; NetworkClient در تسک ۹.۶: **بعد** از Log/SettingsStore (آنها را مصرف می‌کند) و بعد از
+; FeatureFlags (پرچم‌ها) ✓ خودش در _ready هیچ درخواستی نمی‌زند ✗✓ (§۹: بی‌`base_url` یعنی
+; صفر بایت بیرونی ✓)؛ مصرف‌کننده‌اش AnalyticsManager است (تسک ۱۰.۳) ⟨AudioManager در ۷.۶ ✓⟩
+NetworkClient="*res://scripts/autoload/NetworkClient.gd"
 
 [display]
 

@@ -42,6 +42,9 @@ const SPEC := {
 	"sfx_volume": {"kind": "float", "min": 0.0, "max": 1.0, "default": 1.0},
 	"locale": {"kind": "locale", "default": Loc.FA},
 	"haptics_enabled": {"kind": "bool", "default": true},
+	# تسک ۹.۶ | دروازۀ والد برای همگام‌سازی ابری ✓§۹. پیش‌فرض از `FeatureFlags.CLOUD_SYNC_ENABLED`
+	# کپی شده (صریح، نه تابعی ✗✓: مقدارِ const باید ثابت باشد — همان درسِ `const TONES` فاز ۸ ✓✓)
+	"cloud_sync_enabled": {"kind": "bool", "default": true},
 	"adaptive_selection": {"kind": "bool", "default": true},
 	"onboarding_done": {"kind": "bool", "default": false},
 	"avatar": {"kind": "avatar", "default": {}},
