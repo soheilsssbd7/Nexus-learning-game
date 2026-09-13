@@ -1716,6 +1716,47 @@ def _backend_tree(text: str) -> list[str]:
     return out
 
 
+LOGIC_DIRS = ("scripts/data", "scripts/ai", "scripts/gameplay", "scripts/autoload")
+
+
+def check_test_coverage_map(errs: list[str]) -> int:
+    """DoD ۱۰.۱ («حداقل یک تست برای هر فایلِ منطقی») را به یک گیتِ ضدبازگشت تبدیل می‌کند ✓✓
+
+    چرا این و نه «گزارش پوشش»؟ سندباکس Godot ندارد ✗ و شمارۀ خطِ پوشش فقط در CIِ واقعی با
+    `--coverage` ممکن است (و پشتیبانیِ ۴.۷ هم باید اول آزموده شود ✗) ⇒ پس اینجا چیزی را قفل
+    می‌کنیم که **مکانیکی و بی‌ابزار** سنجیدنی است: هر فایلِ منطقی باید به‌طورِ صریح در
+    `game/tests/gut/*.gd` نام برده شود (یا با مسیر `res://…` یا با نامِ کلاس به‌عنوان واژه) ✓
+    یعنی «فایلی که هیچ تستی از آن حرف نمی‌زند» نمی‌تواند بی‌سروصدا اضافه شود ✗✓ — که همان
+    خانوادۀ «تستِ غایب ≠ تستِ قرمز» است که در ۸.۴ و ۹.۶ دو بار ما را زد ✓✓.
+    UI/شخصیت‌ها بیرون‌اند: آن‌ها با جاروی صحنه‌ها سنجیده می‌شوند (`test_a11y_scenes.gd` ✓§۸.۴).
+    """
+    tdir = ROOT / "game" / "tests" / "gut"
+    if not tdir.exists():
+        return 0
+    blob = "\n".join(f.read_text(encoding="utf-8", errors="replace") for f in sorted(tdir.glob("*.gd")))
+    missing: list[str] = []
+    total = 0
+    for sub in LOGIC_DIRS:
+        d = ROOT / "game" / sub
+        if not d.exists():
+            continue
+        for f in sorted(d.glob("*.gd")):
+            total += 1
+            name = f.stem
+            path_hit = f"res://game/{sub}/{name}.gd" in blob or f"res://{sub}/{name}.gd" in blob
+            word_hit = re.search(r"\b" + re.escape(name) + r"\b", blob) is not None
+            if not (path_hit or word_hit):
+                missing.append(f"game/{sub}/{name}.gd")
+    for m in missing:
+        errs.append(
+            f"{m}: هیچ فایل تستی در `game/tests/gut/` نامش را نمی‌برد ✗✓ (DoD ۱۰.۱) — "
+            f"یا تستِ تازه بنویس، یا در تستِ موجود `preload`/نامِ کلاس را صریح ذکر کن ✓"
+        )
+    if not missing and total:
+        print(f"نقشۀ پوشش: هر {total} فایل منطقی در {', '.join(LOGIC_DIRS)} دست‌کم یک تست دارد ✓✓")
+    return len(missing)
+
+
 def check_ci_yaml(errs: list[str]) -> int:
     """`.github/workflows/*.yml` ⇒ دو سطح ✓✗ (از دلِ همین تسک بیرون آمد ✓✓)
 
@@ -1965,6 +2006,7 @@ def main() -> int:
     i18n_ui = check_ui_string_i18n(errs)
     consts = check_const_expressions(errs)
     backend_ok = check_backend_contract(errs, notes)
+    cov_ok = check_test_coverage_map(errs)
     ci_ok = check_ci_yaml(errs)
     client_ok = check_backend_client_contract(errs)
 
