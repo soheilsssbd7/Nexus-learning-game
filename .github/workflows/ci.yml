@@ -110,6 +110,74 @@ jobs:
             game/test-results.xml
           if-no-files-found: ignore
 
+  backend:
+    name: backend (typecheck + build + node:test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    # تسک ۹.۱..۹.۵ — بک‌اند روی `pg-mem` تست می‌شود ⇒ نه Docker، نه Postgres ✓✗ پس این job
+    # در همان CIِ Godot می‌آید و هزینه‌اش فقط `npm ci` است ✓ (اگر روزی Postgres واقعی لازم
+    # شد، `services: postgres:` افزودنیِ همین job است، نه jobِ جدید ✓§۹)
+    services:
+      # DoD ۹.۲ می‌گوید «جداول در Postgres محلی/Docker ساخته می‌شوند» ✗✓ پس همین‌جا هم
+      # موتورِ واقعی بالا می‌آید و مهاجرت **دوبار** اجرا می‌شود (بی‌ضرربودنِ migration ✓✓)؛
+      # `pg-mem` برای تستِ منطق/SQL است و این برای «اسکیما روی Postgres واقعی» ✓ دو نقش، دو ابزار
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: nexus
+          POSTGRES_DB: nexus
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install (npm ci — قفل‌شده ✓)
+        run: npm ci --no-audit --no-fund
+      - name: typecheck + build (SQL هم باید به dist برسد ✓ scripts/copy-sql.mjs)
+        run: |
+          set -o pipefail
+          npm run typecheck
+          npm run build
+          test -f dist/src/db/schema.sql || { echo "build: schema.sql کپی نشد ✗"; exit 1; }
+      - name: migrate روی Postgres واقعی (DoD ۹.۲ — دو بار: idempotent ✓)
+        env:
+          DATABASE_URL: postgres://postgres:nexus@localhost:5432/nexus
+        run: |
+          set -o pipefail
+          # اجرای دوم **باید** بی‌ضرر باشد ✗✓ (خطا در دور دوم = مهاجرت idempotent نیست ⇒
+          # همین یک خط، کلِ «بالا آمدنِ سرویس در محیط جدید» را قابل‌اتکا می‌کند ✓)
+          npm run migrate
+          npm run migrate
+      - name: tests (node:test + supertest + pg-mem)
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee backend-test.log
+      - name: Annotate failures
+        if: failure()
+        run: python3 ../tools/ci_annotate.py backend-test.log --title "backend"
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-log
+          path: backend/backend-test.log
+          if-no-files-found: ignore
+
   static-checks:
     name: gdlint + content validation
     runs-on: ubuntu-latest

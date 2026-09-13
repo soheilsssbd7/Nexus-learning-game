@@ -37,6 +37,7 @@ PATTERNS = [
     re.compile(r"^ERROR:", re.I),
     re.compile(r"at line (\d+)", re.I),
     re.compile(r"\borphan\b", re.I),
+    re.compile(r"^not ok", re.I),  # `node --test` (بک‌اند فاز ۹) همین قالب را دارد ✓
     re.compile(r"\bFAILED\b", re.I),
 ]
 ## `✗/✖` عمداً الگو **نیست** ✓✗ پیام‌های تستِ ما (`assert_true(x, "... ✗✓")`) این علامت‌ها را
