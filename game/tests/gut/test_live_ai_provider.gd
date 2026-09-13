@@ -7,6 +7,15 @@ const NETWORK_TOKENS := ["HTTPClient", "HTTPRequest", "WebSocketPeer", "TCPServe
 	"UDPServer", "open_websocket", "curl ", "URLSession", "Java.net.URL"]
 const SCRIPTS_ROOT := "res://scripts"
 
+## allowlist = «هر جایی که **واقعاً** سوکت باز می‌شود» ⇒ دو مسیرِ دقیق، نه بیشتر ✓ (ADR-064)
+## ⚠ نسخةٔ قبلی نامِ فایل را کوچک‌نویسِ اشتباه می‌کرد (فایل واقعی `LiveAIProvider.gd` است) ✗✗
+## یعنی exempt هیچ‌وقت نمی‌خورد و فقط «تصادفاً» قرمز نمی‌شد ⇒ قفل‌کردن همین باگ کهنه هم
+## بخشی از تسک ۹.۶ است ✓✓ (تستِ جدید، وجودِ فایل‌های exempt را می‌سنجد ✓)
+const NETWORK_ALLOW_PATHS: Array[String] = [
+	"res://scripts/ai/LiveAIProvider.gd",
+	"res://scripts/autoload/NetworkClient.gd",
+]
+
 
 func test_the_flag_is_off_in_this_build() -> void:
 	assert_false(FeatureFlags.LIVE_AI_ENABLED, "master باید آفلاین باشد (docs/01 §۵)")
@@ -24,15 +33,27 @@ func test_no_game_script_mentions_a_network_api() -> void:
 	var scanned: int = 0
 	var hits: Array[String] = []
 	for path: String in _gd_files(SCRIPTS_ROOT):
-		if path.ends_with("live_ai_provider.gd"):
-			continue  # خودِ placeholder تنها جایی است که این واژه‌ها مجازند
+		if path in NETWORK_ALLOW_PATHS:
+			continue  # تنها دو جای مجاز: placeholder آفلاین + صفِ آفلاین ۹.۶ ✓✓
 		var text: String = _strip_comments(_read(path))
 		scanned += 1
 		for token: String in NETWORK_TOKENS:
 			if text.contains(token):
 				hits.append("%s → %s" % [path, token])
 	assert_gt(scanned, 20, "اسکن باید کل کد بازی را پوشش بدهد")
-	assert_true(hits.is_empty(), "کد بازی نباید هیچ API شبکه‌ای را ببیند: %s" % str(hits))
+	assert_true(hits.is_empty(), "کد بازی نباید API شبکه ببیند (جز allowlist): %s" % str(hits))
+
+
+func test_the_network_allowlist_is_two_real_files() -> void:
+	# تستِ خودِ فهرست ✗✓ (قاعدۀ «تستِ دروغگو ممنوع» ADR-060): هر ورودی باید روی دیسک باشد
+	# و فهرست دو تا بماند؛ فایل سوم یعنی شکستنِ «آفلاین‌بودنِ MVP» ⇒ با دلیل در ADR ✓
+	assert_eq(NETWORK_ALLOW_PATHS.size(), 2, "دو مسیر مجاز، نه بیشتر ✗§۹")
+	for path: String in NETWORK_ALLOW_PATHS:
+		assert_true(FileAccess.file_exists(path), "«%s» اعلام شده ولی نیست ✗" % path)
+	# exempt‌ها باید واقعاً لایهٔ شبکه باشند ✓ (فهرستِ بی‌دلیل = دروغ ✓)
+	var net_text := _read("res://scripts/autoload/NetworkClient.gd")
+	assert_true(net_text.contains("HTTPRequest"),
+			"NetworkClient واقعاً لایهٔ HTTP است (allowlist بی‌مورد نگذاریم ✓)")
 
 
 ## کامنت‌ها حذف می‌شوند: «در کامنت نوشتنِ اسم یک API» جرم نیست، ولی در کد بودنش هست.
