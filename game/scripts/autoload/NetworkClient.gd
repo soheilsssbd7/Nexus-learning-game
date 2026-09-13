@@ -324,10 +324,31 @@ func _bump_backoff() -> void:
 	_cooldown = retry_delay(_attempts)
 
 
+## توکنِ تازه ✓§۹ — ⚠ `_player_id` **تنها** با `sync_player_model` پر می‌شود ✗✓، پس روی نصبِ تازه‌ای
+## که اول رویدادها می‌رسند و مدل بعد می‌آید، یک ۴۰۱ می‌توانست mint را «بی‌صدا» رد کند و صف تا
+## ریستارتِ بازی بخوابد ✗✓ (تست ۱۴ِ ۹.۶ در CI همین را گرفت ✓✓). ⇒ شناسه را از خودِ صف هم
+## برمی‌داریم؛ و اگر هیچ‌کدام معتبر نبود، **بی‌سکوت** در `stats().last_error` می‌نشیند ✓
 func _refresh_token() -> void:
-	if _player_id == "" or base_url == "":
+	var pid: String = _player_id
+	if pid == "":
+		for entry: Variant in _queue:
+			var e: Dictionary = entry as Dictionary
+			match str(e.get("kind", "")):
+				"events":
+					var items: Array = e.get("items", []) as Array
+					if not items.is_empty():
+						pid = str((items[0] as Dictionary).get("player_id", ""))
+				"model":
+					pid = str((e.get("model", {}) as Dictionary).get("player_id", ""))
+			if is_player_id(pid):
+				break
+	if not is_player_id(pid) or base_url == "":
+		_last_error = "no_player_for_token" if not is_player_id(pid) else "no_base_url"
+		Log.warn("network", "mintِ توکن موکول شد ✗✓ (player_id معتبر/`base_url` نداریم ⇒ سکوت نه ✓)")
 		return
-	_send(ENDPOINT_DEVICE, "POST", JSON.stringify({"player_id": _player_id}),
+	# از این به بعد مسیرهای مدل هم همین شناسه را می‌برند ✓ (enqueue اعتبارسنجی‌اش کرده ✓)
+	_player_id = pid
+	_send(ENDPOINT_DEVICE, "POST", JSON.stringify({"player_id": pid}),
 			{"kind": "device", "take": 0, "count": 0})
 
 

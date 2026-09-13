@@ -103,8 +103,13 @@ func test_all_six_mvp_events_are_accepted_and_stamped() -> void:
 	for type_name: String in NET.EVENT_TYPES:
 		assert_true(bool(_net.enqueue_event(_event(type_name))), "«%s» مجاز است ✓" % type_name)
 	assert_eq(_net.queue_size(), 6, "شش تا ✓§۵")
+	# ⚠ این flush لازم بود ✗✓: بدونِ آن `sent` خالی است و `last_body()` آرایۀ «۶ تایی» نمی‌دهد
+	# (تست اولم دقیقاً همین اشتباه را داشت و CI گفت ۰ ≠ ۶ ✓ — یعنی تستِ بد، نه کدِ بد ✓)
+	assert_eq(int(_net.flush_once()), 6, "هر شش رویداد در **یک** دسته رفتند ✓✓")
+	assert_eq(_sender.sent.size(), 1, "یک درخواست، نه شست ✓ (BATCH_LIMIT §۹.۴ ↔ ۹.۶)")
 	var body: Dictionary = _sender.last_body()
 	assert_eq((body.get("events", []) as Array).size(), 6, "بدنهٔ دسته ✓")
+	assert_eq(_net.queue_size(), 0, "با ۲۰۰ صف خالی شد ✓ (نصفِ DoD ۹.۶ ✓)")
 
 
 # --------------------------------------------------------- ۲) صف/سقف/ترتیب ----
@@ -184,6 +189,12 @@ func test_401_keeps_queue_and_asks_for_a_new_token() -> void:
 	assert_signal_emitted(_net, "auth_required", "والد/دیباگ خبردار شد ✓")
 	assert_eq(_sender.sent.size(), 2, "درخواستِ mintِ توکن هم ارسال شد ✓✓ (۹.۵↔۹.۶)")
 	assert_true(String(_sender.sent[1]["url"]).ends_with(NET.ENDPOINT_DEVICE), "مسیر /api/device ✓")
+	# ⚠ وجهِ تازهٔ همین تست در CI: تا پیش از آن، mint «بی‌صدا» رد می‌شد چون `_player_id` تنها با
+	# `sync_player_model` پر می‌شود و این سناریو (نصبِ تازه: اول رویداد، بعد مدل) آن را خالی می‌دید ✗✓
+	assert_true(String(_sender.sent[1]["body"]).contains(PID),
+			"mint **از خودِ صف** شناسه را برمی‌دارد ✓ (نه از فیلدی که هنوز پر نشده ✗✓)")
+	assert_false(str(_net.stats()["last_error"]).begins_with("no_player"),
+			"و مسیرِ «موکول‌شدن» گرفته نشد ✓ (شاخۀ تدافعی، نه رفتارِ پیش‌فرض ✓)")
 
 
 # --------------------------------------------------- ۴) بدنه/پاسخِ مدل ✓ ----
