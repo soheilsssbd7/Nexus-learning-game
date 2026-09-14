@@ -149,10 +149,10 @@ func test_flatten_bounds_scalars_strings_and_nesting() -> void:
 	for _i: int in range(MGR.MAX_SCALAR_LEN + 1):
 		long_s += "a"
 	var ok_s: String = long_s.substr(0, MGR.MAX_SCALAR_LEN)
-	var flat: Dictionary = MGR.flatten_payload({"a": long_s, "b": ok_s})
-	assert_eq(int(flat.size()), 1, "۲۰۰ تا می‌ماند، ۲۰۱ تا می‌رود ✓ (مرزِ دقیقِ `z.string().max(200)`)")
-	assert_true(flat.has("b"), "کلیدِ سالمِ کناری **نباید** با آن برود ✗✓")
-	assert_false(flat.has("a"), "بریدنِ رشته ممنوع ⇒ نصفه‌معنا می‌شود ✓")
+	var bounded: Dictionary = MGR.flatten_payload({"a": long_s, "b": ok_s})
+	assert_eq(int(bounded.size()), 1, "۲۰۰ تا می‌ماند، ۲۰۱ تا می‌رود ✓ (مرزِ دقیقِ `z.string().max(200)`)")
+	assert_true(bounded.has("b"), "کلیدِ سالمِ کناری **نباید** با آن برود ✗✓")
+	assert_false(bounded.has("a"), "بریدنِ رشته ممنوع ⇒ نصفه‌معنا می‌شود ✓")
 
 
 func test_level_id_formats_gate_the_key() -> void:

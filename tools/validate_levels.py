@@ -1745,6 +1745,64 @@ def _backend_tree(text: str) -> list[str]:
 LOGIC_DIRS = ("scripts/data", "scripts/ai", "scripts/gameplay", "scripts/autoload")
 
 
+_LOCAL_DECL = re.compile(r"^(?:var|for)\s+([A-Za-z_]\w*)\b")
+
+
+def check_duplicate_locals(errs: list[str]) -> int:
+    """«اعلامِ دوبارهٔ نام در یک scope» ✗✓ — سومین باری که این خانوادۀ خطا ما را زد
+
+    فاز ۸.۴ دو `for name: String` در یک تابع؛ ۱۰.۳ دو `var flat` در یک تست ✓✗ و در **هر دو**
+    پیامدش `Parse error` روی کل فایل بود ⇒ GUT فایل را **غایب** گزارش می‌کند نه قرمز ✓✓
+    (این‌جا CI گفت `Scripts 48` ولی `files_on_disk=49` ✗✓ تنها سرنخ ✓).
+    چرا `gdlint`/`gdparse` نگرفتند؟ چون هیچ‌کدام جدول‌نماد نمی‌سازند ✗✓.
+
+    الگوریتم (متن‌محور، ولی بلوک‌محور ✓): Godot 4 برای `if/for/while/match` **scopeِ مستقل** دارد ✗✓
+    ⇒ دو `var x` در دو شاخۀ خواهر مجازند (خطایِ اولِ من همین بود: ۳۷ false-positive ✓) ⇒ پشته‌ای
+    از (تورفتگی، نام‌ها) نگه می‌داریم؛ سرِ هر خطِ «`:`» پایان‌یافته یک scope تازه push می‌شود و
+    با کم‌شدنِ تورفتگی pop ✓؛ `for i` متغیرش را در scope **همان حلقه** اعلام می‌کند ✓✗ وگرنه دو
+    حلقۀ پشت‌سرهم با `i` قرمز می‌شد ✓✓. مرزِ تابع/کلاسِ داخلی ⇒ پشته کاملاً تازه ✓
+    محدودیتِ صادقانه: نام‌های inside یک `match` arm با `as` را نمی‌سنجد ✓ و scope عضوِ کلاس را
+    با محلی قیاس نمی‌کند (در GDScript مجاز است ✓).
+    """
+    bad = 0
+    for f in sorted((GAME / "scripts").rglob("*.gd")) + sorted((GAME / "tests").rglob("*.gd")):
+        raw = f.read_text(encoding="utf-8", errors="replace")
+        rel = f.relative_to(ROOT).as_posix()
+        stack: list[tuple[int, set[str]]] = [(0, set())]
+        for ln, line in enumerate(raw.splitlines(), 1):
+            code = strip_code(line)
+            if not code.strip():
+                continue
+            if re.match(r"^\s*(?:static\s+)?func\s", code) or re.match(r"^\s*class\s+[A-Za-z_]\w*", code):
+                stack = [(0, set())]  # scopeِ تابع/کلاسِ تازه ✓
+                continue
+            indent = len(code) - len(code.lstrip())
+            while len(stack) > 1 and indent <= stack[-1][0]:
+                stack.pop()
+            body = code.strip()
+            is_for = body.startswith("for ")
+            decl = _LOCAL_DECL.match(body)
+            if is_for:
+                stack.append((indent, set()))  # بدنۀ حلقه ⇒ scope خودش ✓
+                if decl:
+                    stack[-1][1].add(decl.group(1))
+                continue
+            if decl:
+                name = decl.group(1)
+                names = stack[-1][1]
+                if name in names:
+                    errs.append(
+                        f"{rel}:{ln}: «{name}» در همین scope قبلاً اعلام شده ✗✓ (خطایِ پارسِ GDScript ⇒ "
+                        "کل فایل لود نمی‌شود و تست‌هایش **غایب** می‌شوند، نه قرمز ✓)"
+                    )
+                    bad += 1
+                else:
+                    names.add(name)
+            if body.endswith(":"):
+                stack.append((indent, set()))  # سرِ بلوک (if/elif/else/while/match arm) ✓
+    return bad
+
+
 def check_multiline_string_concat(errs: list[str]) -> int:
     """«چسباندنِ رشته‌ها با فاصله» Python است، نه GDScript ✗✓ (تجربۀ ۱۰.۳)
 
@@ -2087,6 +2145,7 @@ def main() -> int:
     i18n_ui = check_ui_string_i18n(errs)
     consts = check_const_expressions(errs)
     backend_ok = check_backend_contract(errs, notes)
+    dup_ok = check_duplicate_locals(errs)
     concat_ok = check_multiline_string_concat(errs)
     autoload_ok = check_autoload_registration(errs)
     cov_ok = check_test_coverage_map(errs)
