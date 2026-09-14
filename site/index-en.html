@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>&quot;NEXUS: Balance Realm — balance the scale, understand the algebra&quot;</title>
+<meta name="description" content="&quot;A maths game for ages 9-15 · offline · no ads, no in-app purchases · Android&quot;">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" hreflang="fa" href="index.html">
+<!-- ⚠ تولیدشده با `tools/build_site.py` از site_src/index-en.md ✓✗ ویرایشِ دستِ این فایل بی‌معنی است (گیتِ `check_site` اختلاف را قرمز می‌کند) -->
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html">
+    <span class="bal" aria-hidden="true"></span>
+    <span class="name">NEXUS<span class="sub"> Balance Realm</span></span>
+  </a>
+  <nav class="links"><a href="index.html">Home</a> <a href="privacy.html">Privacy</a> <a href="parents.html">For parents</a> <a href="support.html">Support</a> <a href="feedback.html">Feedback</a> <a href="game.html">Web build</a> <a class="alt" href="index.html">فا</a></nav>
+</header>
+<main class="ltr">
+<h1>Balance the scale and you will understand the maths</h1>
+<p>NEXUS is an algebra game for ages <strong>9-15</strong> (grades 3-9) ✓✗ instead of "finish the exercise" it connects a <strong>physical feeling of balance</strong> to an algebraic idea: two pans, weight, and the question "what happens if I take this one away?" The age claim is identical across this site and the store copy, and a CI gate checks that equality ✓ (an inconsistent age claim is not just a store rejection ✗ it contradicts the child-facing privacy policy ✓).</p>
+<h2>Three principles every feature is judged by</h2>
+<ul>
+<li><strong>The world mirrors the learning model.</strong> Bridges and buildings in each region are rebuilt from the player's mastery ✓ progress is *seen*, not announced.</li>
+</ul>
+<h2>What is in the game (and what is not)</h2>
+<div class="grid">
+<div class="card"><h3>45 levels, 5 regions + a hub city</h3><p>From a simple balance to an equation with the unknown on both pans ✓ validated as data in CI ✓</p></div>
+<div class="card"><h3>Adaptive engine</h3><p>Difficulty follows a learning curve ✓ inputs are solve time, attempt count, and hints used — never "speed score" ✗</p></div>
+<div class="card"><h3>Aria, a companion — not a teacher</h3><p>Bilingual dialogue (Persian/English ✓), a template set in which none gives the answer ✓ the count lives in <code>docs/03</code> and CI — we do not type it on a marketing page ✓ ✓</p></div>
+<div class="card"><h3>Real accessibility</h3><p>Colour-blind mode (pattern + colour) · text zoom ×1.25 · haptics off switch · text contrast ≥ 4.5 ✓</p></div>
+<div class="card"><h3>Fully offline</h3><p>The game runs with no network ✓ cloud sync is an explicit switch and off means *no request is built at all* ✓</p></div>
+<div class="card"><h3>One-time paid product</h3><p>No ads ✗ no in-app purchases ✗ no subscription ✗ (ADR-027 ✓ so no ad SDK can even be in the build — an export gate enforces that ✓)</p></div>
+</div>
+<h2>The honest state of this build ⚠</h2>
+<div class="status">
+<ul>
+<li>⬜ a human support/deletion channel: task 12.4 ✓ (must be live before release)</li>
+</ul>
+</div>
+<h2>For parents</h2>
+<ul>
+<li><a href="support.html">Support</a> · <a href="feedback.html">Feedback</a> — feedback goes to the developer, no third-party service in between ✓</li>
+</ul>
+</main>
+<footer class="foot">
+  <p>NEXUS: Balance Realm · v0.9.0-beta.1 ·
+     <a href="privacy.html">Privacy policy</a> ·
+     <a href="support.html">Support & data deletion</a></p>
+  <p class="small">No ads, no in-app purchases, no third-party SDK — and that claim is checked by CI gates, not just written here.</p>
+  <p class="small">Font: <a href="https://github.com/rastikerdar/vazirmatn">Vazirmatn</a>
+     (SIL OFL 1.1 ✓ <code>game/assets/fonts/OFL.txt</code>) · palette from §2 of the Art Bible ✓</p>
+</footer>
+</body>
+</html>

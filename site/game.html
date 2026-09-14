@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>&quot;نسخۀ وب — NEXUS: Balance Realm&quot;</title>
+<meta name="description" content="&quot;چرا نسخه‌ی قابل‌بازی در مرورگر روی Pages نیست، و کجا می‌شود گرفت&quot;">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" hreflang="en" href="index-en.html">
+<!-- ⚠ تولیدشده با `tools/build_site.py` از site_src/game.md ✓✗ ویرایشِ دستِ این فایل بی‌معنی است (گیتِ `check_site` اختلاف را قرمز می‌کند) -->
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html">
+    <span class="bal" aria-hidden="true"></span>
+    <span class="name">NEXUS<span class="sub"> Balance Realm</span></span>
+  </a>
+  <nav class="links"><a href="index.html">خانه</a> <a href="privacy.html">حریم خصوصی</a> <a href="parents.html">راهنمای والدین</a> <a href="support.html">پشتیبانی</a> <a href="feedback.html">بازخورد</a> <a href="game.html">نسخۀ وب</a> <a class="alt" href="index-en.html">EN</a></nav>
+</header>
+<main class="rtl">
+<h1>نسخۀ وب (قابل‌بازی در مرورگر)</h1>
+<p>این بازی با Godot ساخته می‌شود ✓ و Godot می‌تواند خروجیِ وب بدهد ⇒ ما هم یک workflow داریم که <strong>تلاش می‌کند</strong> نسخۀ وب را بسازد ✓✗ ولی تصمیمِ انتشار با سایزِ فایل است، نه با خواستۀ ما ✗✓</p>
+<h2>قاعده، صریح</h2>
+<ul>
+<li>اگر نشد ⇒ بازی به‌صورت <strong>artifact</strong> همان workflow قابل دانلود است ✓✗ و با یک دستورِ بی‌خطر محلی اجرا می‌شود: <code>python3 -m http.server</code> در پوشۀ استخراج‌شده، بعد <code>http://localhost:8000</code> ✓ (خروجیِ وب Godot به <code>http://</code> نیاز دارد؛ بازکردن با <code>file://</code> کار نمی‌کند ✗✓)</li>
+</ul>
+<h2>پس حالا چی‌کار کنم؟</h2>
+<ol>
+<li>می‌خواهید وب را هم داشته باشید؟ workflow «Web export» را دستی اجرا کنید ✓ خروجی در artifact است ✓</li>
+</ol>
+<blockquote><p>⚠ <strong>ادعای نکرده ✓✗</strong> این صفحه نگفته «بازی روی موبایلِ مرورگر اجرا می‌شود»: نسخۀ وبِ Godot روی</p></blockquote>
+<blockquote><p>iOS/Safari و موبایل‌های ارزان، رفتارِ متفاوتی دارد و ما آن را آزموده‌ایم ✗✓ پس مسیرِ *تأییدشده*</p></blockquote>
+<blockquote><p>همان اندروید است ✓</p></blockquote>
+</main>
+<footer class="foot">
+  <p>NEXUS: Balance Realm · v0.9.0-beta.1 ·
+     <a href="privacy.html">سیاست حریم خصوصی</a> ·
+     <a href="support.html">پشتیبانی و حذف داده</a></p>
+  <p class="small">بدون تبلیغات، بدون خرید درون‌اپ، بدون SDK شخص ثالث — و این ادعا را گیت‌های CI می‌سنجند، نه فقط این سطر.</p>
+  <p class="small">فونت: <a href="https://github.com/rastikerdar/vazirmatn">Vazirmatn</a>
+     (SIL OFL 1.1 ✓ <code>game/assets/fonts/OFL.txt</code>) · پالت رنگ از §۲ کتاب هنری ✓</p>
+</footer>
+</body>
+</html>

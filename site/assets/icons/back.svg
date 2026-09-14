@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- NEXUS | تسک ۸.۴ §۸ «SVG برای UI static» — بازگشت؛ در RTL با `UIKit.icon_alignment()` به سمتِ شروع می‌رود ✓ پالت §۲، صفر متن، صفر ارجاع بیرونی ✓ -->
+  <path d="M14.5 4.5L7 12l7.5 7.5" fill="none" stroke="#2B2F77" stroke-width="2.6"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18.5 6.5L13 12l5.5 5.5" fill="none" stroke="#2B2F77" stroke-width="2" opacity="0.55"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

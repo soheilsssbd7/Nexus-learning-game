@@ -11,7 +11,8 @@ Written for parents and guardians, not for children ✓ plain language, explicit
 rather than pretty ✓.
 
 ## Who we are and what this app is
-A maths game (balances and equilibrium) for ages 9 to 12 ✓ it works offline; one small optional
+A maths game (balances and equilibrium) for ages **9-15** (grades 3-9 ✓ the same claim as the
+store listing and `docs/07` §2 ✓✗ the gate `check_site` compares the age claim across policy / site / listing ✓) it works offline; one small optional
 server stores **learning progress** ✓ that server is hosted by us and there is no third party in
 the data path ✗ (no ads, no third-party analytics, no crash reporter ✓✓ architecture decision:
 ADR-010).
@@ -76,7 +77,9 @@ ADR-010).
   would not tell you" in a policy ✓
 
 ## Younger children and consent
-The game is designed for ages 9-12 ✓✗ we do not ask for an "age verification" ✗✓ because asking for
+The game is designed for ages **9-15** ✓ (the *declared* store audience may be narrower — 9-12 or
+13-15 — which is the owner’s call ⚠§12.3 ✓✗ but "what it was built for" is identical everywhere ✓) we do not ask for an
+"age verification" ✗✓ because asking for
 an age means collecting data ✓ instead the controls live in the parental panel ✓ if a younger child
 plays, keep cloud sync off ✓
 

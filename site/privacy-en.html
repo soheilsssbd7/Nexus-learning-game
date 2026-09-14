@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — NEXUS</title>
+<meta name="description" content="Privacy policy for NEXUS: Balance Realm">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" hreflang="fa" href="index.html">
+<!-- ⚠ تولیدشده با `tools/build_site.py` از docs/privacy-policy-en.md ✓✗ ویرایشِ دستِ این فایل بی‌معنی است (گیتِ `check_site` اختلاف را قرمز می‌کند) -->
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html">
+    <span class="bal" aria-hidden="true"></span>
+    <span class="name">NEXUS<span class="sub"> Balance Realm</span></span>
+  </a>
+  <nav class="links"><a href="index.html">Home</a> <a href="privacy.html">Privacy</a> <a href="parents.html">For parents</a> <a href="support.html">Support</a> <a href="feedback.html">Feedback</a> <a href="game.html">Web build</a> <a class="alt" href="index.html">فا</a></nav>
+</header>
+<main class="ltr">
+<h1>Privacy Policy — NEXUS: Balance Realm</h1>
+<p>**English version ✓ (Persian: <code>privacy-policy-fa.md</code> — the two files are edited together ✓ the gate <code>check_privacy_policy()</code> compares the *lists*, so translating one side and forgetting the other turns CI red ✓✓)<strong> </strong>v1 · Owner: <code>soheilsssbd7</code> · Parent contact: ⚠ <code>https://&lt;host&gt;/contact</code> (filled in task 12.4 ✓ before release this link must be live ✗ otherwise Families compliance is incomplete ✓)**</p>
+<p>Written for parents and guardians, not for children ✓ plain language, explicit lists: anything <strong>not</strong> in the "never" list means it *is* collected ✓ so we kept the lists short so they stay true, rather than pretty ✓.</p>
+<h2>Who we are and what this app is</h2>
+<p>A maths game (balances and equilibrium) for ages <strong>9-15</strong> (grades 3-9 ✓ the same claim as the store listing and <code>docs/07</code> §2 ✓✗ the gate <code>check_site</code> compares the age claim across policy / site / listing ✓) it works offline; one small optional server stores <strong>learning progress</strong> ✓ that server is hosted by us and there is no third party in the data path ✗ (no ads, no third-party analytics, no crash reporter ✓✓ architecture decision: ADR-010).</p>
+<h2>What we collect</h2>
+<ol>
+<li><strong>What stays on the device</strong> ✓ — an optional display name for the profile, your volume settings, and the save game ✓ these are <strong>not sent to our server</strong> ✗✓ except the items 2 and 3 (and the display name is never sent ✓).</li>
+</ol>
+<h2>Never collected ✗</h2>
+<ul>
+<li><strong>Anything about the parent or guardian</strong> ✗ (the parental panel is on-device and asks nothing of you ✓)</li>
+</ul>
+<h2>Three things you control</h2>
+<ol>
+<li><strong>No ads, no in-app purchases</strong> ✓ ✗ and no third-party SDKs at all ✓ (neither advertising, nor analytics, nor crashlytics ✓ ADR-010).</li>
+</ol>
+<h2>Retention and security</h2>
+<ul>
+<li>Breach: if it ever happens we notify parents through that same address ✓ we cannot write "we would not tell you" in a policy ✓</li>
+</ul>
+<h2>Younger children and consent</h2>
+<p>The game is designed for ages <strong>9-15</strong> ✓ (the *declared* store audience may be narrower — 9-12 or 13-15 — which is the owner’s call ⚠§12.3 ✓✗ but "what it was built for" is identical everywhere ✓) we do not ask for an "age verification" ✗✓ because asking for an age means collecting data ✓ instead the controls live in the parental panel ✓ if a younger child plays, keep cloud sync off ✓</p>
+<h2>What is <strong>not</strong> in this version ⚠ (honest, not a promise ✓)</h2>
+<ul>
+<li>Local distribution/registration numbers (only relevant if we ship outside the Play store ✓ ADR-009)</li>
+</ul>
+</main>
+<footer class="foot">
+  <p>NEXUS: Balance Realm · v0.9.0-beta.1 ·
+     <a href="privacy.html">Privacy policy</a> ·
+     <a href="support.html">Support & data deletion</a></p>
+  <p class="small">No ads, no in-app purchases, no third-party SDK — and that claim is checked by CI gates, not just written here.</p>
+  <p class="small">Font: <a href="https://github.com/rastikerdar/vazirmatn">Vazirmatn</a>
+     (SIL OFL 1.1 ✓ <code>game/assets/fonts/OFL.txt</code>) · palette from §2 of the Art Bible ✓</p>
+</footer>
+</body>
+</html>

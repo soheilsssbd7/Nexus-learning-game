@@ -31,11 +31,20 @@ import argparse
 import itertools
 import json
 import re
+import subprocess
 import sys
 from decimal import Decimal
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+SITE_DIR = ROOT / "site"
+EXTERNAL_ALLOWED_HOSTS = (
+    # فقط دامنه‌هایی که «ارجاع به بیرون» محسوب می‌شوند و داده‌ای را از کاربر نمی‌برند ✓✗
+    # فهرستِ *بازِ* دامنه عمداً وجود ندارد: هر میزبانِ تازه یعنی «یک شخص ثالث دیگر در مسیر» ⇒
+    # باید با **دلیل** به همین tuple بیاید، نه با یک <script src=...> در یک صفحۀ جدید ✓✓
+    "github.com",
+    "soheilsssbd7.github.io",
+)
 DATA = ROOT / "game" / "data"
 LEVELS_DIR = DATA / "levels"
 DIALOGUE_FILE = DATA / "dialogue" / "aria_templates.json"
@@ -1938,6 +1947,235 @@ def check_privacy_policy(errs: list[str]) -> int:
     return bad
 
 
+def _ini_preset_named(code: str, name: str) -> dict[str, str] | None:
+    """مقادیرِ یک [preset.N] با name=<name> ✓✗ configparser نه: بخش‌های Godot ini تکراری/بی‌نام
+    دارند و presetها دقیقاً همان‌شکلی‌اند ✓ (فقط `=` ساده را می‌فهمیم؛ مقادیرِ پیچیده ندارد ✓)"""
+    for block in re.split(chr(10) + "(?=\\[preset)", code):
+        if re.search(r"^name=" + chr(34) + re.escape(name) + chr(34) + r"\s*$", block, re.M):
+            out: dict[str, str] = {}
+            for line in block.splitlines():
+                if "=" in line and not line.strip().startswith((";", "#")):
+                    k, val = line.split("=", 1)
+                    out[k.strip()] = val.strip().strip(chr(34))
+            return out
+    return None
+
+
+def _art_palette_hexes() -> list[str]:
+    """رنگ‌های §۲ کتاب هنری ✓✗ تنها منبعِ پالت ⇒ سایت هم *همان* رنگ‌ها را باید داشته باشد ✓"""
+    f = ROOT / "docs" / "02-ART-BIBLE.md"
+    if not f.exists():
+        return []
+    txt = f.read_text(encoding="utf-8")
+    # ⚠ `[^#]*` اینجا فاجعه بود ✗✓ (اسلایس در اولین `#` می‌شکست ⇒ فهرست خالی ⇒ گیت **سبزِ بی‌کار** ✓✓
+    #   همان بیماریِ «منبعی که باید باشد و نیست = خطا، نه skip» ✓). برشِ درست: سرفصل تا سرفصل بعد ✓
+    m = re.search(r"^##\s*۲\.[^\n]*\n(.*?)(?=^##\s|\Z)", txt, re.M | re.S)
+    sec = m.group(1) if m else ""
+    # فقط **سطرهای جدولِ پالت** ✓✗ چون §۲ یک «قانون رنگ» هم دارد که `#FF0000` را *به‌عنوانِ
+    # ممنوعه* نام می‌برد ✓✓ و اگر کلِ بدنه را بخوانیم، رنگِ ممنوعه واردِ «باید در CSS باشد» می‌شود
+    # و گیت روی مخزنِ سالم قرمز می‌شود ✗✓ (پروبِ palette همین را نشان داد ✓ — خطای من، نه سند)
+    return re.findall(r"^\|[^|]*\|[^|]*`(#[0-9A-Fa-f]{6})`", sec, re.M)
+
+
+def _age_claims() -> dict[str, str]:
+    """ادعای «ردهٔ سنی» در هر سندی که باید با بقیه یکی باشد ✓✗ رقم‌های فارسی نرمال می‌شوند ✓"""
+    fa_digits = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
+    q = chr(34)
+    srcs = {
+        "docs/privacy-policy-fa.md": r"ردهٔ سنی[^0-9۰-۹]{0,8}([0-9۰-۹]{1,2}\s*[-–]\s*[0-9۰-۹]{1,2})",
+        "docs/privacy-policy-en.md": r"ages?[^0-9]{0,8}([0-9]{1,2}\s*[-–]\s*[0-9]{1,2})",
+        "docs/store-listing.md": r"برای\s*([0-9]{1,2}-[0-9]{1,2})\s*سال",
+        "site_src/index.md": r"سنی[^0-9۰-۹]{0,8}([0-9۰-۹]{1,2}\s*[-–]\s*[0-9۰-۹]{1,2})",
+        "site_src/index-en.md": r"ages[^0-9]{0,8}([0-9]{1,2}-[0-9]{1,2})",
+    }
+    found: dict[str, str] = {}
+    for rel, pat in srcs.items():
+        f = ROOT / rel
+        if not f.exists():
+            found[rel] = "<فایل نیست>"
+            continue
+        t = f.read_text(encoding="utf-8").translate(fa_digits).replace(q, "")
+        m = re.search(pat, t)
+        found[rel] = re.sub(r"\s+", "", m.group(1)) if m else "<هیچ>"
+    return found
+
+
+def check_site(errs: list[str]) -> int:
+    """سایتِ Pages ✓ (تسک ۱۲.۴ · ADR-068) — پنج قفل، چون Pages **ویترینِ عمومی** است ✗✓ و هر
+    گندِ این‌جا را والدِ کاربر می‌بیند، نه فقط ما:
+      ۱) htmlها باید با مخزن یکی باشند ✓ (builder با --check؛ Pages روی `source: {branch, path:/}`
+         یعنی «خودِ برانچ منتشر می‌شود» ⇒ «ساخت در CI» جواب نمی‌داد ✗✓ تنها راهِ هم‌ماندن همین است ✓)
+      ۲) هیچ پیوندِ شکسته ✗ و هیچ ارجاعِ بیرونیِ غیرمجاز ✓✗ (CDNِ فونت/اسکریپت = دقیقاً همان چیزی
+         که سیاستِ «هیچ شخص ثالثی در مسیر داده نیست» را دروغ می‌کند ⇒ گیت دارد ✓✓)
+      ۳) placeholder باید علامت‌دار باشد ✓✗ هر <host> باید روی همان سطر ⚠ هم داشته باشد
+         («قول می‌دهیم ولی آدرس نیست» با علامت صادقانه است؛ بدون علامت گمراه‌کننده ✓)
+      ۴) سقفِ هر فایل < 9MB ✓ (Pages فایلِ بزرگ را نمی‌سازد و **کل سایت** قربانی می‌شود ✗✓ پس
+         بیلدِ وب فقط وقتی commit می‌شود که جا شود؛ اگر روزی بزرگ شد، گیت قبل از فاجعه می‌گوید ✓)
+      ۵) پالت و «قرمز ممنوع» ✓ از §۲ کتاب هنری (سایتِ همان محصول = همان رنگ‌ها ✗✓ و قرمزِ خالص در
+         محصولِ ضدِّ اضطراب ممنوع است — سایت استثنا نیست ✓)
+    """
+    bad = 0
+    if not (ROOT / "tools" / "build_site.py").exists():
+        errs.append("check_site: `tools/build_site.py` نیست ✗ (کل سایت بازتولیدناپذیر است ✓)")
+        return 1
+    if not SITE_DIR.exists():
+        errs.append("check_site: پوشۀ `site/` نیست ✗ (تسک ۱۲.۴ ⇒ `python3 tools/build_site.py`)")
+        return 1
+    r = subprocess.run([sys.executable, str(ROOT / "tools" / "build_site.py"), "--check"],
+                       capture_output=True, text=True, cwd=ROOT)
+    if r.returncode != 0:
+        det = " / ".join((r.stdout or r.stderr).strip().splitlines()[:4])
+        errs.append("check_site: سایت با مخزن هم‌زمان نیست ✗✓ " + det +
+                    " ⇒ `python3 tools/build_site.py` را اجرا و commit کن ✓")
+        bad += 1
+    need = ("index.html", "index-en.html", "privacy.html", "privacy-en.html", "parents.html",
+            "support.html", "feedback.html", "game.html", "404.html",
+            "assets" + chr(47) + "site.css", ".nojekyll")
+    for n in need:
+        if not (SITE_DIR / n).exists():
+            errs.append(f"check_site: `site/{n}` نیست ✗ (پیوندِ شکسته روی Pages = اولین چیزی که کاربر می‌بیند ✓)")
+            bad += 1
+    htmls = sorted(SITE_DIR.rglob("*.html")) + [ROOT / "index.html"]
+    for f in htmls:
+        if not f.exists():
+            errs.append(f"check_site: {f.name} نیست ✗")
+            bad += 1
+            continue
+        txt = f.read_text(encoding="utf-8")
+        rel = f.relative_to(ROOT)
+        if "build_site.py" not in txt:
+            errs.append(f"check_site: `{rel}` دست‌نویس است ✗✓ (همۀ صفحۀ سایت باید از `tools/build_site.py` "
+                        "بیرون بیاید؛ وگرنه منبعِ دومِ بی‌سازمان درست می‌شود ✓)")
+            bad += 1
+        for href in re.findall(r"href=" + chr(34) + r"([^" + chr(34) + r"#]+)", txt):
+            if href.startswith(("mailto:", "tel:", "data:")):
+                continue
+            if re.match(r"^https?://", href):
+                if not href.startswith("https://"):
+                    errs.append(f"check_site-{rel}: پیوندِ http ✗ ({href})")
+                    bad += 1
+                continue
+            if not (f.parent / href).resolve().exists():
+                errs.append(f"check_site-{rel}: پیوندِ شکسته ✗ `{href}`")
+                bad += 1
+        for ext in re.findall(r"(?:src|href)=" + chr(34) + r"(https?://[^" + chr(34) + r"]+)", txt):
+            host = re.match(r"https?://([^/]+)", ext).group(1)
+            if not any(host == d or host.endswith("." + d) for d in EXTERNAL_ALLOWED_HOSTS):
+                errs.append(f"check_site-{rel}: ارجاعِ بیرونیِ غیرمجاز ✗ `{host}` — سیاست می‌گوید «هیچ "
+                            "شخص ثالثی در مسیر داده نیست» ⇒ سایت هم نباید از CDN فونت/اسکریپت بکشد ✓✓")
+                bad += 1
+        if "<script" in txt:
+            errs.append(f"check_site-{rel}: <script> در سایت ✗✓ (بدونِ JS منتشر می‌کنیم؛ هر JS = سطحِ "
+                        "حملهٔ بچه‌محور + چیزی که سیاستمان منکرش است ✓)")
+            bad += 1
+        # ⚠ `&lt;host&gt;` هم چک می‌شود ✗✓ چون rندرِ مارک‌داون، `<` را escape می‌کند و جست‌وجوی
+        #   رشته‌ایِ `<host>` روی HTMLِ تولیدشده **هیچ‌وقت** نمی‌یافتش ✓✓ (پروبِ `placeholder` همین
+        #   را لو داد: گیت سبز ماند چون placeholder در html به شکلِ entity نشسته بود ✓)
+        for line in txt.splitlines():
+            if ("<host>" in line or "&lt;host&gt;" in line) and chr(9888) not in line:
+                errs.append(f"check_site-{rel}: `placeholder` بی‌علامت ✗✓ «{line.strip()[:64]}» — آدرسِ "
+                            "غیرواقعی باید با ⚠ و شمارۀ تسک همراه باشد، وگرنه والد فکر می‌کند ایمیل کار می‌کند ✓")
+                bad += 1
+    for f in SITE_DIR.rglob("*"):
+        if f.is_file() and f.stat().st_size > 9_437_184:
+            errs.append(f"check_site: `{f.relative_to(ROOT)}` بزرگ‌تر از 9MB ✗✓ Pages فایل بزرگ را "
+                        "نمی‌سازد ⇒ کل سایت قربانی می‌شود (به‌همین‌دلیل بیلدِ وب فقط اگر جا شود commit می‌شود ✓)")
+            bad += 1
+    for f in htmls:
+        if not f.exists():
+            continue
+        body = f.read_text(encoding="utf-8")
+        for m in re.finditer(r"<(ul|ol)>(.*?)</\1>", body, re.S):
+            if "<p>" in m.group(2):
+                errs.append(f"check_site-{f.relative_to(ROOT)}): <p> داخل لیست ✗✓ = رندرِ شکسته روی Pages "
+                            "(باگِ «ادامۀ سطرِ آیتم» در `build_site.py` برگشته ✓)")
+                bad += 1
+    css = SITE_DIR / "assets" / "site.css"
+    if css.exists():
+        ctxt = css.read_text(encoding="utf-8").upper()
+        palette = _art_palette_hexes()
+        if any(h.upper() in ("#FF0000", "#F00") for h in palette):
+            errs.append("check_site: قرمزِ خالص در **جدولِ پالتِ §۲** آمده ✗✗ با «قانون رنگ» همان بند در "
+                        "تناقض است (و گیتِ سایت، قانون را از خودِ منبع هم می‌پاید ✓✓)")
+            bad += 1
+        if len(palette) < 6:
+            errs.append(f"check_site: پالتِ §۲ کتاب هنری خوانده نشد ✗✓ ({len(palette)} رنگ) — "
+                        "«فهرستِ خالی» یعنی گیت دارد هیچ نمی‌بیند، نه اینکه سایت درست است ✓✓")
+            bad += 1
+        for hexv in palette:
+            if hexv.upper() not in ctxt:
+                errs.append(f"check_site: رنگِ پالتِ §۲ ({hexv}) در `site/assets/site.css` نیست ✗✓ "
+                            "«سایتِ همان محصول» یعنی همان رنگ‌ها ✓✗ نه یک پالتِ جدا ✓")
+                bad += 1
+        if re.search(r"#FF0000|: *red\b|color:red", ctxt, re.I) or re.search(r"\bred\b", ctxt):
+            errs.append("check_site: `red` در CSS سایت ✗✗ قانونِ §۲: قرمزِ خالص هیچ‌جای محصولِ ضدِّ اضطراب "
+                        "نیست ✓ (سایت هم استثنا نیست ✓)")
+            bad += 1
+    return bad
+
+
+def check_store_listing(errs: list[str]) -> int:
+    """متنِ فروشگاه ✓ (تسک ۱۲.۲) — Play سقفِ کاراکتری دارد و ما **با شمارشِ واقعی** می‌سنجیم ✓✗
+    «کم‌وبیش ۳۰» در این ریپو جرم است ✗✓ (نهايتش لیستینگ رد می‌شود و ما در Console نمی‌فهمیم چرا ✓):
+      • عنوان ≤ 30 · کوتاه ≤ 80 · بلند ≤ 4000 — در هر دو زبان ✓
+      • سه ادعای «بدونِ تبلیغ / بدونِ خرید درون‌اپ / آفلاین» در متنِ بلند ✓ (همان سه کلمه‌ای که والد
+        در فروشگاه می‌خواند و بعد در سیاست دنبالش می‌گردد ✗✓ نبودشان = لیستینگِ بی‌تمایز ✓)
+      • لینکِ سیاست با URLِ خودِ سایت ✓ (Play به policy URL نیاز دارد ✓)
+      • برابریِ «ردهٔ سنی» در سیاست/سایت/لیستینگ ✓✓ (ادعای سنیِ دوشاخه = شکافِ Families، نه غلطِ املایی ✓)
+    """
+    bad = 0
+    f = ROOT / "docs" / "store-listing.md"
+    if not f.exists():
+        errs.append("check_store_listing: `docs/store-listing.md` نیست ✗ (تسک ۱۲.۲)")
+        return 1
+    txt = f.read_text(encoding="utf-8")
+    fence = chr(96) * 3
+    blocks = re.findall(fence + r"[a-z]*\n(.*?)\n" + fence, txt, re.S)
+    titles = re.findall(r"^\*\*(?:عنوان|Title)[^:*]{0,14}:\*\* " + chr(96) + r"(.+?)" + chr(96) + r"\s*$", txt, re.M)
+    shorts = re.findall(r"^\*\*(?:کوتاه|Short)[^:*]{0,14}:\*\* " + chr(96) + r"(.+?)" + chr(96) + r"\s*$", txt, re.M)
+    if len(blocks) < 2:
+        errs.append(f"check_store_listing: بلوکِ توضیحِ بلند = {len(blocks)} ✗✓ دو تا لازم است (fa + en ✓)")
+        bad += 1
+    if len(titles) < 2 or len(shorts) < 2:
+        errs.append(f"check_store_listing: عنوان={len(titles)} · کوتاه={len(shorts)} ✗ "
+                    "(دو زبان × دو فیلد = ۴ ✓✗ قالب: **عنوان (۳۰ ✓):** `متن` در یک سطر)")
+        bad += 1
+    for i, tv in enumerate(titles):
+        if len(tv) > 30:
+            errs.append(f"check_store_listing: عنوانِ [{'fa' if i == 0 else 'en'}] = {len(tv)} کاراکتر ✗ (Play: ≤ 30)")
+            bad += 1
+    for i, sv in enumerate(shorts):
+        if len(sv) > 80:
+            errs.append(f"check_store_listing: توضیحِ کوتاهِ [{'fa' if i == 0 else 'en'}] = {len(sv)} ✗ (Play: ≤ 80)")
+            bad += 1
+    for i, body in enumerate(blocks[:2]):
+        if len(body) > 4000:
+            errs.append(f"check_store_listing: توضیحِ بلندِ [{'fa' if i == 0 else 'en'}] = {len(body)} ✗ (Play: ≤ 4000)")
+            bad += 1
+        low = body.lower()
+        for must, fa_term in (("no ads", "تبلیغ"), ("in-app purchase", "خرید درون‌اپ"), ("offline", "آفلاین")):
+            if must not in low and fa_term not in body:
+                errs.append(f"check_store_listing: «{fa_term}» / «{must}» در توضیحِ بلندِ [{'fa' if i == 0 else 'en'}] "
+                            "نیست ✗✓ (این سه، تفاوتِ اصلیِ محصول‌اند ✓ و والد بر پایهٔ همین سه انتخاب می‌کند ✓)")
+                bad += 1
+        if "github.io" not in body:
+            errs.append("check_store_listing: لینکِ سیاست/سایت در توضیحِ بلند نیست ✗ "
+                        "Play یک policy URL می‌خواهد ✓ و همان URL باید با سایت یکی باشد ✓")
+            bad += 1
+    claims = _age_claims()
+    vals = {k: v for k, v in claims.items() if v not in ("<هیچ>", "<فایل نیست>")}
+    if len(claims) != len(vals):
+        miss = [k for k, v in claims.items() if v in ("<هیچ>", "<فایل نیست>")]
+        errs.append(f"check_store_listing: ادعای سنی در این منابع پیدا نشد ✗✓ {miss} — «نبودِ ادعا» هم "
+                    "تناقض است؛ صفحۀ سیاستی که سن را نمی‌گوید نمی‌تواند با بقیه هم‌خوان باشد ✓")
+        bad += 1
+    if len(set(vals.values())) > 1:
+        errs.append(f"check_store_listing: ردهٔ سنی یکی نیست ✗✗ {vals} — سیاست/سایت/لیستینگ باید همان عدد "
+                    "را بگویند ✓✓ (فروشگاه 9-15 و سیاست 9-12 = شکافِ انطباق ✓)")
+        bad += 1
+    return bad
+
+
 def check_export_config(errs: list[str]) -> int:
     """پیکربندی خروجی اندروید ✓ (تسک ۱۰.۴ · ADR-004/009/036) — سه چیز را با هم قفل می‌کند ✗✓
 
@@ -2011,6 +2249,35 @@ def check_export_config(errs: list[str]) -> int:
         errs.append(f"check_export_config: نامِ پکیج «{uniq.group(1)}» در ADRها اعلام نشده ✗✓ "
                     "(انتخابِ نامِ معکوس‌ناپذیر ⇒ باید در سند باشد ✓ ADR-066)")
         bad += 1
+    web = _ini_preset_named(code, "Web")
+    # ⚠ نامِ متغیر `pwf` است، نه `wf` ✗✓ پایین‌تر همین تابع `wf` را به `android-export.yml`
+    #   بسته است و اگر این‌جا بازنویسی‌اش کنیم، قفلِ `apkanalyzer` **سایت** را می‌خواند و
+    #   قرمزِ دروغ می‌دهد ✓✓ (اتفاقی که دقیقاً افتاد و از همین false-positive لو رفت ✓)
+    pwf = ROOT / ".github" / "workflows" / "pages.yml"
+    if not pwf.exists():
+        errs.append("check_export_config: `.github/workflows/pages.yml` نیست ✗✓ (ساختِ سایت و نسخۀ وب "
+                    "همین‌جا تعریف شده ⇒ نبودِ فایل خطاست، نه skip ✓✓)")
+        bad += 1
+    else:
+        pwtxt = pwf.read_text(encoding="utf-8")
+        if web is None:
+            errs.append("check_export_config: presetِ «Web» نیست ✗ (تسک ۱۲.۴ ⇒ `site/game.html` وعده می‌دهد "
+                        "و چیزی پشتش نیست ✓)")
+            bad += 1
+        if '--export-release ' + chr(34) + 'Web' + chr(34) not in pwtxt:
+            errs.append("check_export_config: workflowِ سایت دقیقاً `--export-release \"Web\"` را صدا نمی‌زند ✗✓ "
+                        "(نامِ پریست و نامِ درخواستی باید رشته‌به‌رشته یکی باشند؛ اگر نباشند export بی‌صدا "
+                        "هیچ نمی‌سازد و ما تا انتشارِ بعدی نمی‌فهمیم ✓✓)")
+            bad += 1
+        if 'export_path=' + chr(34) + '../build/web/index.html' + chr(34) not in code:
+            errs.append("check_export_config: `export_path` نسخۀ وب `../build/web/index.html` نیست ✗ "
+                        "(workflow همان مسیر را انتظار دارد ✓ — مسیرِ غلط = فایلِ ساختۀ ناشناخته ✓)")
+            bad += 1
+        if "Thread Support" not in text:
+            errs.append("check_export_config: یادداشتِ «Thread Support=false لازم است» از presetِ Web حذف شده ✗✓ "
+                        "(روی Pages بدون COOP/COEP نسخۀ threaded اجرا نمی‌شود ⇒ این سطرِ باز را نگه دار تا "
+                        "با ویرایشگر بسته شود، نه با فراموشی ✓✓)")
+            bad += 1
     for token, why in (("addons/gut", "GUT داخل بسته نرود ✓§۱۱.۲"), ("tests", "۴۹ فایلِ تست داخل بسته نرود ✓")):
         if token not in code:
             errs.append(f"check_export_config: `exclude_filter` الگوی «{token}» را ندارد ✗✓ ({why})")
@@ -2396,6 +2663,8 @@ def main() -> int:
     consts = check_const_expressions(errs)
     backend_ok = check_backend_contract(errs, notes)
     priv_ok = check_privacy_policy(errs)
+    site_ok = check_site(errs)
+    store_ok = check_store_listing(errs)
     export_ok = check_export_config(errs)
     dup_ok = check_duplicate_locals(errs)
     concat_ok = check_multiline_string_concat(errs)
