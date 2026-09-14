@@ -1745,6 +1745,29 @@ def _backend_tree(text: str) -> list[str]:
 LOGIC_DIRS = ("scripts/data", "scripts/ai", "scripts/gameplay", "scripts/autoload")
 
 
+def check_multiline_string_concat(errs: list[str]) -> int:
+    """«چسباندنِ رشته‌ها با فاصله» Python است، نه GDScript ✗✓ (تجربۀ ۱۰.۳)
+
+    `f("a"\n\t\t\t"b")` در پایتون معتبر و در GDScript **خطای نگارشی** است؛ `gdparse`
+    (لارِ ساده‌تر) گاهی رد می‌کند و گاهی نه ✗، `gdlint` می‌گیرد ✓ — اما این گیت همان را
+    **قبلِ هر کامیت** می‌گوید ✓✓ و یک دورِ CI نجات می‌دهد (که گران‌ترین ارزِ این پروژه است ✗✓).
+    """
+    bad = 0
+    for f in sorted((GAME / "scripts").rglob("*.gd")) + sorted((GAME / "tests").rglob("*.gd")):
+        lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+        rel = f.relative_to(ROOT).as_posix()
+        for i in range(len(lines) - 1):
+            a = re.split(r"\s+#", lines[i], maxsplit=1)[0].rstrip()
+            b = lines[i + 1].strip()
+            if a.endswith('"') and b.startswith('"') and chr(92) not in a and not a.endswith("+"):
+                errs.append(
+                    f"{rel}:{i + 1}: رشتهٔ «چسبان» در سطر بعد ✗✓ (این فقط در پایتون مجاز است) — "
+                    "یا در یک سطر بنویس یا با `+` بهم بچسبان ✓"
+                )
+                bad += 1
+    return bad
+
+
 def check_autoload_registration(errs: list[str]) -> int:
     """`[autoload]` در `game/project.godot` ⟺ فایل‌های `scripts/autoload/*.gd` ✓ (۱۰.۳)
 
@@ -2064,6 +2087,7 @@ def main() -> int:
     i18n_ui = check_ui_string_i18n(errs)
     consts = check_const_expressions(errs)
     backend_ok = check_backend_contract(errs, notes)
+    concat_ok = check_multiline_string_concat(errs)
     autoload_ok = check_autoload_registration(errs)
     cov_ok = check_test_coverage_map(errs)
     ci_ok = check_ci_yaml(errs)

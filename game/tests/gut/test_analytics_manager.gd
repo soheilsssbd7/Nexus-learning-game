@@ -126,15 +126,25 @@ func test_error_occurred_uses_current_level_from_game_state() -> void:
 
 
 # ------------------------------------------- ۳) سخت‌گیریِ payload/level_id ✓ ----
-func test_nested_payload_is_dropped_and_counted() -> void:
+func test_session_ended_is_minimised_not_mirrored() -> void:
+	# ⚠ این تست در دورِ اول **غلطِ من** بود و CI گفت 470/471 ✗✓: فکر می‌کردم هندلر، dictِ
+	# ورودیِ EventBus را به رویداد «آینه» می‌کند؛ در واقع هندلر **خودش می‌گزیند** ✓§۹ (که
+	# درستِ طراحی است ✗ پس تست اصلاح شد، نه کد ✓✓) ⇒ ادعای تازه، قوی‌تر از ادعای قبلی است ✓
 	_mgr.on_session_ended({"total_playtime_sec": 300.0, "levels": [1, 2, 3], "debug": {"x": 1}})
 	var payload: Dictionary = _sink.last().get("payload", {}) as Dictionary
-	assert_true(payload.has("total_playtime_sec"), "اسکالر ماند ✓")
-	assert_false(payload.has("levels") or payload.has("debug"), "آرایه/شیء نمی‌رود ✗✓ (`JsonScalar` بک‌اند)")
-	assert_true(int(_mgr.stats()["dropped_payload_keys"]) >= 2, "و **شمرده** می‌افتد ✓ (بی‌سکوت ✓)")
+	assert_eq(_sorted_keys(payload), ["total_playtime_sec"],
+			"از سه کلیدِ ورودی، فقط «مدتِ بازی» می‌رود ✓✗ آنالیتیکس آینهٔ مدل نیست ✓§۹")
+	assert_eq(int(_mgr.stats()["dropped_payload_keys"]), 0,
+			"flatten چیزی دور نمی‌ریزد، چون کلیدها پیش از آن گزینده شده‌اند ✓ (شمارنده برای افزودنی‌هاست ✓ نه ادعای پوشش ✗)")
 
 
-func test_long_string_is_dropped_not_truncated() -> void:
+func test_flatten_bounds_scalars_strings_and_nesting() -> void:
+	# دو ادعا در یک تست ✓ به‌خاطر سقفِ ۲۰ متدِ publicِ هر فایل در `.gdlintrc` ✓§۸.۴
+	var flat: Dictionary = MGR.flatten_payload({
+		"n": 12.5, "i": 3, "b": true, "z": null, "s": "ok",
+		"arr": [1, 2], "obj": {"k": "v"}, "node": self,
+	})
+	assert_eq(_sorted_keys(flat), ["b", "i", "n", "s", "z"], "پنج اسکالر ماند ✓ و سه ساختار افتاد ✓✓")
 	var long_s := ""
 	for _i: int in range(MGR.MAX_SCALAR_LEN + 1):
 		long_s += "a"
