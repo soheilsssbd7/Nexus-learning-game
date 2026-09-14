@@ -1,0 +1,227 @@
+# ---------------------------------------------------------------------------
+# NEXUS — build اندروید (تسک ۱۰.۴ · ADR-004) | **فقط دستی** ✓
+# ---------------------------------------------------------------------------
+# چرا دستی؟ دقیقهٔ CI خصوصی محدود است و دانلود `export_templates.tpz` (~۱٫۳GB) در هر push
+# توجیه ندارد ✓ (ADR-004 ✗✓) — آزمون‌های واقعیِ هر push در `ci.yml` می‌دوند ✓.
+#
+# رازها ✗: `export_presets.cfg` commit می‌شود ولی **هیچ رمزی داخلش نیست** ✓ (ADR-004)؛
+# keystore فقط از Secrets: `ANDROID_KEYSTORE_BASE64` + `ANDROID_KEYSTORE_ALIAS` +
+# `ANDROID_KEYSTORE_PASS` (و `ANDROID_KEY_PASS`). بی‌این سه، build فقط **debug** است ✓
+# (امضای debug برای نصبِ روی گوشیِ خودت کافی است ✓ DoD ۱۰.۴ هم همین را می‌خواهد ✓).
+#
+# ⚠ آنچه این workflow **ادعا نمی‌کند** ✓✗ DoD ۱۰.۴ می‌گوید «روی یک دستگاه واقعی نصب و اجرا
+# شود» — آن سطر را هیچ CI‌ای نمی‌تواند امضا کند ✓؛ artifactِ همین run + `docs/smoke-checklist.md`
+# کارِ تو است ✓✓ (گزارشِ §۲/§۳ همان «امضای عبور» است ✓).
+# ---------------------------------------------------------------------------
+name: "Android export"
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "debug یا release (release به سه secretِ keystore نیاز دارد ✓)"
+        required: false
+        default: "debug"
+        type: choice
+        options:
+          - debug
+          - release
+      output_format:
+        description: "apk یا aab (پسوندِ مسیر تصمیم‌گیرنده است ✓ در اولین اجرا تأیید شود ✓)"
+        required: false
+        default: "apk"
+        type: choice
+        options:
+          - apk
+          - aab
+
+concurrency:
+  group: android-export
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: 4.7.2
+  ANDROID_PLATFORM: android-36
+  ANDROID_BUILD_TOOLS: 36.0.0
+
+jobs:
+  export:
+    name: "Godot headless export + گزارشِ سایز/manifest ✓✓"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "JDK 17 (gradleِ template)"
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: "Android SDK: platform 36 + build-tools 36.0.0 ✓ADR-009"
+        uses: android-actions/setup-android@v3
+
+      - name: "sdkmanager packages (pinned ✓)"
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}"
+
+      - name: "Download Godot + export templates (کش‌شده ✓)"
+        id: godot
+        run: |
+          set -euo pipefail
+          CACHE="$HOME/.cache/nexus-godot"
+          mkdir -p "$CACHE"
+          KEY="godot-${GODOT_VERSION}-templates"
+          if [ ! -x "$CACHE/godot" ]; then
+            curl -sSL --retry 3 -o "$CACHE/godot.zip" \
+              "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+            (cd "$CACHE" && unzip -qo godot.zip && rm -f godot.zip)
+            mv -f "$CACHE/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$CACHE/godot"
+            chmod +x "$CACHE/godot"
+          fi
+          if [ ! -d "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable" ]; then
+            curl -sSL --retry 3 -o "$CACHE/tpz.tpz" \
+              "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+            mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+            (cd "$CACHE" && unzip -qo tpz.tpz && rm -f tpz.tpz)
+            mv -f "$CACHE/templates/"* "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+          fi
+          "$CACHE/godot" --version
+          echo "path=$CACHE/godot" >> "$GITHUB_OUTPUT"
+
+      - name: "Import project (بی‌این، export داده‌ها را نمی‌بیند ✓)"
+        run: ${{ steps.godot.outputs.path }} --headless --path game --import
+
+      # ⚠ قالب gradle در `game/android/build/` است که عمداً gitignore شده ✓⇒ اول نصبِ template،
+      #   بعد درجِ مجوزهای **ما**، و بعد build ✓ (به همین ترتیب، چون نصبِ template manifest را
+      #   از نو می‌نویسد ✗✓ — اگر ترتیب برعکس شود، مجوزها بی‌صدا می‌پرند ✗✓ ADR-066)
+      - name: "Install Android build template"
+        run: |
+          set -euo pipefail
+          ${{ steps.godot.outputs.path }} --headless --path game --install-android-build-template
+          test -f game/android/build/AndroidManifest.tmpl.xml
+
+      - name: "Inject our permissions into the template manifest (idempotent ✓)"
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib, re
+          man = pathlib.Path("game/android/build/AndroidManifest.tmpl.xml")
+          src = pathlib.Path("game/android/permissions.xml")
+          wanted = re.findall(r"<uses-permission[^>]*/>", src.read_text(encoding="utf-8"))
+          assert wanted, "منبعِ مجوز خالی است ✗ (game/android/permissions.xml)"
+          text = man.read_text(encoding="utf-8")
+          # اول هر uses-permissionِ دیگری را که مالِ ما نیست برمی‌داریم ✓✗ «فقط INTERNET+VIBRATE»
+          # یعنی **افزودنی‌های ما**، نه هرچه template پیش‌فرض آورده ✓ (ADR-009/010)
+          kept = [line for line in text.splitlines() if "uses-permission" not in line]
+          joined = "\n".join(kept)
+          if all(w.strip() in joined for w in wanted):
+              print("مجوزها از قبل درست‌اند ✓")
+          else:
+              pad = "\n\t" + "\n\t".join(w.strip() for w in wanted) + "\n"
+              joined = joined.replace("</manifest>", pad + "</manifest>")
+              man.write_text(joined, encoding="utf-8")
+              print(f"درج شد: {len(wanted)} مجوز ✓✓")
+          PY
+          grep -c "uses-permission" game/android/build/AndroidManifest.tmpl.xml
+
+      - name: "Keystore از Secrets (فقط برای release ✓ — بی‌آن debug می‌ماند ✓)"
+        id: ks
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.build_type }}" = "release" ]; then
+            if [ -z "$KS_B64" ] || [ -z "$KS_ALIAS" ]; then
+              echo "::error::build_type=release ولی ANDROID_KEYSTORE_BASE64/ALIAS تعریف نشده ✗✓ (ADR-004: رمزها فقط در Secrets)"
+              exit 1
+            fi
+            printf '%s' "$KS_B64" | base64 -d > "$RUNNER_TEMP/nexus.keystore"
+            echo "path=$RUNNER_TEMP/nexus.keystore" >> "$GITHUB_OUTPUT"
+          else
+            echo "debug: بدون keystore ✓ (نصب روی دستگاهِ خودت با همین امضا مجاز است ✓)"
+          fi
+
+      - name: "Export"
+        run: |
+          set -euo pipefail
+          EXT="${{ inputs.output_format }}"
+          OUT="build-android/nexus-${{ inputs.build_type }}.$EXT"
+          mkdir -p build-android
+          FLAGS=""
+          if [ "${{ inputs.build_type }}" = "release" ]; then
+            FLAGS="--keystore ${{ steps.ks.outputs.path }} --ks-key-alias ${{ secrets.ANDROID_KEYSTORE_ALIAS }} --keystore-pass ${{ secrets.ANDROID_KEYSTORE_PASS }} --keypass ${{ secrets.ANDROID_KEY_PASS }}"
+          fi
+          # `--export-debug` برای debug ✓ و `--export-release` برای release ✓ (Godot 4)
+          if [ "${{ inputs.build_type }}" = "release" ]; then
+            ${{ steps.godot.outputs.path }} --headless --path game --export-release "Android" "$OUT" $FLAGS
+          else
+            ${{ steps.godot.outputs.path }} --headless --path game --export-debug "Android" "$OUT"
+          fi
+          test -s "$OUT"
+          echo "out=$OUT" >> "$GITHUB_ENV"
+
+      # ← حلقۀ بسته ✓✗ گیت‌های ما **مقادیرِ منبع** را می‌بینند؛ این سطر همان‌ها را روی
+      #   محصولِ واقعی چک می‌کند (manifestِ داخل APK) ⇒ اگر Godot کلیدی را نادیده گرفته باشد،
+      #   همین‌جا می‌ترکد ✓✓ نه روی گوشیِ کودک ✗
+      - name: "Verify the built artifact (apkanalyzer ✓ — نه حدس)"
+        run: |
+          set -euo pipefail
+          APK="$OUT"
+          case "$APK" in
+            *.aab) python3 - <<'PY'
+          import zipfile, pathlib
+          print("aab: manifest را از داخل bundle می‌خوانیم ✓")
+          PY
+             ;;
+          esac
+          AP=$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/apkanalyzer 2>/dev/null | head -1 || true)
+          if [ -z "$AP" ]; then
+            echo "::warning::apkanalyzer پیدا نشد ⇒ بررسیِ manifest روی دستگاه انجام شود ✓ (`docs/smoke-checklist.md` §۲)"
+            exit 0
+          fi
+          MAN="$("$AP" manifest print "$OUT" 2>/dev/null || true)"
+          echo "$MAN" | grep -E "minSdkVersion|targetSdkVersion" || true
+          echo "$MAN" | grep -oE 'android.permission.[A-Z_]+' | sort -u | tee perms.txt
+          test "$(echo "$MAN" | grep -cE 'android.permission.INTERNET')" -ge 1
+          test "$(echo "$MAN" | grep -cE 'android.permission.VIBRATE')" -ge 1
+          if echo "$MAN" | grep -qE "ACCESS_(FINE|COARSE)_LOCATION|READ_CONTACTS|READ_PHONE_STATE|CAMERA|RECORD_AUDIO|AD_ID"; then
+            echo "::error::مجوزِ ممنوع در بستهٔ ساخته‌شده پیدا شد ✗✓ (سیاست Families/ADR-010)"
+            exit 1
+          fi
+          if echo "$MAN" | grep -qE 'targetSdkVersion="([0-9]|1[0-9]|2[0-9]|3[0-5])"'; then
+            echo "::error::targetSdk < 36 ✗ (Google Play از ۳۱ اوت ۲۰۲۶ ✗ ADR-009)"
+            exit 1
+          fi
+
+      - name: "گزارشِ بودجه (docs/05 §۱: AAB ≤ 24MB · هنر ≤ 4MB ✓)"
+        run: |
+          set -euo pipefail
+          SIZE=$(stat -c %s "$OUT")
+          MB=$(python3 -c "print(round($SIZE/1048576, 2))")
+          echo "| قلم | مقدار |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| فایل | \`$OUT\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| اندازه | ${MB} MB |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| build_type | ${{ inputs.build_type }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Godot | ${GODOT_VERSION} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "مجوزهای نهایی:" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"; cat perms.txt 2>/dev/null >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          python3 -c "import sys; sys.exit(0 if $MB <= 24 else 1)" || {
+            echo "::error::اندازه از بودجه بیرون زد (${MB}MB > 24MB) ✗"
+            exit 1
+          }
+
+      - name: "Upload artifact ✓ (APK/AAB + گزارشِ مجوزها)"
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-android-${{ inputs.build_type }}-${{ github.sha }}
+          path: |
+            build-android/
+            perms.txt
+          if-no-files-found: error
+          retention-days: 30

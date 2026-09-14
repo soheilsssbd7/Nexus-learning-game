@@ -1803,6 +1803,124 @@ def check_duplicate_locals(errs: list[str]) -> int:
     return bad
 
 
+FORBIDDEN_ANDROID_PERMS = (
+    "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "READ_CONTACTS", "READ_PHONE_STATE",
+    "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE", "CAMERA", "RECORD_AUDIO", "AD_ID",
+    "READ_CALENDAR", "READ_SMS",
+)
+
+
+def check_export_config(errs: list[str]) -> int:
+    """پیکربندی خروجی اندروید ✓ (تسک ۱۰.۴ · ADR-004/009/036) — سه چیز را با هم قفل می‌کند ✗✓
+
+    ۱) **پریست**: `gradle_build/use_gradle_build=true` (بی‌gradle، `target_sdk`ِ پریست بی‌اثر است ✗✓
+       و یعنی Play رد می‌کند) · `min_sdk=24`/`target_sdk=36` **مطابق ADR-009** — و چون ADR مالکِ
+       عدد است، متنش را هم می‌خوانیم تا سند و کد از هم دور نیفتند ✓✓ (هر عددِ one-sided قرمز است ✓)
+    ۲) **`include_filter="*.json"`** ✓✗ ADR-036: بی‌این، سطوح (که `FileAccess` خوانده‌اند نه `.tres`)
+       داخل PCK نمی‌روند و بازی روی دستگاه **بی‌هیچ سطحی** بالا می‌آید، درحالی‌که CI و دسکتاپ سبزند ✗✗
+       ⚠ ADR-036 کلیدِ `export/non_resource_files` را اعلام کرده بود که در Godot 4 **وجود ندارد** ✓✗
+       (دورِ ۱۰.۴ لو رفت ⇒ سند اصلاح شد: `include_filter` ✓) — این سطر دقیقاً برای همین هست: که
+       اصلاحِ سند، بی‌اصلاحیِ کد نماند ✓
+    ۳) **حریم خصوصی روی فایلِ پیکربندی**: مجوزهای اعلامی = دقیقاً {INTERNET, VIBRATE} ✓ و هیچ‌کدام
+       از فهرست ممنوعه (§۹/Families) نه در پریست و نه در `permissions.xml` ✓✗ ضمناً هیچ رمزِ non-empty
+       در `export_presets.cfg` نباشد ✓ (ADR-004: `export_credentials.cfg` ignore است، پس اگر رمزی این‌جا
+       دیده شد یعنی اشتباهی commit شده ✗✗)
+    و یک قفلِ روی **رویه**: `android-export.yml` باید `workflow_dispatch` داشته باشد (بی‌اجرای خودکار ✓
+    ADR-004) و باید `apkanalyzer manifest print` را صدا بزند ✓✗ یعنی «گیتِ من مقادیرِ منبع را می‌بیند،
+    موتور را نه» ⇒ جبرانِ این محدودیت **در خودِ workflow** ثبت شده و نمی‌تواند بی‌صدا حذف شود ✓✓
+    """
+    bad = 0
+    preset = GAME / "export_presets.cfg"
+    perms = GAME / "android" / "permissions.xml"
+    adr = ROOT / "docs" / "06-ENGINEERING-DECISIONS.md"  # ⚠ یک فایل است، نه پوشه ✓
+    # (نسخۀ اولِ این گیت `docs/06/…` را می‌خواند ⇒ `adrx` تهی و **هر سه** قفلِ سند-محور بی‌صدا
+    #  رد می‌شدند ✗✓ یعنی گیتی که «سبز» می‌گفت ولی هیچ‌چیز نمی‌سنجید — بدترین نوع گیت ✓✓؛
+    #  از این رو «نبودِ فایل» حالا خطاست، نه skip ✓)
+    wf = ROOT / ".github" / "workflows" / "android-export.yml"
+    if not preset.exists():
+        errs.append("check_export_config: `game/export_presets.cfg` نیست ✗ (تسک ۱۰.۴ باز نشده ✓؟)")
+        return 1
+    text = preset.read_text(encoding="utf-8")
+    # کامنت‌های `;` و `#` و `//` همه می‌روند ✓✗ «فهرستِ چیزهایی که نمی‌خواهیم» در توضیحات
+    # می‌آید و اگر شمرده شود، گیت **مستندسازیِ امنیتی** را به خطای امنیتی تبدیل می‌کند ✗✓
+    code = "\n".join(strip_code(l) for l in text.splitlines() if not l.strip().startswith(";"))
+    if 'platform="Android"' not in code:
+        errs.append("check_export_config: پریست Android نیست ✗ (`platform=\"Android\"` لازم است ✓)")
+        bad += 1
+    need = {
+        "gradle_build/use_gradle_build=true": "بی‌gradle build، `target_sdk` بی‌اثر می‌ماند ✗✓ ADR-009",
+        'include_filter="*.json"': "سطوح JSON به PCK نمی‌روند ⇒ بازی روی دستگاه بی‌سطح ✗✓ ADR-036",
+    }
+    for key, why in need.items():
+        if key not in code:
+            errs.append(f"check_export_config: `{key}` در پریست نیست ✗✓ ({why})")
+            bad += 1
+    # عدد SDK باید با ADR-009 یکی باشد ✓ (سند → کد ✗ نه برعکس ✓§۹.۲/ADR-063)
+    if not adr.exists():
+        errs.append("check_export_config: `docs/06-ENGINEERING-DECISIONS.md` نیست ✗✓ — بی‌آن، "
+                    "برابریِ عددِ ADR-009 با پریست و اعلامِ نامِ پکیج **سنجیده نمی‌شود** ⇒ سکوت نیست ✓")
+        bad += 1
+        adrx = ""
+    else:
+        adrx = adr.read_text(encoding="utf-8")
+    for field, pat in (("min_sdk", r'gradle_build/min_sdk="(\d+)"'), ("target_sdk", r'gradle_build/target_sdk="(\d+)"')):
+        m = re.search(pat, code)
+        if not m:
+            errs.append(f"check_export_config: `{field}` در پریست پیدا نشد ✗✓ (عددِ بی‌کلید = کلیدِ مرده ✓)")
+            bad += 1
+            continue
+        a = re.search(r"`%s=(\d+)`" % ("minSdk" if field == "min_sdk" else "targetSdk"), adrx)
+        if a and a.group(1) != m.group(1):
+            errs.append(f"check_export_config: پریست `{field}=\"{m.group(1)}\"` ولی ADR-009 گفته "
+                        f"`{a.group(1)}` ✗✓ (سند مالک است ⇒ اول ADR را با دلیل عوض کن ✓)")
+            bad += 1
+    uniq = re.search(r'package/unique_name="([^"]*)"', code)
+    if not uniq or not re.fullmatch(r"[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+", uniq.group(1)):
+        errs.append("check_export_config: `package/unique_name` یا نیست یا قالبِ "
+                    "`a.b.c`ِ کوچک نیست ✗✓ (بعد از اولین آپلود به Play تغییرکردنی نیست ⚠)")
+        bad += 1
+    elif uniq.group(1) not in adrx:
+        errs.append(f"check_export_config: نامِ پکیج «{uniq.group(1)}» در ADRها اعلام نشده ✗✓ "
+                    "(انتخابِ نامِ معکوس‌ناپذیر ⇒ باید در سند باشد ✓ ADR-066)")
+        bad += 1
+    if re.search(r'(?i)(keystore_pass|storepass|key_pass|pass)="[^"]+"', code):
+        errs.append("check_export_config: مقدارِ رمز در `export_presets.cfg` دیدم ✗✗ (ADR-004: "
+                    "رمزها فقط در Secrets — این فایل commit می‌شود!)")
+        bad += 1
+    declared: set[str] = set()
+    if not perms.exists():
+        errs.append("check_export_config: `game/android/permissions.xml` نیست ✗ (منبعِ حقیقتِ مجوزها ✓)")
+        bad += 1
+    else:
+        ptxt = re.sub(r"<!--.*?-->", "", perms.read_text(encoding="utf-8"), flags=re.S)
+        declared = set(re.findall(r"android\.permission\.([A-Z_]+)", ptxt))
+        if declared != {"INTERNET", "VIBRATE"}:
+            errs.append(f"check_export_config: مجوزهای اعلامی {sorted(declared)} ≠ "
+                        "['INTERNET', 'VIBRATE'] ✗✓ (ADR-009/010 — هر افزوده‌ای باید اول در ADR باشد ✓)")
+            bad += 1
+    blob = code + "\n" + (re.sub(r"<!--.*?-->", "", perms.read_text(encoding="utf-8"), flags=re.S)
+                          if perms.exists() else "")
+    for forbidden in FORBIDDEN_ANDROID_PERMS:
+        if forbidden in blob:
+            errs.append(f"check_export_config: «{forbidden}» در پیکربندی خروجی دیده شد ✗✗ "
+                        "(اپِ مخاطب‌کودک + سیاست Families ✓§۹)")
+            bad += 1
+    if not wf.exists():
+        errs.append("check_export_config: `.github/workflows/android-export.yml` نیست ✗ (DoD ۱۰.۴: artifact ✓ ADR-004)")
+        bad += 1
+    else:
+        wtxt = wf.read_text(encoding="utf-8")
+        if "workflow_dispatch" not in wtxt:
+            errs.append("check_export_config: workflow خروجی، `workflow_dispatch` ندارد ✗✓ "
+                        "(ADR-004: build سنگین نباید روی هر push بدود ✓) و نبودش یعنی دقیقه‌های CI خصوصی ✗")
+            bad += 1
+        if "apkanalyzer" not in wtxt:
+            errs.append("check_export_config: workflow `apkanalyzer manifest print` را صدا نمی‌زند ✗✓ "
+                        "— بدون آن، گیتِ ما فقط **منبع** را دیده و مقادیرِ واقعیِ بسته بی‌سنجش می‌ماند ✓✓")
+            bad += 1
+    return bad
+
+
 def check_multiline_string_concat(errs: list[str]) -> int:
     """«چسباندنِ رشته‌ها با فاصله» Python است، نه GDScript ✗✓ (تجربۀ ۱۰.۳)
 
@@ -2145,6 +2263,7 @@ def main() -> int:
     i18n_ui = check_ui_string_i18n(errs)
     consts = check_const_expressions(errs)
     backend_ok = check_backend_contract(errs, notes)
+    export_ok = check_export_config(errs)
     dup_ok = check_duplicate_locals(errs)
     concat_ok = check_multiline_string_concat(errs)
     autoload_ok = check_autoload_registration(errs)

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  NEXUS — مجوزهای اندروید | تسک ۱۰.۴ (ADR-009 · ADR-010 · docs/03 §۹)
+  =====================================================================
+  این فایل **منبعِ حقیقتِ مجوزها** است ✓✗ مسیرِ `game/android/build/` عمداً در `.gitignore`
+  است (قالبِ gradleِ تولیدیِ Godot آن‌جا بازساز می‌شود ✓ `.gitignore:23` ⇒ هر بار که ادیتور
+  template را نصب کند، manifest بازنویسی می‌شود ✗✓) پس `android-export.yml` این دو سطر را
+  **بعد از نصبِ template** داخل manifestِ واقعی درج می‌کند ✓✓ (idempotent ✓).
+
+  چرا فقط این دو تا؟
+  • `INTERNET` — تنها چیزی که `NetworkClient` لازم دارد ✓§۹ (و با `cloud_sync_enabled=false`
+    حتی با این مجوز هم صفر بایت بیرونی است ✓✗ تستِ GUT و چک‌لیست هر دو همین را می‌سنجند ✓)
+  • `VIBRATE` — بازخوردِ لمسیِ `02` §۷ (`Input.vibrate_handheld`) ✗✓ بی‌مجوز، لرزش بی‌صدا
+    کار نمی‌کند و §۷ فقط «عدد» می‌ماند ✓✓ (تستِ دستگاه در `docs/smoke-checklist.md` §۲ ✓)
+
+  و آنچه **عمداً نیست** ✗ (سیاست Families/ADR-010 — هرکدام یک ردِّ صریح است، نه فراموشی):
+  `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` (موقعیت = دادهٔ حساسِ کودک ✗✗)
+  `READ_CONTACTS` / `READ_PHONE_STATE` / `READ_EXTERNAL_STORAGE` · `CAMERA` · `RECORD_AUDIO`
+  `com.google.android.gms.permission.AD_ID` (AAID ✗✗ — حتی به‌عنوان «transitive» هم نه:
+  یعنی AdMob/Firebase/Crashlytics در پروژه راه ندارد ✓ ADR-010 ✓)
+-->
+<permissions>
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.VIBRATE" />
+</permissions>
