@@ -1810,6 +1810,134 @@ FORBIDDEN_ANDROID_PERMS = (
 )
 
 
+PRIVACY_NEVER_TOKENS = (
+    # توکن‌های **زبان‌خنثی** ✓✗ مقایسهٔ برچسب‌های فارسی/انگلیسی ممکن نیست ⇒ دو چیز سنجیده
+    # می‌شود: (۱) این نام‌ها در فهرستِ *هر دو* زبان بیایند ✓ (۲) تعدادِ قلم‌های فهرست برابر
+    # باشد ✓✗ پس «یک قلم را در یک زبان اضافه/کم کردی» گرفته می‌شود بدون اینکه ترجمه بازتولید شود ✓
+    "IMEI", "AAID", "MAC", "SSID", "BSSID", "SIM",
+)
+PRIVACY_COLLECT_FORBIDDEN = (
+    "email", "phone", "location", "contacts", "camera", "microphone", "imei", "aaid",
+    "advertising", "gps",
+    # معادل‌های فارسی ✓✗ سیاستِ fa هم باید سنجد، وگرنه قفل فقط نصفِ مخاطب را می‌پوشاند ✗✓
+    "ایمیل", "تلفن", "موقعیت", "مخاطبین", "دوربین", "میکروفون", "شناسه تبلیغ",
+)
+
+
+def _md_section(text: str, header_pat: str) -> str:
+    """بدنۀ یک سرفصلِ `## …` تا سرفصلِ بعدی ✓ (بخش‌محور بودنِ گیت مهم است: واژۀ «ایمیل» در
+    بخش «هرگز» باید باشد و در بخش «جمع می‌شود» نباید ✗✓ یک جست‌وجوی سراسری هر دو را یکسان می‌دید ✓)"""
+    # ⚠ سرفصل با (?:…) غیرگروهبندی می‌شود ✗✓ وگرنه `group(1)` خودِ سرفصل را می‌دهد و
+    #   «بدنۀ ۱۱ کاراکتری» یعنی گیت بی‌صدا تقریباً همه‌چیز را ندیده می‌گیرد ✓✓ (همین را
+    #   در دورِ اولِ این گیت داشتیم ⇒ قاعدۀ «گیت باید پروبِ قرمز ببیند و سبزِ معنادار» ✓)
+    # `(?:…)` کردنِ سرفصل لازم است ✓✗ اگر فراخوان، الترنیشن را گروه‌دار بدهد، `group(1)` خودِ
+    # سرفصل می‌شود و بدنۀ «۹ کاراکتری» ⇒ گیت بی‌صدا تقریباً هیچ‌چیز را نمی‌بیند ✓✓ (این دقیقاً
+    # همان باگی است که پروبِ قرمز/سبز این گیت را لازم کرد ✓)
+    pat = header_pat if header_pat.startswith("(?") else "(?:" + header_pat + ")"
+    m = re.search(r"^##\s+" + pat + r"[^\n]*\n(.*?)(?=^##\s|\Z)", text, re.M | re.S)
+    # `group(m.lastindex)` نه `group(1)` ✓✗ اگر خودِ `header_pat` هم گروه داشته باشد، شماره‌ها
+    # جابه‌جا می‌شوند و «بدنه» عملاً همان کلمۀ سرفصل می‌شود ✓✓ (این باگ دو دور وقت گرفت و
+    # نشانش این بود که گیت، بی‌صدا تقریباً هیچ‌چیز را نمی‌دید ⇒ قاعده: هر گیتِ متنی باید
+    # با یک پروبِ قرمزِ *معنادار* ثابت کند که واقعاً دارد می‌بیند ✓)
+    return m.group(m.lastindex) if m else ""
+
+
+def check_privacy_policy(errs: list[str]) -> int:
+    """`docs/privacy-policy-{fa,en}.md` ↔ `backend/src/schemas/events.ts` ✓ (تسک ۱۱.۱ · ADR-067)
+
+    چهار قفل، چون «متنِ سیاست» دقیقاً همان‌جاست که ادعای بی‌پشتوانه گران می‌افتد ✗✓:
+      ۱) هر دو زبان باشند ✓ و **هر دو** بخشِ «جمع می‌شود / هرگز» را داشته باشند ✓
+      ۲) شش نوعِ رویدادِ اعلامی در سیاست == enumِ zod ✓✗ (اگر روزی رویدادِ هفتم اضافه شود و
+         سیاست به‌روز نشود، آن «دادهٔ اعلام‌نشده» است ⇒ همان چیزی که Data Safety را دروغین می‌کند ✗✓)
+      ۳) واژه‌های ممنوعه (`email/phone/location/camera/microphone/advertising/imei/aaid/…`) در
+         بخشِ «جمع می‌شود» **نیایند** ✓✗ در بخشِ «هرگز» بی‌محدودیت‌اند ✓ (بخش‌محور ✓)
+      ۴) فهرستِ «هرگز» در fa و en **همان قلم‌ها** باشند ✓ (سنجشِ لاتینِ داخل فهرست ⇒ ترجمۀ یک‌طرفه
+         قرمز می‌شود ✓✓) و هر دو فایلِ سیاست، آدرسِ تماس و «۱۲ ماه» را بگویند ✓ (حذف و نگهداری:
+         دو بندی که بدونِ آن‌ها انطباق Families رد می‌شود ✓)
+    """
+    bad = 0
+    files = {lang: ROOT / "docs" / f"privacy-policy-{lang}.md" for lang in ("fa", "en")}
+    texts: dict[str, str] = {}
+    for lang, f in files.items():
+        if not f.exists():
+            errs.append(f"check_privacy_policy: `docs/privacy-policy-{lang}.md` نیست ✗ (تسک ۱۱.۱)")
+            bad += 1
+            continue
+        texts[lang] = f.read_text(encoding="utf-8")
+    if len(texts) < 2:
+        return bad
+    ev = BACKEND / "src/schemas/events.ts"
+    declared = {"fa": set(), "en": set()}
+    for lang, txt in texts.items():
+        col = _md_section(txt, r"(چه چیزی جمع|What we collect)")
+        never = _md_section(txt, r"(هرگز جمع|Never collected)")
+        if not col.strip():
+            errs.append(f"check_privacy_policy-{lang}: بخش «چه چیزی جمع می‌شود» خالی/ناموجود ✗✓ "
+                        "(سیاستِ بدونِ فهرستِ جمع‌آوری، سیاست نیست ✓)")
+            bad += 1
+        if not never.strip():
+            errs.append(f"check_privacy_policy-{lang}: بخش «هرگز جمع نمی‌شود» خالی/ناموجود ✗✓")
+            bad += 1
+        # بخش‌محور + **ساحه‌محورِ نفی** ✓✗ جملهٔ «هیچ‌گاه به ایمیل نگاشت ندارد» داخل بخشِ
+        # «جمع می‌شود» است و معنایش درست است ⇒ اگر خط نفی داشته باشد رد می‌شود ✓ (و اگر
+        # نفی نبود و قلمِ ممنوعه آمد، یعنی واقعاً اعلامِ جمع‌آوری است ✗✓ قرمز)
+        NEG = ("not", "no ", "never", "without", "free of", "ندارد", "نیست", "نمی", "بدون", "نه ")
+        for raw in col.splitlines():
+            line = raw.lower()
+            if any(n in line for n in NEG):
+                continue
+            for token in PRIVACY_COLLECT_FORBIDDEN:
+                if token in line:
+                    errs.append(
+                        f"check_privacy_policy-{lang}: «{token}» در بخش «جمع می‌شود» و بدون هیچ نفی ✗✗ "
+                        f"(یا ادعا درست است و سیاست باید عوض شود، یا برعکس ✓§۹/Families) «{raw.strip()[:48]}»"
+                    )
+                    bad += 1
+        if ("12" not in txt) and ("۱۲" not in txt):
+            errs.append(f"check_privacy_policy-{lang}: مدتِ نگهداری (۱۲ ماه) اعلام نشده ✗✓ "
+                        "(سیاستِ بدونِ retention، در Data Safety رد می‌شود ✓)")
+            bad += 1
+        if "https://" not in txt:
+            errs.append(f"check_privacy_policy-{lang}: نشانیِ تماس والد نیست ✗✓ (سیاست بدونِ مسیرِ "
+                        "حذف = انطباق ناقص ✓ ۱۱.۲ §۳)")
+            bad += 1
+        for tok in PRIVACY_NEVER_TOKENS:
+            if tok not in never:
+                errs.append(f"check_privacy_policy-{lang}: «{tok}» در فهرست «هرگز» نیست ✗✓ "
+                            "(این شش قلم، فهرستِ صریحِ سیاست Families‌اند ✓)")
+                bad += 1
+        declared[lang] = set(re.findall(r"`([a-z_]{6,})`", col))
+    if ev.exists():
+        ttxt = ev.read_text(encoding="utf-8")
+        m = re.search(r"export const EVENT_TYPES = \[(.*?)\] as const", ttxt, re.S)
+        backend_types = set(re.findall(r'"([a-z_]{3,})"', m.group(1))) if m else set()
+        for lang in texts:
+            if not backend_types:
+                errs.append("check_privacy_policy: enumِ بک‌اند خوانده نشد ✗ (قفلِ ۲ بی‌صدا تعطیل است ✓)")
+                bad += 1
+                break
+            missing = backend_types - declared[lang]
+            if missing:
+                errs.append(f"check_privacy_policy-{lang}: این رویدادها در سیاست اعلام نشده‌اند ✗✓ "
+                            f"{sorted(missing)} — «دادهٔ جمع‌شدهٔ اعلام‌نشده» دقیقاً همان چیزی است که "
+                            "Data Safety را دروغین می‌کند ✓")
+                bad += 1
+            extra = {x for x in declared[lang] if x.endswith(("_start", "_end", "_shown", "_occurred", "_completed", "_started"))} - backend_types
+            if extra:
+                errs.append(f"check_privacy_policy-{lang}: سیاست رویدادِ «{sorted(extra)}» را وعده داده "
+                            "که در enumِ سرور نیست ✗✓ (یا وعده را بردار یا اول سرور ✓)")
+                bad += 1
+    fa_never = _md_section(texts["fa"], r"(هرگز جمع)")
+    en_never = _md_section(texts["en"], r"(Never collected)")
+    n_fa = len([l for l in fa_never.splitlines() if l.strip().startswith("-")])
+    n_en = len([l for l in en_never.splitlines() if l.strip().startswith("-")])
+    if n_fa and n_en and n_fa != n_en:
+        errs.append(f"check_privacy_policy: فهرست «هرگز» دو زبان هم‌تعداد نیست ✗✓ (fa={n_fa} · en={n_en}) "
+                    "⇒ ترجمۀ یک‌طرفه = یک والدِ گمراه‌شده ✓§۱۱.۱")
+        bad += 1
+    return bad
+
+
 def check_export_config(errs: list[str]) -> int:
     """پیکربندی خروجی اندروید ✓ (تسک ۱۰.۴ · ADR-004/009/036) — سه چیز را با هم قفل می‌کند ✗✓
 
@@ -1883,6 +2011,10 @@ def check_export_config(errs: list[str]) -> int:
         errs.append(f"check_export_config: نامِ پکیج «{uniq.group(1)}» در ADRها اعلام نشده ✗✓ "
                     "(انتخابِ نامِ معکوس‌ناپذیر ⇒ باید در سند باشد ✓ ADR-066)")
         bad += 1
+    for token, why in (("addons/gut", "GUT داخل بسته نرود ✓§۱۱.۲"), ("tests", "۴۹ فایلِ تست داخل بسته نرود ✓")):
+        if token not in code:
+            errs.append(f"check_export_config: `exclude_filter` الگوی «{token}» را ندارد ✗✓ ({why})")
+            bad += 1
     if re.search(r'(?i)(keystore_pass|storepass|key_pass|pass)="[^"]+"', code):
         errs.append("check_export_config: مقدارِ رمز در `export_presets.cfg` دیدم ✗✗ (ADR-004: "
                     "رمزها فقط در Secrets — این فایل commit می‌شود!)")
@@ -2263,6 +2395,7 @@ def main() -> int:
     i18n_ui = check_ui_string_i18n(errs)
     consts = check_const_expressions(errs)
     backend_ok = check_backend_contract(errs, notes)
+    priv_ok = check_privacy_policy(errs)
     export_ok = check_export_config(errs)
     dup_ok = check_duplicate_locals(errs)
     concat_ok = check_multiline_string_concat(errs)

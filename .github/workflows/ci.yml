@@ -87,31 +87,16 @@ jobs:
             exit 1
           fi
 
-      # ← آزمودنِ «گزارش پوشش تولید شود» (DoD ۱۰.۱) ✓✗ ما **نمی‌دانستیم** Godot 4.7.2 در CI
-      #   خط‌پوشی تولید می‌کند یا نه ✗✓ و نه ادعا می‌کنیم و نه انکار: یک بار با flag اجرا
-      #   می‌کنیم و جواب را با annotation برمی‌گردانیم ✓✓ (step عمداً **بی‌شکست** است تا این
-      #   پرسش به آزمونِ این شاخه تبدیل نشود ✓ — سبز/قرمزِ واقعی را GUTِ بالا می‌گوید ✓)
-      - name: "Coverage probe (--coverage ✓ آزمودنی، نه ادعا — ۱۰.۱)"
-        if: always()
-        run: |
-          set -uo pipefail
-          GODOT=~/.cache/nexus-godot/godot
-          $GODOT --headless --path game --coverage \
-            -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json -gexit >cov.log 2>&1 || true
-          files=$( { find game/.godot -type f \( -name '*.lst' -o -name '*coverage*' \) ;
-                     find . -maxdepth 2 -type d -name 'coverage' ; } 2>/dev/null | sort -u | head -8 )
-          n=$(printf '%s' "$files" | grep -c . || true)
-          echo "$files" | sed 's|^|::notice::COVFILE |' | head -8
-          if [ "$n" -eq 0 ]; then
-            if grep -qiE "Invalid|Unrecognized|Unknown option|Can't open|Failed to" cov.log; then
-              echo "::warning::coverage=رد شد ✗✓ (flag شناخته‌شده نیست ⇒ DoD ۱۰.۱ باید با چیزِ دیگری بسته شود ✓)"
-            else
-              echo "::warning::coverage=ساکت ✗✓ flag رد نشد ولی هیچ فایلی هم تولید نشد ⇒ «گزارش پوشش» را نمی‌توانیم ادعا کنیم ✓"
-            fi
-            tail -3 cov.log | sed 's|^|::warning::COVLOG |' || true
-          else
-            echo "::notice::coverage=$n منبع پیدا شد ✓✓ (گامِ بعد: تبدیل به گزارش + قفلِ آستانه ✓)"
-          fi
+      # ---------------------------------------------------------------------
+      # ۱۰.۱ «گزارش پوشش تولید شود» ✗✓ **پاسخِ آزموده، نه حدس** (runِ `24…` روی `a1…` ✓):
+      #   یک stepِ آزمونی با `--coverage` اجرا شد و موتور این را گفت ✓✗
+      #       COVLOG Unknown arguments:  ["--coverage"]
+      #   ⇒ Godot 4.7.2 خط‌پوشیِ GDScript با این flag تولید نمی‌کند؛ پس «درصدِ پوشش» را
+      #   **ادعا نمی‌کنیم** و به‌جایش دو چیز داریم که واقعی‌اند ✓✓: `check_test_coverage_map()`
+      #   (نقشۀ «هر فایلِ منطقی ≥ ۱ تست» ✓ ۲۶/۲۶) و `junit XML` + خلاصۀ GUT در artifact ✓
+      #   stepِ آزمون حذف شد تا دقیقه‌های CIِ خصوصی مصرف نشود ✓ (ADR-004) — اگر روزی Godot
+      #   عوض شد، همان سه خطِ `--coverage` را برگردان و نتیجه را در ADR-067 بنویس ✓
+      # ---------------------------------------------------------------------
       - name: "Test summary as notice (خوانا در تب Checks)"
         if: always()
         run: |
