@@ -1602,6 +1602,32 @@ def check_backend_client_contract(errs: list[str]) -> int:
             errs.append(f"check_backend_client_contract: کلاینت به `{path}` می‌رود ولی در "
                         f"`backend/src/routes/*.ts` بسته نشده ✗✓ (۴۰۴ِ بی‌صدا در production)")
             bad += 1
+
+    # ۴) تسک ۱۰.۳ ✓: «فقط enqueue کردن» کافی نیست ✗✓ هر نوعِ رویدادِ سرور باید در بازی
+    #    **ساخته** هم شود — وگرنه یک enumِ تازه در بک‌اند بی‌مصرف‌کننده می‌ماند و هیچ تستی
+    #    قرمز نمی‌شود ✓✓ (همان «سکوت» که ADR-064 برایش نوشته شد)
+    mgr = GAME / "scripts/autoload/AnalyticsManager.gd"
+    if not mgr.exists():
+        errs.append("check_backend_client_contract: `AnalyticsManager.gd` نیست ✗ (تسک ۱۰.۳ باز نشده ✓؟)")
+        bad += 1
+    else:
+        mtxt = mgr.read_text(encoding="utf-8")
+        hm = re.search(r"const HANDLERS := \{(.*?)\n\}", mtxt, re.S)
+        trig = re.findall(r'"([a-z_]{3,})":', hm.group(1)) if hm else []
+        if not trig:
+            errs.append("check_backend_client_contract: `const HANDLERS` در AnalyticsManager خوانده "
+                        "نشد ✗✓ (با تغییرِ نام، این قفل بی‌صدا می‌شکند ✓ — دقیقاً برای همین این سطر هست)")
+            bad += 1
+        else:
+            for name in t_types:
+                if name not in trig:
+                    errs.append(f"check_backend_client_contract: رویدادِ «{name}» در `HANDLERS` "
+                                f"AnalyticsManager نیست ✗✓ ⇒ هیچ‌وقت trigger نمی‌شود (DoD ۱۰.۳)")
+                    bad += 1
+            for ghost in [x for x in trig if x not in t_types]:
+                errs.append(f"check_backend_client_contract: AnalyticsManager رویدادِ «{ghost}» را "
+                            "می‌سازد که سرور §۵ نمی‌شناسد ✗✓ (۴۰۰ برای تمامِ دسته)")
+                bad += 1
     return bad
 
 
@@ -1717,6 +1743,38 @@ def _backend_tree(text: str) -> list[str]:
 
 
 LOGIC_DIRS = ("scripts/data", "scripts/ai", "scripts/gameplay", "scripts/autoload")
+
+
+def check_autoload_registration(errs: list[str]) -> int:
+    """`[autoload]` در `game/project.godot` ⟺ فایل‌های `scripts/autoload/*.gd` ✓ (۱۰.۳)
+
+    هر دو جهت را می‌سنجد، چون هر دو سمتِ این جفت «خطای بی‌صدا» دارند ✗✓:
+      • ثبت‌شده ولی فایل نیست ⇒ Godot کل پروژه را بارگذاری نمی‌کند (فقط CI می‌فهمد ✓)
+      • فایل هست ولی ثبت نشده ⇒ autoload **هیچ‌وقت `_ready` نمی‌گیرد** ✗✓ و سیگنال‌هایش
+        هرگز وصل نمی‌شوند: دقیقاً حالتی که در ۱۰.۳ «رویدادها ساخته می‌شوند ولی هیچ‌کس
+        نمی‌شنود» بود — بدونِ این گیت، تنها نشانه‌اش صفر بودنِ شمارنده در دیباگ است ✓
+    """
+    bad = 0
+    proj = GAME / "project.godot"
+    adir = GAME / "scripts/autoload"
+    if not proj.exists() or not adir.exists():
+        return 0
+    text = proj.read_text(encoding="utf-8")
+    m = re.search(r"\[autoload\](.*?)(?:\n\[|\Z)", text, re.S)
+    block = m.group(1) if m else ""
+    declared = dict(re.findall(r'^(\w+)="\*(res://[^"]+)"', block, re.M))
+    for name, path in declared.items():
+        f = (GAME / path.replace("res://", "")).resolve()
+        if not f.exists():
+            errs.append(f"project.godot: autoloadِ `{name}` به `{path}` اشاره می‌کند که نیست ✗✓ "
+                        "(پروژه بارگذاری نمی‌شود — این را فقط CI می‌فهمد ✓)")
+            bad += 1
+    on_disk = {f.stem for f in adir.glob("*.gd")}
+    for stem in sorted(on_disk - set(declared.keys())):
+        errs.append(f"game/scripts/autoload/{stem}.gd روی دیسک است ولی در `[autoload]` ثبت نشده ✗✓ "
+                    "⇒ `_ready` هیچ‌وقت اجرا نمی‌شود (سیگنال‌ها وصل نمی‌شوند، شمارنده‌ها صفر می‌مانند ✓)")
+        bad += 1
+    return bad
 
 
 def check_test_coverage_map(errs: list[str]) -> int:
@@ -2006,6 +2064,7 @@ def main() -> int:
     i18n_ui = check_ui_string_i18n(errs)
     consts = check_const_expressions(errs)
     backend_ok = check_backend_contract(errs, notes)
+    autoload_ok = check_autoload_registration(errs)
     cov_ok = check_test_coverage_map(errs)
     ci_ok = check_ci_yaml(errs)
     client_ok = check_backend_client_contract(errs)

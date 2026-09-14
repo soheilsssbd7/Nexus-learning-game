@@ -45,6 +45,12 @@ AudioManager="*res://scripts/autoload/AudioManager.gd"
 ; FeatureFlags (پرچم‌ها) ✓ خودش در _ready هیچ درخواستی نمی‌زند ✗✓ (§۹: بی‌`base_url` یعنی
 ; صفر بایت بیرونی ✓)؛ مصرف‌کننده‌اش AnalyticsManager است (تسک ۱۰.۳) ⟨AudioManager در ۷.۶ ✓⟩
 NetworkClient="*res://scripts/autoload/NetworkClient.gd"
+; AnalyticsManager در تسک ۱۰.۳: **بعد** از NetworkClient (مقصدِ رویدادها ✓) و بعد از
+; GameState/SettingsStore (شناسه و پرچمِ والد را می‌خواند) ✓ — برعکسِ NetworkClient، در
+; `_ready` هیچ درخواستی نمی‌سازد ✗✓ فقط سیگنال می‌گیرد ⇒ اگر زودتر ثبتش کنی، رویدادِ
+; `session_started`ِ GameState (bootstrap ✓) به دستش نمی‌رسد و بی‌سروصدا کم می‌شود ✗✓
+; (گیتِ check_autoload_registration هر دو جهتِ «فایل ⟺ ثبت» را می‌پاید ✓).
+AnalyticsManager="*res://scripts/autoload/AnalyticsManager.gd"
 
 [display]
 
