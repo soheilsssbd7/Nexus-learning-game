@@ -1,0 +1,159 @@
+{
+  "level_id": "tier5_level_08",
+  "tier": 5,
+  "world": "balance_realm",
+  "concept_tags": [
+    "word_problem",
+    "multi_step",
+    "two_dimensional",
+    "fractions",
+    "equality"
+  ],
+  "narrative_intro": "پلِ چوبیِ قله دو دهانه دارد و نگهبانش عجله دارد: «از هر دهانه فقط تا نفسِ بعد مهلت داری؛ نزدیک باشی، رد می‌شوی.» دو دهانه را با هم باز کن.",
+  "left_side": {
+    "fixed_orbs": [],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 10,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 8,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 0.25,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 4.25,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 3.75,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 6,
+        "count": 1
+      }
+    ]
+  },
+  "scales": [
+    {
+      "id": "left_a",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 6
+        },
+        {
+          "type": "number",
+          "value": 4
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [],
+      "right_ghost_orbs": [],
+      "target_value": 10.0
+    },
+    {
+      "id": "right_b",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 12.25
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [
+        {
+          "type": "number",
+          "value": 4
+        }
+      ],
+      "right_ghost_orbs": [],
+      "target_value": 8.25
+    }
+  ],
+  "tolerance": 0.5,
+  "tolerance_strategy": "approx",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "almost_there_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "twin_pans_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "plan_before_placing_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "try_the_other_one_01"
+    }
+  ],
+  "expected_solve_time_sec": 250,
+  "difficulty_elo": 1970,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        {
+          "value": 10,
+          "scale": 0
+        },
+        {
+          "value": 8,
+          "scale": 1
+        },
+        {
+          "value": 0.25,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        {
+          "value": 6,
+          "scale": 0
+        },
+        {
+          "value": 0.25,
+          "scale": 0
+        },
+        {
+          "value": 4.25,
+          "scale": 1
+        },
+        {
+          "value": 0.25,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}

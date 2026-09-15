@@ -1,0 +1,95 @@
+{
+  "level_id": "tier3_level_04",
+  "tier": 3,
+  "world": "balance_realm",
+  "concept_tags": [
+    "fractions",
+    "balance_both_sides"
+  ],
+  "narrative_intro": "این بار شبح روی کفه‌ی راست نشسته؛ یعنی باید سبک‌تر برسی.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 2.5
+      },
+      {
+        "type": "number",
+        "value": 2.5
+      }
+    ],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "target_value": 4.5,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 1,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 2,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 0.5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 4,
+        "count": 1
+      }
+    ],
+    "fixed_orbs": [],
+    "ghost_orbs": [
+      {
+        "type": "ghost",
+        "hidden_value": 0.5
+      }
+    ]
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "compare_sides_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "smallest_first_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "try_the_other_one_01"
+    }
+  ],
+  "expected_solve_time_sec": 105,
+  "difficulty_elo": 1560,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        4,
+        0.5
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        2,
+        2
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

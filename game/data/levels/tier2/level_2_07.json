@@ -1,0 +1,98 @@
+{
+  "level_id": "tier2_level_07",
+  "tier": 2,
+  "world": "balance_realm",
+  "concept_tags": [
+    "subtraction",
+    "equality",
+    "multi_step"
+  ],
+  "narrative_intro": "بیست کیلو در برابر هشت؛ اگر راهِ کوتاه‌تری می‌بینی، باز هم حسابش کن.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 20
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 15,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 9,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 6,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 3,
+        "count": 3
+      },
+      {
+        "type": "negative",
+        "value": 6,
+        "count": 1
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 8
+      },
+      {
+        "type": "negative",
+        "value": 3
+      }
+    ]
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "try_the_other_one_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "smallest_first_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "both_sides_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "compare_sides_01"
+    }
+  ],
+  "expected_solve_time_sec": 65,
+  "difficulty_elo": 1340,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        9,
+        6
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        9,
+        9
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

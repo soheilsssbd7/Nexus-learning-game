@@ -1,0 +1,98 @@
+{
+  "level_id": "tier5_level_07",
+  "tier": 5,
+  "world": "balance_realm",
+  "concept_tags": [
+    "fractions",
+    "word_problem",
+    "equality",
+    "multi_step"
+  ],
+  "narrative_intro": "سه کیسه‌ی یکسان آرد را روی کفه گذاشته‌اند؛ آسیابان هر کیسه را به چهار قسمت برابر تقسیم کرده و فقط تکه‌ها را در سبد گذاشته است. با تکه‌ها بار را کامل کن.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 3
+      },
+      {
+        "type": "number",
+        "value": 3
+      },
+      {
+        "type": "number",
+        "value": 3
+      }
+    ],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "target_value": 9.0,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 2.25,
+        "count": 4
+      },
+      {
+        "type": "number",
+        "value": 4.5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 6,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 9,
+        "count": 1
+      }
+    ]
+  },
+  "tolerance": 0.0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "idle_45s",
+      "hint_id": "smallest_first_01"
+    },
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "try_the_other_one_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "bubble_peek_01"
+    }
+  ],
+  "expected_solve_time_sec": 240,
+  "difficulty_elo": 1960,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        2.25,
+        2.25,
+        2.25,
+        2.25
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        6,
+        2.25
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

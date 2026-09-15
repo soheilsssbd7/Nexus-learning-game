@@ -1,0 +1,108 @@
+; Engine configuration file.
+; NEXUS — Balance Realm
+; Godot 4.7.2-stable (قفل‌شده — توضیح در README.md).
+;
+; این فایل دستی و مطابق docs/01-ARCHITECTURE.md §1 و docs/04-BUILD-PLAN.md تسک ۰.۲ نوشته شده.
+; تنظیمات عمداً حداقلی‌اند: autoloadها در فاز ۱ و تم/فونت در فاز ۶/۸ اضافه می‌شوند.
+
+config_version=5
+
+[application]
+
+config/name="NEXUS"
+config/description="Balance Realm — بازی آموزش ریاضی با ترازو (پروژه NEXUS)، موبایل‌محور"
+config/version="0.1.0"
+config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://icon.svg"
+
+; فاز ۳ تا فاز ۵: جریان کامل «نقشه → سطح → برد → بعدی/نقشه» با F5 اجرا می‌شد.
+; فاز ۶ (تسک ۶.۱): منوی اصلی ساخته شد و صحنه‌ی ورودی بازی است — ناوبری از منو به
+; بازی و بازگشت (WorldMap → دکمهٔ «برگشت») از همین‌جا شروع می‌شود.
+run/main_scene="res://scenes/main/MainMenu.tscn"
+
+[autoload]
+
+; ترتیب ثبت = وابستگی به زمان آماده‌سازی (docs/06 ADR-016). autoload تازه فقط وقتی
+; اضافه می‌شود که فایلش وجود داشته باشد (وگرنه پروژه بارگذاری نمی‌شود).
+EventBus="*res://scripts/autoload/EventBus.gd"
+FeatureFlags="*res://scripts/autoload/FeatureFlags.gd"
+Log="*res://scripts/autoload/Log.gd"
+GameState="*res://scripts/autoload/GameState.gd"
+SaveSystem="*res://scripts/autoload/SaveSystem.gd"
+; LevelLoader در فاز ۳ اضافه شد: باید **بعد** از SaveSystem/GameState باشد چون
+; LevelScene در _ready از آن config می‌گیرد و خود LevelScene شمارنده‌های GameState
+; را شروع می‌کند (docs/06 ADR-016). ⚠ کامنت این فایل فقط با ; مجاز است (ADR-026 بند ۱۴).
+LevelLoader="*res://scripts/autoload/LevelLoader.gd"
+; DifficultyEngine در فاز ۴: **بعد** از LevelLoader (کاندیدها را با DirAccess از او
+; می‌خواند) و بعد از GameState/SaveSystem (رتبه را در مدل می‌نویسد). seam ورودی‌اش
+; LevelLoader.next_selector است (docs/06 ADR-035/038).
+DifficultyEngine="*res://scripts/autoload/DifficultyEngine.gd"
+; AudioManager در تسک ۷.۶: **بعد** از EventBus (سیگنال می‌گیرد) و SettingsStore (باس‌ها را
+; از او می‌گیرد) ✓✓ خودِ باس‌ها را هم می‌سازد، چون `SettingsStore.apply_volume` بی‌باسِ
+; SFX/Music بی‌صدا work-around می‌کرد ✗✓ (بندِ ADR-016: ترتیبِ ثبت = ترتیبِ وابستگی).
+AudioManager="*res://scripts/autoload/AudioManager.gd"
+; NetworkClient در تسک ۹.۶: **بعد** از Log/SettingsStore (آنها را مصرف می‌کند) و بعد از
+; FeatureFlags (پرچم‌ها) ✓ خودش در _ready هیچ درخواستی نمی‌زند ✗✓ (§۹: بی‌`base_url` یعنی
+; صفر بایت بیرونی ✓)؛ مصرف‌کننده‌اش AnalyticsManager است (تسک ۱۰.۳) ⟨AudioManager در ۷.۶ ✓⟩
+NetworkClient="*res://scripts/autoload/NetworkClient.gd"
+; AnalyticsManager در تسک ۱۰.۳: **بعد** از NetworkClient (مقصدِ رویدادها ✓) و بعد از
+; GameState/SettingsStore (شناسه و پرچمِ والد را می‌خواند) ✓ — برعکسِ NetworkClient، در
+; `_ready` هیچ درخواستی نمی‌سازد ✗✓ فقط سیگنال می‌گیرد ⇒ اگر زودتر ثبتش کنی، رویدادِ
+; `session_started`ِ GameState (bootstrap ✓) به دستش نمی‌رسد و بی‌سروصدا کم می‌شود ✗✓
+; (گیتِ check_autoload_registration هر دو جهتِ «فایل ⟺ ثبت» را می‌پاید ✓).
+AnalyticsManager="*res://scripts/autoload/AnalyticsManager.gd"
+
+[display]
+
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+window/vsync/vsync_mode=1
+window/energy_saving/keep_screen_on=true
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_2d=0
+
+[internationalization]
+
+locale/fallback=PackedStringArray("fa")
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[gui]
+
+; تسک ۸.۴ | §۷ «کفِ متن ۲۴px + خانوادۀ Vazirmatn» ⇒ تمِ سراسری ✓✗ بدونِ این، هر کنترلی
+; که اندازه ننوشته فونت ۱۶pxِ موتور می‌گیرد و روی Android گلیف فارسی ندارد ✗✗
+theme/custom="res://themes/Nexus.tres"
+
+[input]
+
+; اکشن‌های رزرو شده طبق تسک ۰.۲ — درگ عمداً در WeightOrb با _input_event هندل می‌شود
+; (هم لمس هم موس)، پس این‌ها فعلاً binding ندارند و فقط برای اتصال‌های آینده‌اند.
+drag_start={
+"deadzone": 0.5,
+"events": []
+}
+drag_end={
+"deadzone": 0.5,
+"events": []
+}
+
+[audio]
+
+; فاز ۶ (تسک ۶.۳): اسلایدر «موسیقی» و «جلوه‌ها» باید دو باس جدا داشته باشند، پس
+; چیدمان باس‌ها از همینجا تعریف می‌شود (Master ← Music/SFX). فاز ۷ (AudioManager)
+; فقط پخش را به این باس‌ها وصل می‌کند و دیگر ساختار صدا دست‌نخورده می‌ماند.
+buses/default_bus_layout="res://assets/audio/default_bus_layout.tres"

@@ -1,0 +1,89 @@
+{
+  "level_id": "tier5_level_01",
+  "tier": 5,
+  "world": "balance_realm",
+  "concept_tags": [
+    "word_problem",
+    "equality",
+    "fractions"
+  ],
+  "narrative_intro": "بازرکِ کوهستان دو سبدِ گردو را روی یک کفه چیده و نیم‌کره‌ها را در انبارش نگه می‌دارد؛ تو باید با دو نیم‌کره‌ی یکسان، دقیقاً همان بار را بسازی.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 6
+      },
+      {
+        "type": "number",
+        "value": 1.5
+      }
+    ],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "target_value": 7.5,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 3.75,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 4,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 2.5,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 7.5,
+        "count": 1
+      }
+    ]
+  },
+  "tolerance": 0.0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "idle_45s",
+      "hint_id": "gentle_nudge_01"
+    },
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "check_your_own_balance_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "both_sides_01"
+    }
+  ],
+  "expected_solve_time_sec": 180,
+  "difficulty_elo": 1900,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        3.75,
+        3.75
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        4,
+        2.5
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "level_id": "tier4_level_05",
+  "tier": 4,
+  "world": "balance_realm",
+  "concept_tags": [
+    "subtraction_negative",
+    "debt",
+    "two_dimensional",
+    "multi_step"
+  ],
+  "narrative_intro": "بدهی روی هر دو میز پخش شده؛ یکی را درست کنی ولی آن یکی را ول کنی، باخته‌ای.",
+  "left_side": {
+    "fixed_orbs": [],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 9,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 4,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 10,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 2,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 0.5,
+        "count": 2
+      },
+      {
+        "type": "negative",
+        "value": 1.5,
+        "count": 1
+      }
+    ]
+  },
+  "scales": [
+    {
+      "id": "left_a",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 15
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [
+        {
+          "type": "negative",
+          "value": 4
+        }
+      ],
+      "right_ghost_orbs": [],
+      "target_value": 19
+    },
+    {
+      "id": "right_b",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 6
+        },
+        {
+          "type": "negative",
+          "value": 1.5
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [],
+      "right_ghost_orbs": [],
+      "target_value": 4.5
+    }
+  ],
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "negative_weight_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "plan_before_placing_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "both_sides_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "patience_01"
+    }
+  ],
+  "expected_solve_time_sec": 180,
+  "difficulty_elo": 1780,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        {
+          "value": 10,
+          "scale": 0
+        },
+        {
+          "value": 9,
+          "scale": 0
+        },
+        {
+          "value": 4,
+          "scale": 1
+        },
+        {
+          "value": 0.5,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        {
+          "value": 9,
+          "scale": 0
+        },
+        {
+          "value": 5,
+          "scale": 0
+        },
+        {
+          "value": 4,
+          "scale": 0
+        },
+        {
+          "value": 2,
+          "scale": 1
+        },
+        {
+          "value": 2,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "level_id": "tier2_level_06",
+  "tier": 2,
+  "world": "balance_realm",
+  "concept_tags": [
+    "subtraction_negative",
+    "multi_step"
+  ],
+  "narrative_intro": "یکی از کفه‌ها هم‌زمان بدهی دارد و بار؛ اول هر دو را بشمار، بعد دست بزن.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 6
+      },
+      {
+        "type": "number",
+        "value": 9
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 16,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 6,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 4,
+        "count": 3
+      },
+      {
+        "type": "negative",
+        "value": 5,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 2,
+        "count": 4
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "negative",
+        "value": 5
+      },
+      {
+        "type": "number",
+        "value": 4
+      }
+    ]
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "check_your_own_balance_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "compare_sides_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "socratic_specific_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "patience_01"
+    }
+  ],
+  "expected_solve_time_sec": 60,
+  "difficulty_elo": 1300,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        6,
+        6,
+        4
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        6,
+        4,
+        2,
+        -5
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}

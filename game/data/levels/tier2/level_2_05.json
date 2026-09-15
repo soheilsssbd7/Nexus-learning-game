@@ -1,0 +1,95 @@
+{
+  "level_id": "tier2_level_05",
+  "tier": 2,
+  "world": "balance_realm",
+  "concept_tags": [
+    "debt",
+    "multi_step"
+  ],
+  "narrative_intro": "شش کیلو بدهی روی کفه نشسته؛ برای تعادل باید از ده‌کیلو هم بیشتر بری.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 14
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 20,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 8,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 10,
+        "count": 1
+      },
+      {
+        "type": "negative",
+        "value": 4,
+        "count": 2
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "negative",
+        "value": 6
+      }
+    ]
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "inventory_count_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "socratic_operation_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "smallest_first_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "try_the_other_one_01"
+    }
+  ],
+  "expected_solve_time_sec": 55,
+  "difficulty_elo": 1260,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        10,
+        5,
+        5
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        8,
+        8
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

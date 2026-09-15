@@ -1,0 +1,153 @@
+{
+  "level_id": "tier4_level_02",
+  "tier": 4,
+  "world": "balance_realm",
+  "concept_tags": [
+    "fractions",
+    "two_dimensional",
+    "multi_step"
+  ],
+  "narrative_intro": "اول برای هر دو کفه نقشه بکش، بعد دست بزن؛ نصفه‌ها هم شمرده می‌شوند.",
+  "left_side": {
+    "fixed_orbs": [],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 2,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 1.5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 3,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 0.5,
+        "count": 3
+      }
+    ]
+  },
+  "scales": [
+    {
+      "id": "left_a",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 10
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [
+        {
+          "type": "number",
+          "value": 3
+        }
+      ],
+      "right_ghost_orbs": [],
+      "target_value": 7
+    },
+    {
+      "id": "right_b",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 6.5
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [],
+      "right_ghost_orbs": [],
+      "target_value": 6.5
+    }
+  ],
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "plan_before_placing_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "check_your_own_balance_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "smallest_first_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "both_sides_01"
+    }
+  ],
+  "expected_solve_time_sec": 155,
+  "difficulty_elo": 1720,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        {
+          "value": 5,
+          "scale": 0
+        },
+        {
+          "value": 2,
+          "scale": 0
+        },
+        {
+          "value": 5,
+          "scale": 1
+        },
+        {
+          "value": 1.5,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        {
+          "value": 5,
+          "scale": 0
+        },
+        {
+          "value": 2,
+          "scale": 1
+        },
+        {
+          "value": 2,
+          "scale": 1
+        },
+        {
+          "value": 0.5,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}

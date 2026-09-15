@@ -1,0 +1,185 @@
+{
+  "level_id": "tier4_level_04",
+  "tier": 4,
+  "world": "balance_realm",
+  "concept_tags": [
+    "fractions",
+    "two_dimensional",
+    "equality"
+  ],
+  "narrative_intro": "یک ربع، کم و زیادش خیلی چیزها را عوض می‌کند؛ چشم‌بسته نچین.",
+  "left_side": {
+    "fixed_orbs": [],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 8,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 0.25,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 4,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 2,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 1,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 0.5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 3,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 1
+      }
+    ]
+  },
+  "scales": [
+    {
+      "id": "left_a",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 12
+        },
+        {
+          "type": "number",
+          "value": 0.5
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [
+        {
+          "type": "number",
+          "value": 4
+        },
+        {
+          "type": "number",
+          "value": 0.25
+        }
+      ],
+      "right_ghost_orbs": [],
+      "target_value": 8.25
+    },
+    {
+      "id": "right_b",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 5
+        },
+        {
+          "type": "number",
+          "value": 2.5
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [
+        {
+          "type": "number",
+          "value": 1.5
+        }
+      ],
+      "right_ghost_orbs": [],
+      "target_value": 6.0
+    }
+  ],
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "compare_sides_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "inventory_count_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "smallest_first_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "try_the_other_one_01"
+    }
+  ],
+  "expected_solve_time_sec": 170,
+  "difficulty_elo": 1760,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        {
+          "value": 8,
+          "scale": 0
+        },
+        {
+          "value": 0.25,
+          "scale": 0
+        },
+        {
+          "value": 5,
+          "scale": 1
+        },
+        {
+          "value": 1,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        {
+          "value": 4,
+          "scale": 0
+        },
+        {
+          "value": 4,
+          "scale": 0
+        },
+        {
+          "value": 3,
+          "scale": 1
+        },
+        {
+          "value": 2,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}

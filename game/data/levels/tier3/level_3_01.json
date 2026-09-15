@@ -1,0 +1,92 @@
+{
+  "level_id": "tier3_level_01",
+  "tier": 3,
+  "world": "balance_realm",
+  "concept_tags": [
+    "unknown_variable",
+    "concrete_numbers",
+    "equality"
+  ],
+  "narrative_intro": "یک کره‌ی شبح روی کفه‌ی چپ نشسته و عددش را به هیچ‌کس نمی‌گوید؛ باید حدسش بزنی.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 6
+      }
+    ],
+    "ghost_orbs": [
+      {
+        "type": "ghost",
+        "hidden_value": 3
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 9,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 4,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 3,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 0.5,
+        "count": 4
+      }
+    ],
+    "fixed_orbs": [],
+    "ghost_orbs": []
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "compare_sides_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "bubble_peek_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "inventory_count_01"
+    }
+  ],
+  "expected_solve_time_sec": 90,
+  "difficulty_elo": 1500,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        5,
+        4
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        5,
+        3
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

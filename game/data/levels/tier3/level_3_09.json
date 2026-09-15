@@ -1,0 +1,97 @@
+{
+  "level_id": "tier3_level_09",
+  "tier": 3,
+  "world": "balance_realm",
+  "concept_tags": [
+    "fractions",
+    "equality"
+  ],
+  "narrative_intro": "کره‌ی هشت‌کیلویی دام است؛ یک‌نفس بزرگ بردار، بعد پشیمان نشو.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 12.5
+      }
+    ],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "target_value": 8.0,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 2.5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 0.5,
+        "count": 4
+      },
+      {
+        "type": "number",
+        "value": 8,
+        "count": 1
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 4.5
+      }
+    ],
+    "ghost_orbs": []
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "smallest_first_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "socratic_operation_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "try_the_other_one_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "almost_there_01"
+    }
+  ],
+  "expected_solve_time_sec": 135,
+  "difficulty_elo": 1660,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        5,
+        2.5,
+        0.5
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        5,
+        2.5
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

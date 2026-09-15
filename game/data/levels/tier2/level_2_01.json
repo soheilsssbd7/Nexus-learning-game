@@ -1,0 +1,86 @@
+{
+  "level_id": "tier2_level_01",
+  "tier": 2,
+  "world": "balance_realm",
+  "concept_tags": [
+    "subtraction",
+    "concrete_numbers"
+  ],
+  "narrative_intro": "دهکده دو قفسه دارد و یک ترازو؛ کره‌ی بدهی، وزنِ کفه را کم می‌کند.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 12
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 12,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 5,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 2,
+        "count": 4
+      },
+      {
+        "type": "negative",
+        "value": 2,
+        "count": 3
+      },
+      {
+        "type": "negative",
+        "value": 5,
+        "count": 1
+      }
+    ],
+    "fixed_orbs": []
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "compare_sides_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "socratic_operation_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "inventory_count_01"
+    }
+  ],
+  "expected_solve_time_sec": 35,
+  "difficulty_elo": 1100,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        5,
+        5,
+        2
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        5,
+        5
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

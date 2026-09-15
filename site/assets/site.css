@@ -1,0 +1,63 @@
+/* سایتِ محصول NEXUS ✓✗ بدونِ فونتِ CDN، بدونِ اسکریپتِ شخص ثالث، بدونِ رنگِ قرمزِ خالص
+   (هر سه، قیدِ واقعیِ این پروژه‌اند و گیتِ `check_site()` هم همین‌ها را در فایلِ CSS می‌خواند ✓✓)
+   پالت از §۲ کتاب هنری ✓ — اگر آن‌جا عوض شود، این‌جا قرمز می‌شود ✓ */
+:root{
+  --gold:#F4C95D; --indigo:#2B2F77; --coral:#FF7A5C; --teal:#4FD1C5;
+  --cloud:#FBF9F4; --stone:#8A8FA3; --violet:#B79CED;
+  --ink:#1b1d3a; --paper:#fffdf7; --line:rgba(43,47,119,.16);
+}
+*{box-sizing:border-box}
+html{font-size:17px}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Arabic","Noto Sans",sans-serif;
+  line-height:1.85;-webkit-text-size-adjust:100%}
+[dir=rtl]{font-feature-settings:"liga" 1}
+a{color:var(--indigo);text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{color:var(--coral)}
+code{background:rgba(138,143,163,.16);padding:.1em .35em;border-radius:.3em;font-size:.92em}
+strong{font-weight:650}
+.top{display:flex;flex-wrap:wrap;gap:.8rem 1.2rem;align-items:center;justify-content:space-between;
+  padding:.9rem clamp(.9rem,4vw,2.4rem);background:var(--indigo);color:var(--cloud)}
+.brand{display:flex;align-items:center;gap:.6rem;text-decoration:none;color:var(--cloud)}
+.brand .name{font-weight:750;letter-spacing:.02em}
+.brand .sub{font-weight:500;color:var(--gold);font-size:.86em}
+.bal{display:inline-block;width:1.15em;height:1.15em;border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,var(--gold),var(--coral) 62%,var(--indigo));
+  box-shadow:0 0 0 2px rgba(251,249,244,.35)}
+.links{display:flex;flex-wrap:wrap;gap:.15rem .55rem;font-size:.94em}
+.links a{color:var(--cloud);opacity:.86;text-decoration:none;padding:.15rem .45rem;border-radius:.5rem}
+.links a:hover{opacity:1;background:rgba(251,249,244,.12);color:var(--cloud)}
+.links a.on{background:var(--gold);color:var(--ink);opacity:1;font-weight:650}
+.links a.alt{border:1px solid rgba(251,249,244,.4)}
+main{max-width:60rem;margin:0 auto;padding:clamp(1rem,3.5vw,2.6rem) clamp(.9rem,4vw,2.4rem) 3rem}
+main h1{font-size:clamp(1.55rem,4.4vw,2.3rem);line-height:1.35;margin:.2em 0 .5em}
+main h2{font-size:clamp(1.2rem,3vw,1.5rem);margin:1.9em 0 .45em;padding-bottom:.25em;border-bottom:2px solid var(--line)}
+main h3{font-size:1.08rem;margin:1.4em 0 .3em;color:var(--indigo)}
+main p{margin:.55em 0}
+ul,ol{padding-inline-start:1.35em;margin:.5em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.7em 1em;border-inline-start:4px solid var(--violet);
+  background:rgba(183,156,237,.12);border-radius:.35em}
+.foot{border-top:1px solid var(--line);padding:1.4rem clamp(.9rem,4vw,2.4rem) 2.4rem;
+  color:var(--stone);font-size:.92em;background:#faf7ef}
+.foot a{color:var(--indigo)}
+.small{font-size:.86em;margin:.3em 0}
+/* بلوک‌های محتواییِ سایت (کلاس‌ها را در md دستی می‌گذاریم ✓✗ بدونِ JS) */
+.hero{display:grid;gap:1.1rem;grid-template-columns:1fr;padding:1.1rem 0 .4rem}
+@media (min-width:46rem){.hero{grid-template-columns:1.35fr .65fr;align-items:start}}
+.card{border:1px solid var(--line);border-radius:.9rem;padding:.9rem 1.05rem;background:#fff;
+  box-shadow:0 1px 0 rgba(43,47,119,.05)}
+.card h3{margin-top:0}
+.grid{display:grid;gap:.85rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));margin:1rem 0}
+.pill{display:inline-block;font-size:.82em;padding:.18em .62em;border-radius:999px;
+  background:rgba(79,209,197,.2);border:1px solid rgba(43,47,119,.18);margin-inline-end:.35em}
+.pill.warn{background:rgba(255,122,92,.18)}
+.pill.no{background:rgba(138,143,163,.18)}
+.keys{display:grid;gap:.45rem;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));font-size:.93em}
+.keys b{display:block;color:var(--indigo);font-size:.9em;font-weight:650}
+table{border-collapse:collapse;margin:1rem 0;font-size:.94em}
+body.play{margin:0;background:var(--indigo)}
+body.play iframe{display:block;width:100vw;height:100vh;border:0}
+.status{border-inline-start:4px solid var(--gold);background:rgba(244,201,93,.14);
+  padding:.75em 1em;border-radius:.35em;margin:1em 0}
+@media print{.top,.foot,.links{display:none}main{max-width:none}}

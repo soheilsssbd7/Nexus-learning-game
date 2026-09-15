@@ -1,0 +1,107 @@
+{
+  "level_id": "tier3_level_08",
+  "tier": 3,
+  "world": "balance_realm",
+  "concept_tags": [
+    "unknown_variable",
+    "fractions",
+    "multi_step"
+  ],
+  "narrative_intro": "شبحِ این قفسه نصفه است؛ نصفه‌ها را با هم بشمار، جدا جدا نه.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 6
+      },
+      {
+        "type": "number",
+        "value": 0.5
+      }
+    ],
+    "ghost_orbs": [
+      {
+        "type": "ghost",
+        "hidden_value": 2.5
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 6.0,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 3,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 2,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 1,
+        "count": 3
+      },
+      {
+        "type": "number",
+        "value": 0.5,
+        "count": 2
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 3
+      }
+    ],
+    "ghost_orbs": []
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "check_your_own_balance_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "bubble_peek_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "inventory_count_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "patience_01"
+    }
+  ],
+  "expected_solve_time_sec": 130,
+  "difficulty_elo": 1640,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        3,
+        2,
+        1
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        3,
+        2
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

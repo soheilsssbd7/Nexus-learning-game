@@ -1,0 +1,127 @@
+{
+  "level_id": "tier3_level_10",
+  "tier": 3,
+  "world": "balance_realm",
+  "concept_tags": [
+    "ghost_algebra",
+    "fractions",
+    "multi_step",
+    "unknown_variable",
+    "balance_both_sides"
+  ],
+  "narrative_intro": "دو شبح، دو کفه، و یک ترازو که منتظرِ حسابِ دقیقِ توست؛ عجله نکن.",
+  "left_side": {
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 10
+      },
+      {
+        "type": "number",
+        "value": 2.5
+      }
+    ],
+    "ghost_orbs": [
+      {
+        "type": "ghost",
+        "hidden_value": 4
+      }
+    ]
+  },
+  "right_side": {
+    "target_value": 12.5,
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 9,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 4,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 2.5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 1.5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 0.5,
+        "count": 3
+      }
+    ],
+    "fixed_orbs": [
+      {
+        "type": "number",
+        "value": 1.5
+      },
+      {
+        "type": "number",
+        "value": 1.5
+      }
+    ],
+    "ghost_orbs": [
+      {
+        "type": "ghost",
+        "hidden_value": 1
+      }
+    ]
+  },
+  "tolerance": 0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "bubble_peek_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "check_your_own_balance_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "both_sides_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "try_the_other_one_01"
+    }
+  ],
+  "expected_solve_time_sec": 150,
+  "difficulty_elo": 1680,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        4,
+        4,
+        2.5,
+        1.5,
+        0.5
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        9,
+        2.5
+      ],
+      "operations": [
+        "add",
+        "add"
+      ]
+    }
+  }
+}

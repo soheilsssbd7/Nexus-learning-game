@@ -1,0 +1,5 @@
+# بک‌اند NEXUS — وابستگی‌ها و خروجی build هرگز commit نمی‌شوند (docs/01 §۲ + AGENTS.md)
+node_modules/
+dist/
+data/
+.env

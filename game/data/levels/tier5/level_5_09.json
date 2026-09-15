@@ -1,0 +1,180 @@
+{
+  "level_id": "tier5_level_09",
+  "tier": 5,
+  "world": "balance_realm",
+  "concept_tags": [
+    "word_problem",
+    "ghost_algebra",
+    "debt",
+    "two_dimensional",
+    "multi_step"
+  ],
+  "narrative_intro": "در سالنِ آینه‌ها، شبح‌ها روی دو کفه نشسته‌اند و یک بدهی هم کفه‌ی راست را سبک کرده است. نگهبان می‌گوید: «آنچه روی راستِ خودت می‌گذاری، باید جای خالیِ بدهی را هم پر کند.»",
+  "left_side": {
+    "fixed_orbs": [],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 8.75,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 6.25,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 4,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 2.25,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 1.5,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 1.25,
+        "count": 1
+      }
+    ]
+  },
+  "scales": [
+    {
+      "id": "left_a",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 10
+        }
+      ],
+      "left_ghost_orbs": [
+        {
+          "type": "ghost",
+          "hidden_value": 2.5
+        }
+      ],
+      "right_orbs": [
+        {
+          "type": "negative",
+          "value": 1.25
+        }
+      ],
+      "right_ghost_orbs": [
+        {
+          "type": "ghost",
+          "hidden_value": 5
+        }
+      ],
+      "target_value": 8.75
+    },
+    {
+      "id": "right_b",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 7.5
+        }
+      ],
+      "left_ghost_orbs": [
+        {
+          "type": "ghost",
+          "hidden_value": 1.25
+        }
+      ],
+      "right_orbs": [],
+      "right_ghost_orbs": [
+        {
+          "type": "ghost",
+          "hidden_value": 2.5
+        }
+      ],
+      "target_value": 6.25
+    }
+  ],
+  "tolerance": 0.0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "idle_45s",
+      "hint_id": "negative_weight_01"
+    },
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "bubble_peek_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "twin_pans_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "plan_before_placing_01"
+    }
+  ],
+  "expected_solve_time_sec": 270,
+  "difficulty_elo": 1980,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        {
+          "value": 8.75,
+          "scale": 0
+        },
+        {
+          "value": 4,
+          "scale": 1
+        },
+        {
+          "value": 2.25,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        {
+          "value": 5,
+          "scale": 0
+        },
+        {
+          "value": 4,
+          "scale": 0
+        },
+        {
+          "value": 4,
+          "scale": 1
+        },
+        {
+          "value": 1.5,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}

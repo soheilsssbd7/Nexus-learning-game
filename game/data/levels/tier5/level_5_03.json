@@ -1,0 +1,168 @@
+{
+  "level_id": "tier5_level_03",
+  "tier": 5,
+  "world": "balance_realm",
+  "concept_tags": [
+    "word_problem",
+    "ghost_algebra",
+    "two_dimensional"
+  ],
+  "narrative_intro": "روی یکی از ترازوها ردپای نورانی است و روی دیگری یک حجره‌ی خالی که بادش سنگین است. نگهبان می‌گوید: «آنچه نمی‌بینی هم وزن دارد؛ هر دو کفه را با هم صاف کن.»",
+  "left_side": {
+    "fixed_orbs": [],
+    "ghost_orbs": []
+  },
+  "right_side": {
+    "available_orbs": [
+      {
+        "type": "number",
+        "value": 9,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 7.5,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 4.5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 3,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 6,
+        "count": 1
+      },
+      {
+        "type": "number",
+        "value": 2.5,
+        "count": 2
+      },
+      {
+        "type": "number",
+        "value": 5,
+        "count": 1
+      }
+    ]
+  },
+  "scales": [
+    {
+      "id": "left_a",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 7
+        }
+      ],
+      "left_ghost_orbs": [
+        {
+          "type": "ghost",
+          "hidden_value": 2
+        }
+      ],
+      "right_orbs": [],
+      "right_ghost_orbs": [],
+      "target_value": 9.0
+    },
+    {
+      "id": "right_b",
+      "left_orbs": [
+        {
+          "type": "number",
+          "value": 10
+        }
+      ],
+      "left_ghost_orbs": [],
+      "right_orbs": [],
+      "right_ghost_orbs": [
+        {
+          "type": "ghost",
+          "hidden_value": 2.5
+        }
+      ],
+      "target_value": 7.5
+    }
+  ],
+  "tolerance": 0.0,
+  "tolerance_strategy": "exact",
+  "hint_sequence": [
+    {
+      "trigger": "first_wrong_attempt",
+      "hint_id": "bubble_peek_01"
+    },
+    {
+      "trigger": "fail_3x",
+      "hint_id": "twin_pans_01"
+    },
+    {
+      "trigger": "fail_6x",
+      "hint_id": "plan_before_placing_01"
+    },
+    {
+      "trigger": "help_requested",
+      "hint_id": "both_sides_01"
+    }
+  ],
+  "expected_solve_time_sec": 200,
+  "difficulty_elo": 1920,
+  "solution_spec": {
+    "intended": {
+      "right_orbs": [
+        {
+          "value": 4.5,
+          "scale": 0
+        },
+        {
+          "value": 4.5,
+          "scale": 0
+        },
+        {
+          "value": 5,
+          "scale": 1
+        },
+        {
+          "value": 2.5,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    },
+    "wrong_ops": {
+      "right_orbs": [
+        {
+          "value": 6,
+          "scale": 0
+        },
+        {
+          "value": 2.5,
+          "scale": 0
+        },
+        {
+          "value": 4.5,
+          "scale": 1
+        },
+        {
+          "value": 2.5,
+          "scale": 1
+        }
+      ],
+      "operations": [
+        "add",
+        "add",
+        "add",
+        "add"
+      ]
+    }
+  }
+}

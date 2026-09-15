@@ -1,0 +1,10 @@
+# gdlint (gdtoolkit 4.5) — تنظیمات یکدستی سبک GDScript در NEXUS.
+# lint فقط روی game/scripts و game/tests اجرا می‌شود؛ addons/ (GUT) بی‌کار است.
+max-line-length: 140
+class-name-pattern: "^[A-Z][A-Za-z0-9]*$"
+disable:
+  - class-definitions-order
+  - no-elif-after-return
+  - max-function-lines
+  - max-class-lines
+  - max-file-lines

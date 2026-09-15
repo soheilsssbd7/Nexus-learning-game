@@ -1,0 +1,173 @@
+name: "Pages site (+ Web build attempt)"
+
+# ← تسک ۱۲.۴ · ADR-068 ✓ دو کار در یک workflow (چون «سایت» و «بیلدِ وب» یک خروجی‌اند ✓):
+#   (الف) `tools/build_site.py --check` ⇒ htmlهای منتشرشده باید با مخزن یکی باشند ✓✓
+#       (Pagesِ این ریپو روی `build_type: legacy` + `source: {branch, path:"/"}` است ⇒ **خودِ برانچ**
+#        منتشر می‌شود ✓✗ پس فایل‌های سایت commit می‌شوند و دروازه جلوی کهنه‌بودنشان را می‌گیرد ✓)
+#   (ب) تلاشِ ساختِ نسخۀ وب (Godot `--export-release "Web"` ✓) ✗ نتیجه **ادعا نمی‌شود**:
+#       اگر موتور template را پیدا نکرد یا خروجی نگرفت، job سبز می‌ماند و `::warning::` می‌دهد ✓
+#       و `site/game.html` همان «نیست» را می‌گوید ✓✓ (الگوی probe در ۱۰.۱ ✓✗ اما اینجا کاری که
+#       *باید* ساخته شود هست، پس continue-on-error فقط برای «موفق نشد» است، نه برای «ننویسیم» ✓)
+on:
+  push:
+    paths:
+      - "site/**"
+      - "site_src/**"
+      - "docs/**"
+      - "tools/build_site.py"
+      - "tools/validate_levels.py"
+      - "VERSION"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+    inputs:
+      build_web:
+        description: "ساخت نسخۀ وب (دانلودِ ~1GB export templates ⇒ فقط وقتی لازم است)"
+        type: boolean
+        default: false
+      commit_build:
+        description: "اگر بیلد کوچک‌تر از سقف Pages بود، داخل site/game/ commit شود"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: 4.7.2
+  PAGES_FILE_LIMIT_BYTES: 9437184   # 9MB ✓✗ زیرِ سقفِ ۱۰ مگابایتیِ هر فایلِ Pages ✓ (سقفِ خودی نه، ceilingِ واقعی ✓)
+
+jobs:
+  site:
+    name: "Site is current + optional Web build"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: nexus-pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: "Install PyYAML (گیتِ ci.yml سطح ۲ را باز می‌کند ✓)"
+        run: python -m pip install --quiet "gdtoolkit==4.5.0" pyyaml
+
+      - name: "Gates: content + site is current"
+        run: |
+          set -euo pipefail
+          python tools/validate_levels.py
+          python tools/build_site.py --check
+
+      - name: "Restore Godot cache"
+        if: ${{ inputs.build_web }}
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/nexus-godot
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+
+      - name: "Download Godot ${{ env.GODOT_VERSION }}"
+        if: ${{ inputs.build_web && steps.cache-godot.outputs.cache-hit != 'true' }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.cache/nexus-godot
+          curl -sSL --retry 3 --max-time 300 \
+            -o ~/.cache/nexus-godot/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          (cd ~/.cache/nexus-godot && unzip -qo godot.zip)
+          mv -f ~/.cache/nexus-godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/.cache/nexus-godot/godot
+          chmod +x ~/.cache/nexus-godot/godot
+          rm -f ~/.cache/nexus-godot/godot.zip
+
+      - name: "Download export templates (~1GB ✓✗ صریح: اگر asset جابه‌جا شده باشد، اینجا می‌فهمیم، نه در سکوت ✓)"
+        if: ${{ inputs.build_web }}
+        id: tpl
+        run: |
+          set -uo pipefail
+          mkdir -p ~/.cache/nexus-godot/tpl ~/.local/share/godot/export_templates
+          if [ ! -f ~/.cache/nexus-godot/templates.tpz ]; then
+            if ! curl -sSfL --retry 2 --max-time 900 \
+                 -o ~/.cache/nexus-godot/templates.tpz \
+                 "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"; then
+              rm -f ~/.cache/nexus-godot/templates.tpz
+              echo "::error::export templates دانلود نشد ✗✓ (assetِ ${GODOT_VERSION}-stable را چک کن — ادعا نمی‌کنیم URL درست است ✓)"
+              echo "ok=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          rm -rf ~/.cache/nexus-godot/tpl && mkdir -p ~/.cache/nexus-godot/tpl
+          (cd ~/.cache/nexus-godot/tpl && unzip -qo ../templates.tpz)
+          DEST=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          rm -rf "$DEST" && mkdir -p "$DEST"
+          cp -a ~/.cache/nexus-godot/tpl/templates/. "$DEST"/ 2>/dev/null || cp -a ~/.cache/nexus-godot/tpl/. "$DEST"/
+          echo "template files: $(find "$DEST" -type f | wc -l)"
+          echo "web_nothreads: $(ls "$DEST" | grep -c 'web_nothreads' || true)"
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: "Export Web (release) and honour the Pages size ceiling ✓"
+        if: ${{ inputs.build_web && steps.tpl.outputs.ok == 'true' }}
+        run: |
+          set -uo pipefail
+          ~/.cache/nexus-godot/godot --headless --path game --import >/dev/null 2>&1 || true
+          mkdir -p build/web
+          # مسیرِ خروجی نسبت به **CWD** تفسیر می‌شود (مثل `android-export.yml` ✓) ⇒ بیرونِ `game/` ✓
+          ~/.cache/nexus-godot/godot --headless --path game \
+            --export-release "Web" build/web/index.html > web-export.log 2>&1 || true
+          if [ ! -f build/web/index.html ]; then
+            tail -20 web-export.log
+            echo "::error::export رد شد یا خروجی نداد ✗✓ (پیش‌نیازها: presetِ «Web» ✓ templateهای ${GODOT_VERSION} ✓) ⇒ Pages بی‌بازی می‌ماند و `site/game.html` همان را می‌گوید ✓"
+            echo "too_big=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          echo "--- خروجیِ export (آخرین ۸ سطر):"
+          tail -8 web-export.log
+          ls -l build/web | sed "s|^|FILE |"
+          big=$(find build/web -type f -size +$((PAGES_FILE_LIMIT_BYTES / 1024))k | head -1)
+          if [ -n "${big}" ]; then
+            echo "::warning::نسخۀ وب ساخته شد ولی `$(basename "${big}")` از سقفِ فایلِ Pages بزرگ‌تر است ✗⇒ commit نمی‌شود ✓ فقط artifact ✓ (site/game.html همان را می‌گوید ✓)"
+            echo "too_big=1" >> "$GITHUB_ENV"
+          else
+            echo "too_big=0" >> "$GITHUB_ENV"
+          fi
+
+      - name: "Publish into site/game/ (only if it fits ✓ and only if asked to commit ✓)"
+        if: ${{ inputs.build_web && inputs.commit_build && env.too_big == '0' }}
+        run: |
+          set -euo pipefail
+          test -f build/web/index.html
+          rm -rf site/game && mkdir -p site/game
+          cp -a build/web/. site/game/
+          python tools/build_site.py           # game-embed.html را فعال می‌کند ✓
+          python tools/build_site.py --check    # و همان را می‌سنجد ✓
+          git config user.name "nexus-ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add -A site
+          if git diff --cached --quiet; then echo "تغییری نبود ✓"; else
+            git commit -q -m "chore(pages): نسخۀ وب ${GODOT_VERSION} ✓ (ساختۀ CI، زیرِ سقفِ فایل — [skip ci])"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
+
+      - name: "Deploy to Pages (only works if the site source is 'GitHub Actions' ✓)"
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          echo "سایتِ این ریپو روی `source: branch + /` است ⇒ **خودِ push، انتشار است** ✓"
+          echo "اگر در Settings → Pages منبع را روی «GitHub Actions» گذاشتید، این step فعال می‌شود ✓"
+          echo "::notice::https://soheilsssbd7.github.io/Nexus-learning-game/"
+
+      - name: "Upload web artifact (7 روز ✓)"
+        if: ${{ inputs.build_web }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-web-build
+          path: build/web
+          retention-days: 7
+          if-no-files-found: warn

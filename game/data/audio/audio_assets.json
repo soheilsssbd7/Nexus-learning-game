@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "sample_rate": 22050,
+    "commit_binaries": false,
+    "placeholder": "procedural synthesis in `scripts/autoload/AudioManager.gd` (SHAPES)",
+    "final_dir": "res://assets/audio/",
+    "budget_total_kb": 3000,
+    "licence": "فقط CC0 / مالکیت عمومی با سندِ منبع؛ هیچ SDK تبلیغاتی/تحلیلی صدا را از شبکه نمی‌گیرد (آفلاین مطلق ✗ ADR-010)"
+  },
+  "assets": [
+    {
+      "id": "orb_lift",
+      "kind": "sfx",
+      "target_bus": "SFX",
+      "max_sec": 0.2,
+      "when": "event:orb_removed",
+      "final_file": "res://assets/audio/sfx/orb_lift.wav",
+      "note": "برداشتن کره از سینی؛ باید «سبک» باشد تا ۳۰ بار در دقیقه خسته‌کننده نشود"
+    },
+    {
+      "id": "orb_drop",
+      "kind": "sfx",
+      "target_bus": "SFX",
+      "max_sec": 0.25,
+      "when": "event:orb_placed",
+      "final_file": "res://assets/audio/sfx/orb_drop.wav",
+      "note": "نشستن کره روی کفه؛ مهم‌ترین صدای بازی (هر حرکت) ⇒ کوتاه و بدونِ پیاده‌رویِ فرکانس"
+    },
+    {
+      "id": "scale_creak",
+      "kind": "sfx",
+      "target_bus": "SFX",
+      "max_sec": 0.4,
+      "when": "manual:balance_unbalanced",
+      "final_file": "res://assets/audio/sfx/scale_creak.wav",
+      "note": "جیرجیر کج‌شدن ترازو؛ در MVP به `balance_changed` وصل نمی‌شود چون هر فریم شلیک می‌کند ✗ (نرخ‌بندی = فاز ۸)"
+    },
+    {
+      "id": "win_chime",
+      "kind": "sfx",
+      "target_bus": "SFX",
+      "max_sec": 0.75,
+      "when": "event:level_completed",
+      "final_file": "res://assets/audio/sfx/win_chime.wav",
+      "note": "زنگ موفقیتِ جزئی؛ آیینی نه festival ✗ (GDD: جشنِ آرام، پاداشِ درونی)"
+    },
+    {
+      "id": "fail_blip",
+      "kind": "sfx",
+      "target_bus": "SFX",
+      "max_sec": 0.2,
+      "when": "event:attempt_failed",
+      "final_file": "res://assets/audio/sfx/fail_blip.wav",
+      "note": "باید «خنثی» باشد نه تنبیهی ✗✓ آریا هم‌زمان سؤال می‌پرسد؛ صدا نقشِ بازخورد را دارد نه قضاوت"
+    },
+    {
+      "id": "gate_open",
+      "kind": "sfx",
+      "target_bus": "SFX",
+      "max_sec": 0.8,
+      "when": "manual:tier_unlocked",
+      "final_file": "res://assets/audio/sfx/gate_open.wav",
+      "note": "صدای باز شدن دروازهٔ منطقه؛ در MVP از WorldMap دستی صدا زده می‌شود (فاز ۹)"
+    },
+    {
+      "id": "aria_blip",
+      "kind": "sfx",
+      "target_bus": "SFX",
+      "max_sec": 0.25,
+      "when": "event:aria_state_changed",
+      "final_file": "res://assets/audio/sfx/aria_blip.wav",
+      "note": "حضورِ غیرکلامی آریا (زنگِ شیشه‌ای) ✗✓ صدای گفتاری در MVP نداریم — طبق سند ۰۷ §۷ پس از MVP"
+    },
+    {
+      "id": "ui_tap",
+      "kind": "sfx",
+      "target_bus": "SFX",
+      "max_sec": 0.1,
+      "when": "manual:ui_button",
+      "final_file": "res://assets/audio/sfx/ui_tap.wav",
+      "note": "لمسِ دکمه‌های HUD/نقشه؛ در MVP هنوز وصل نشده تا صدا «همه‌جا» نشود ✗"
+    },
+    {
+      "id": "ui_confirm",
+      "kind": "sfx",
+      "target_bus": "SFX",
+      "max_sec": 0.2,
+      "when": "manual:ui_confirm",
+      "final_file": "res://assets/audio/sfx/ui_confirm.wav",
+      "note": "تأیید در پنل والدین (پشتِ گیت) ⇒ جدا از `ui_tap` تا کودک و والد صداهای متفاوت داشته باشند"
+    },
+    {
+      "id": "theme_hub",
+      "kind": "music",
+      "target_bus": "Music",
+      "max_sec": 0.0,
+      "when": "manual:hub",
+      "final_file": "res://assets/audio/music/theme_hub.ogg",
+      "note": "تمِ Hub؛ حلقهٔ آرامِ ۴ ثانیه‌ای که در placeholder رویه‌ای ساخته می‌شود"
+    },
+    {
+      "id": "theme_tier1",
+      "kind": "music",
+      "target_bus": "Music",
+      "max_sec": 0.0,
+      "when": "event:level_started:1",
+      "final_file": "res://assets/audio/music/theme_tier1.ogg",
+      "note": "دشتِ آفتابی — بیشترین نُت، روشن‌ترین"
+    },
+    {
+      "id": "theme_tier2",
+      "kind": "music",
+      "target_bus": "Music",
+      "max_sec": 0.0,
+      "when": "event:level_started:2",
+      "final_file": "res://assets/audio/music/theme_tier2.ogg",
+      "note": "غارهای زمزمه — فاصلهٔ سومِ کم‌نور، کفِ صدا"
+    },
+    {
+      "id": "theme_tier3",
+      "kind": "music",
+      "target_bus": "Music",
+      "max_sec": 0.0,
+      "when": "event:level_started:3",
+      "final_file": "res://assets/audio/music/theme_tier3.ogg",
+      "note": "خرابه‌های نورِ شبح — پنجمِ اضافه، بی‌قرار"
+    },
+    {
+      "id": "theme_tier4",
+      "kind": "music",
+      "target_bus": "Music",
+      "max_sec": 0.0,
+      "when": "event:level_started:4",
+      "final_file": "res://assets/audio/music/theme_tier4.ogg",
+      "note": "رصدخانهٔ دوقلو — دو لایهٔ هم‌زمان با هم‌خانوادگیِ تم ۱"
+    },
+    {
+      "id": "theme_tier5",
+      "kind": "music",
+      "target_bus": "Music",
+      "max_sec": 0.0,
+      "when": "event:level_started:5",
+      "final_file": "res://assets/audio/music/theme_tier5.ogg",
+      "note": "قلهٔ تعادل — هر چهار منطقه در یک آکوردِ روشن"
+    },
+    {
+      "id": "stinger_level_win",
+      "kind": "music",
+      "target_bus": "Music",
+      "max_sec": 0.6,
+      "when": "event:level_completed",
+      "final_file": "res://assets/audio/music/stinger_level_win.ogg",
+      "note": "استینگرِ بردِ سطح (نه حلقه ✗) ⇒ بعدش تمِ Tier برمی‌گردد"
+    },
+    {
+      "id": "stinger_game_end",
+      "kind": "music",
+      "target_bus": "Music",
+      "max_sec": 1.3,
+      "when": "manual:arc_complete",
+      "final_file": "res://assets/audio/music/stinger_game_end.ogg",
+      "note": "استینگرِ پایانِ قوس (`beat_finale`) ✗✓ با بیتِ روایی هم‌زمان پخش می‌شود"
+    }
+  ]
+}
