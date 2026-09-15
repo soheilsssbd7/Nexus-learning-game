@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, viewport-fit=cover">
+		<title>NEXUS — Balance Realm</title>
+		<style>
+@font-face {
+	font-family: 'Vazirmatn';
+	src: url('Vazirmatn-Medium.ttf') format('truetype');
+	font-weight: 400 700;
+	font-display: swap;
+}
+html, body, #canvas {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+body {
+	color: white;
+	background-color: #1B1D3B;
+	overflow: hidden;
+	touch-action: none;
+	font-family: 'Vazirmatn', 'Noto Sans', Tahoma, sans-serif;
+}
+#canvas {
+	display: block;
+}
+#canvas:focus {
+	outline: none;
+}
+#status, #status-splash, #status-progress {
+	position: absolute;
+	left: 0;
+	right: 0;
+}
+#status, #status-splash {
+	top: 0;
+	bottom: 0;
+}
+#status {
+	background-color: #2B2F77;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	gap: 1.25rem;
+	visibility: hidden;
+}
+#status-splash {
+	max-height: 34vh;
+	max-width: 70vw;
+}
+#status-progress {
+	width: min(60%, 22rem);
+	height: 0.5rem;
+	border-radius: 999px;
+	overflow: hidden;
+	appearance: none;
+}
+#status-progress::-webkit-progress-bar { background: rgba(255,255,255,0.15); }
+#status-progress::-webkit-progress-value { background: #F4C95D; border-radius: 999px; }
+#status-progress::-moz-progress-bar { background: #F4C95D; border-radius: 999px; }
+#status-title {
+	color: #FBF9F4;
+	font-size: 1.6rem;
+	font-weight: 700;
+	letter-spacing: 0;
+}
+#status-sub {
+	color: #4FD1C5;
+	font-size: 1.05rem;
+}
+#progress-note, #status-notice { display: none; }
+#status-notice {
+	background-color: #5b3943;
+	border-radius: 0.5rem;
+	border: 1px solid #9b3943;
+	color: #e0e0e0;
+	line-height: 1.6;
+	margin: 0 2rem;
+	overflow: hidden;
+	padding: 1rem;
+	text-align: center;
+	z-index: 1;
+	direction: ltr;
+}
+		</style>
+		<link rel="icon" type="image/svg+xml" href="icon.svg">
+	</head>
+	<body>
+		<canvas id="canvas">
+			مرورگر شما canvas را پشتیبانی نمی‌کند.
+		</canvas>
+		<noscript>
+			برای اجرای NEXUS به JavaScript نیاز است.
+		</noscript>
+		<div id="status">
+			<img id="status-splash" src="icon.svg" alt="NEXUS">
+			<div id="status-title">NEXUS — دنیای ترازو</div>
+			<div id="status-sub">در حال آماده‌سازی… با آریا چراغ را روشن کن ✨</div>
+			<progress id="status-progress"></progress>
+			<div id="status-notice"></div>
+		</div>
+		<script type="module" src="engine_bundle.mjs"></script>
+	</body>
+</html>

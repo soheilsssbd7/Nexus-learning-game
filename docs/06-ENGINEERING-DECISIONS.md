@@ -1423,3 +1423,68 @@ source=risk/branch، «ساخت در CI» یعنی چیزی که روی Pages ا
 باز مانده و گیت، **بازبودنِ کامنت** را می‌پاید (نه بسته‌شدنش را ✓) تا با اولین exportِ واقعی/ویرایشگر
 بسته شود ✓؛ کلیدهایِ حدسیِ `variant/extensions_support` و `progressive_web_app/enabled` را از preset
 **حذف کردم** ✗✓ چون همان خطای ADR-036 (کلیدِ ناموجود که بی‌صدا نادیده گرفته می‌شود) را تکرار می‌کرد ✓✓.
+
+### ADR-069 — پیش‌نمایشِ وبِ فوری بدونِ باینریِ Godot (tools/build_web_preview.py)
+
+**مسئله:** سندباکس به release assetsِ GitHub و آینه‌های Godot دسترسی ندارد (فقط
+github.com / api.github.com / codeload* / npm / pypi باز ✓ و codeload گهگاه قطع می‌شود
+✓)، پس نه `--export-release` ممکن است نه GUTِ محلی — ولی «بازیِ واقعی قابل‌اجرا در
+مرورگر» برای نمایش لازم است.
+
+**راه‌حل (سه قطعه، همهٔ مرزها صریح):**
+۱) قالبِ wasm/js یکسانِ 4.7.2 از پکیجِ npm `@ringozz/godot-web-wasm32@4.7.2-626`
+   (فایل‌های `godot.web.template_release.wasm32.nothreads.*`؛ رشته‌های داخلِ wasm
+   تأیید شد: TextServerAdvanced/ICU برای شکل‌دهیِ فارسی ✓ thorvg ✓ FreeType ✓
+   کامپایلر GDScript ✓ و threads خاموش ⇒ بدونِ COOP/COEP روی هر هاستِ ایستا ✓).
+   **محدودیتِ سندیکا ✗✗:** این بیلد ماژول‌های `regex` و **solverِ فیزیکِ دوبعدی**
+   (GodotPhysics2D) را ندارد (سیل‌های scene حاضر ولی ناکارآمد) ⇒ دو نقطهٔ استفادهٔ
+   RegEx (`LevelLoader.path_for` و `LevelData._matches`) در **نسخهٔ داخل بسته** با
+   تجزیهٔ دستیِ هم‌معنا جایگزین می‌شود (پچ با assert، نه سکتوس؛ ریپو دست‌نخورده ✓) —
+   و برای سطحِ **قابل‌بازی بودنِ کاملِ کش‌ودرگ** باید قالبِ کامل با solverِ فیزیک
+   جایگزین شود (همان که CI با export templates رسمی می‌سازد ✓ `pages.yml inputs.build_web`).
+۲) `index.pck` با فرمت V2 سندِ `core/io/file_access_pack.cpp` دست‌ساز (خود-آزمایی:
+   آفست/اندازه/md5ِ همه ✓). تنها دارایی‌های نیازمندِ ایمپورت = ۲ فونت ttf + ۴ SVG
+   آیکون ⇒ `preview/PreviewBoot.gd` (اولین autoloadِ تزریقی در project.godotِ داخل
+   بسته) فونت را با `FontFile.load_dynamic_font` در زمان اجرا می‌نشاند و
+   `UIKit.icon_texture` فallbackِ `Image.load_svg_from_buffer` می‌گیرد (هر دو API در
+   template‌ها هست ✓ از سورس تأیید شد). کشِ ۳۵ `class_name` هم به
+   `.godot/global_script_class_cache.cfg` تولید و در بسته می‌رود (بدونِ آن global
+   classes در template رِزالو نمی‌شوند ✗✓).
+۳) `index.html` = shell رسمیِ `misc/dist/html/full-size.html` با پوستهٔ RTL/فارسی +
+   کانفیگِ دقیقِ خروجیِ export (`executable/mainPack/fileSizes/...` از سندِ
+   `platform/web/export/export_plugin.cpp` ✓) + `engine_bundle.mjs` = runtime خامِ
+   emscripten + `Engine` wrapperِ رسمی (چهار فایلِ `platform/web/js/engine/`) +
+   bootstrap؛ قاعده‌ی نامِ workletها (`index.audio.worklet.js`) از `config.js`
+   (نقشه‌ی locateFile ✓).
+
+**مرزِ ادعا (همان نسخهٔ خودمان ✓✗):** این «پیش‌نمایشِ محلی» است و جای export رسمیِ CI
+(قالب‌های رسمی + گیتِ حجمِ Pages + artifact) را نمی‌گیرد ✓؛ و جای تأییدِ GUT/CI هم
+نمی‌گیرد — تطابقِ کد با CI همچنان فقط روی Actions سبز می‌شود ✓✓ (آخرین run روی
+`arena/01a0a156`: «Godot import + GUT (headless): success» — به‌علاوهٔ backend و
+gdlint/content ✓). تستِ دودِ درون‌موتوری `--smoke` (SmokeWeb.gd + هارنسِ
+`tools/smoke_web.mjs` در Node) اثبات می‌کند بوت/autoload/فونت/45 سطح/MainMenu روی
+**همین فایل‌های بسته‌شده** واقعاً بالا می‌آیند ✓ و حلِ قصدمندِ سطح اول در موتور
+می‌بَرَد ✓ — بازی‌کردنِ واقعی در مرورگر هم با پلی‌فیلِ `_unhandled_input` باز است ✓.
+
+**افزودهٔ ۱۴۰۵/این-جلسه — فارسی بدون TextServerAdvanced:** پروبِ
+`ClassDB.class_exists("TextServerAdvanced") = false` و سرورِ فعال «Fallback
+(Built-in)» گفت که در بیلدِ npm فارسی حروفِ منفصل می‌شود ✗. پاسخ، پیش‌نمایش-only:
+`preview/PersianShaper.gd` (join با «فرم‌های ارائهٔ یونیکد» + چینشِ runها به ترتیبِ
+بصری + ZWNJِ حفظ‌شده به‌عنوانِ runِ جداکننده)، با walker هر 0.4 ثانیه روی
+`Label`/`Button`. self-test: شش رشتۀ نمونه (از جمله «سلام دنیا» و ZWNJ مهارت‌ها)
+دقیقاً برابرِ مرجعِ پایتونی در پیتون-ذخیره‌شده (در خودِ smoke، «PersianShaper probe
+OK») ✓. RegEx هم در این بیلد نیست (ClassDB بدون RegEx) — پلی‌فیلِ `LevelLoader`/
+`LevelData` معنابرابرِ فقط-بسته-وب آن را می‌گرداند ✓ (بلوک‌های قدیم با assert عوض
+می‌شوند تا ریپو کهنه نشود ✓).
+
+**افزودهٔ ۱۴۰۵/شهریور — انتشارِ واقعی روی Pages:** به درخواستِ صریحِ مالک، بستهٔ موتور
+(۱۹MB، wasm ۱۷.۷MB) زیر `site/game/` commit شد تا روی Pagesِ legacy (source: branch +
+`/`، آن‌که الان `arena/01a07efb` را منتشر می‌کند) به‌صورتِ مستقیم قابل‌بازی باشد ✓.
+قاعدهٔ «باینری > 3MB نه» و گیت‌های «بدون `<script>` در سایت»/«<9MB» برای این زیردرخت
+با **استثنای صریحِ شماره‌دار ۶** در `check_site` شکسته شد ✓✗ — و خودِ استثنا سه قفل
+گرفت: مجموعهٔ فایل‌ها دقیقاً همان ۹ فایلِ موتور ✓، `index.pck` حداقل ۱۰۰KB ✓، و
+`site/game.html` حتماً به `game/index.html` پیوند بدهد ✓ (بازیِ بی‌پیوند = بدتر از «نیست»).
+سقفِ ۹MB بر پایهٔ فرضِ «فایلِ بزرگ، کل سایت را قربانی می‌کند» بود؛ مرورِ دوباره نشان
+داد سروِ Pages از برانچ تا ۱۰۰MB/fایل را می‌سازد ⇒ wasm ۱۷.۷MB در محدودهٔ امن است ✓
+(ادعای تازه‌ای نیست: خودِ smoke همین بایت‌ها را قبل از commit سبز کرد ✓✗ REGRESSION:
+`site/game` بایت-به-بایت با `build/web` تازه برابر است ✓).

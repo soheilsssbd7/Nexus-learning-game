@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- NEXUS | آیکونِ برنامه — تسک ۸.۴ (§۸ چک‌لیست: سیلوئت B&W تشخیص‌پذیر ✓ فقط پالتِ §۲ ✓
+       صفر باینری/SVG ایستا ✓). دو کفه عمداً یکی توپُر و دیگری فقط‌خط‌اند ⇒ در سیاه‌وسفید هم
+       «ترازوی نابرابر» خوانا می‌ماند ✗✓ (اگر هر دو توپُر بودند، با مقیاسِ ۱۶px گم می‌شد).
+       پالت: Gold #F4C95D / Indigo #2B2F77 / Teal #4FD1C5 / Cloud #FBF9F4 / Stone #8A8FA3 -->
+  <rect width="128" height="128" rx="24" fill="#2B2F77"/>
+  <g stroke="#F4C95D" stroke-width="6" stroke-linecap="round" fill="none">
+    <line x1="64" y1="30" x2="64" y2="96"/>
+    <line x1="24" y1="44" x2="104" y2="40"/>
+  </g>
+  <path d="M64 20a7 7 0 1 1 .1 0z" fill="#FBF9F4"/>
+  <path d="M24 44 L10 76 a18 11 0 0 0 28 0 Z" fill="#F4C95D"/>
+  <path d="M104 40 L90 72 a18 11 0 0 0 28 0 Z" fill="none" stroke="#4FD1C5" stroke-width="5"
+        stroke-linejoin="round"/>
+  <rect x="42" y="96" width="44" height="9" rx="4.5" fill="#8A8FA3"/>
+</svg>
