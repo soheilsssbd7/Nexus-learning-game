@@ -1153,6 +1153,34 @@ body {
 \t\t\t<progress id="status-progress"></progress>
 \t\t\t<div id="status-notice"></div>
 \t\t</div>
+\t\t<script>
+\t\t// گاردِ خطای بوت ✓✗ اگر ماژولِ موتور بالا نیاید یا کرش کند، صفحه بی‌صدا سیاه نمی‌ماند:
+\t\t// پیام روی همان اورلیِ وضعیت می‌نشیند (بدون این گارد، خطای import روی مرورگرِ قدیمی = «هیچی» ✗✓)
+\t\t// فقط در پیش‌نمایشِ sandbox (هاستِ e2b.app) بیکن به سرورِ محلی می‌رود تا لاگ خوانا باشد ✓
+\t\t// روی Pages هیچ شبکه‌ای صدا نمی‌شود — همان سیاستِ «هیچ شخص ثالثی» ✓✓
+\t\t(function () {
+\t\t\tfunction report(msg) {
+\t\t\t\tvar s = document.getElementById("status");
+\t\t\t\tvar n = document.getElementById("status-notice");
+\t\t\t\tif (s && n) {
+\t\t\t\t\ts.style.visibility = "visible";
+\t\t\t\t\tn.style.display = "block";
+\t\t\t\t\tn.textContent = "خطا در اجرای بازی: " + msg;
+\t\t\t\t}
+\t\t\t\tif (location.hostname.slice(-8) === ".e2b.app") {
+\t\t\t\t\ttry { fetch("/__booterr?m=" + encodeURIComponent(String(msg).slice(0, 200))); } catch (_) {}
+\t\t\t\t}
+\t\t\t}
+\t\t\twindow.addEventListener("error", function (e) {
+\t\t\t\tif (e.message) { report(e.message + (e.filename ? " @" + e.filename.split("/").pop() + ":" + e.lineno : "")); }
+\t\t\t\telse if (e.target && (e.target.src || e.target.href)) { report("بارگیریِ منبع ناموفق: " + (e.target.src || e.target.href).split("/").pop()); }
+\t\t\t}, true);
+\t\t\twindow.addEventListener("unhandledrejection", function (e) {
+\t\t\t\tvar r = e.reason;
+\t\t\t\treport((r && r.message) ? r.message : String(r));
+\t\t\t});
+\t\t}());
+\t\t</script>
 \t\t<script type="module" src="engine_bundle.mjs"></script>
 \t</body>
 </html>

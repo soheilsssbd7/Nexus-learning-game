@@ -102,6 +102,34 @@ body {
 			<progress id="status-progress"></progress>
 			<div id="status-notice"></div>
 		</div>
+		<script>
+		// گاردِ خطای بوت ✓✗ اگر ماژولِ موتور بالا نیاید یا کرش کند، صفحه بی‌صدا سیاه نمی‌ماند:
+		// پیام روی همان اورلیِ وضعیت می‌نشیند (بدون این گارد، خطای import روی مرورگرِ قدیمی = «هیچی» ✗✓)
+		// فقط در پیش‌نمایشِ sandbox (هاستِ e2b.app) بیکن به سرورِ محلی می‌رود تا لاگ خوانا باشد ✓
+		// روی Pages هیچ شبکه‌ای صدا نمی‌شود — همان سیاستِ «هیچ شخص ثالثی» ✓✓
+		(function () {
+			function report(msg) {
+				var s = document.getElementById("status");
+				var n = document.getElementById("status-notice");
+				if (s && n) {
+					s.style.visibility = "visible";
+					n.style.display = "block";
+					n.textContent = "خطا در اجرای بازی: " + msg;
+				}
+				if (location.hostname.slice(-8) === ".e2b.app") {
+					try { fetch("/__booterr?m=" + encodeURIComponent(String(msg).slice(0, 200))); } catch (_) {}
+				}
+			}
+			window.addEventListener("error", function (e) {
+				if (e.message) { report(e.message + (e.filename ? " @" + e.filename.split("/").pop() + ":" + e.lineno : "")); }
+				else if (e.target && (e.target.src || e.target.href)) { report("بارگیریِ منبع ناموفق: " + (e.target.src || e.target.href).split("/").pop()); }
+			}, true);
+			window.addEventListener("unhandledrejection", function (e) {
+				var r = e.reason;
+				report((r && r.message) ? r.message : String(r));
+			});
+		}());
+		</script>
 		<script type="module" src="engine_bundle.mjs"></script>
 	</body>
 </html>
