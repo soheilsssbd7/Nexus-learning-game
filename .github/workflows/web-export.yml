@@ -1,0 +1,160 @@
+name: Web export
+
+# NEXUS — ساختِ رسمیِ نسخهٔ وب (پاسخِ «تأییدِ نسخهٔ وب» §۵):
+#   با قالب‌های رسمیِ export (اعم از فیزیکِ دوبعدی — برخلاف قالبِ npmِ پیش‌نمایش
+#   که solver و regex ندارد ✗✓ ADR-069) و **پس از** سبزشدنِ GUT خروجی می‌سازد ✓✓
+#   (قاعده‌ی «خروجی بی‌تست = بدون خروجی»).
+# چرا دستی؟ (~۱GB دانلود + ریپو خصوصی ⇒ دقیقهٔ CI محدود) — مثل android-export.yml ✓
+# مسیرها: مانند ci.yml — دانلودها در ~/.cache/nexus-godot و کش می‌شوند ✓
+# خروجی: artifactِ `nexus-web-build` (+ تلاشِ انتشار در site/game/ اگر زیرِ سقفِ
+#   فایلِ Pages بماند — همان را pages.yml هم برای Pages خودش دارد؛ این workflow
+#   فقط می‌سازد و آپلود می‌کند و دربارهٔ سقف **صادقانه** هشدار می‌دهد ✗✓ §۱۵۴).
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_gut_first:
+        description: "اجرای حتم و گیتِ GUT پیش از خروجی (پیش‌فرض: بله — غیرفعال فقط برای تشخیص)"
+        type: boolean
+        default: true
+      verify_only:
+        description: "فقط قالب‌ها را دانلود و بررسی کن؛ خروجی نساز (پروب ارزان)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-export-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  web-export:
+    name: GUT gate + Web export (قالب رسمی)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Restore Godot cache"
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/nexus-godot
+          key: godot-web-${{ env.GODOT_VERSION }}-linux-x86_64
+
+      - name: "Download Godot ${{ env.GODOT_VERSION }} (حاوی فیزیک+regex — مثل ci.yml)"
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.cache/nexus-godot
+          curl -sSfL --retry 3 --max-time 300 \
+            -o ~/.cache/nexus-godot/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          (cd ~/.cache/nexus-godot && unzip -qo godot.zip)
+          mv -f ~/.cache/nexus-godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/.cache/nexus-godot/godot
+          chmod +x ~/.cache/nexus-godot/godot
+          rm -f ~/.cache/nexus-godot/godot.zip
+          ~/.cache/nexus-godot/godot --version
+
+      - name: "Import project"
+        run: ~/.cache/nexus-godot/godot --headless --path game --import
+
+      - name: "GUT gate — همان قراردادِ ci.yml (کشف کامل + صفر fail/error)"
+        if: ${{ inputs.run_gut_first }}
+        run: |
+          set -o pipefail
+          GODOT=~/.cache/nexus-godot/godot
+          found=$(find game/tests -name 'test_*.gd' -not -path '*/support/*' | wc -l)
+          $GODOT --headless --path game \
+            -s addons/gut/gut_cmdln.gd \
+            -gconfig=res://.gutconfig.json \
+            -gexit 2>&1 | tee gut.log
+          status=${PIPESTATUS[0]}
+          ran=$(grep -E '^Scripts' gut.log | tail -1 | grep -oE '[0-9]+' | head -1 || true)
+          ran=${ran:-0}
+          echo "GUT discovered scripts=$ran, files on disk=$found"
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          if grep -Eq "Failing Tests?:[[:space:]]*[1-9]" gut.log; then
+            echo "GUT reported failing tests but exited 0"; exit 1
+          fi
+          grep -Eq "Errors:[[:space:]]*[1-9]" gut.log && { echo "خطای engine در اجرا"; exit 1; } || true
+          if [ "$ran" != "$found" ]; then
+            echo "::error::GUT فقط $ran از $found فایل تست را اجرا کرد"
+            exit 1
+          fi
+          echo "::notice::GUT gate سبز ✓ (الان export مجاز است)"
+
+      - name: "Download export templates (~1GB — رسمی، همان نسخهٔ قفل‌شده)"
+        if: steps.cache-godot.outputs.cache-hit != 'true' || ! inputs.verify_only
+        run: |
+          set -uo pipefail
+          mkdir -p ~/.cache/nexus-godot/tpl ~/.local/share/godot/export_templates
+          if [ ! -f ~/.cache/nexus-godot/templates.tpz ]; then
+            if ! curl -sSfL --retry 2 --max-time 1200 \
+                 -o ~/.cache/nexus-godot/templates.tpz \
+                 "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"; then
+              rm -f ~/.cache/nexus-godot/templates.tpz
+              echo "::error::export templates دانلود نشد ✗✓"
+              exit 1
+            fi
+          fi
+          rm -rf ~/.cache/nexus-godot/tpl && mkdir -p ~/.cache/nexus-godot/tpl
+          (cd ~/.cache/nexus-godot/tpl && unzip -qo ../templates.tpz)
+          DEST=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          rm -rf "$DEST" && mkdir -p "$DEST"
+          cp -a ~/.cache/nexus-godot/tpl/templates/. "$DEST"/ 2>/dev/null \
+            || cp -a ~/.cache/nexus-godot/tpl/. "$DEST"/
+          echo "template files: $(find "$DEST" -type f | wc -l)"
+          echo "web_nothreads count: $(find "$DEST" -name '*web*nothreads*' | wc -l)"
+          # محرک «قالبِ کامل» (فیزیک دوبعدی) — برخلاف قالب npm — را صریح بررسی کن:
+          WASM_Z=$(find "$DEST" -name 'web_*.zip' | head -1)
+          if [ -n "$WASM_Z" ]; then
+            tmp_w=$(mktemp -d)
+            if unzip -l "$WASM_Z" | grep -q "web_nothreads\|.wasm"; then
+              echo "::notice::web template zip موجود: $(basename "$WASM_Z")"
+            fi
+          fi
+
+      - name: "Export Web (release)"
+        if: ${{ ! inputs.verify_only }}
+        run: |
+          set -uo pipefail
+          rm -rf build/web && mkdir -p build/web
+          ~/.cache/nexus-godot/godot --headless --path game \
+            --export-release "Web" build/web/index.html > web-export.log 2>&1 || true
+          if [ ! -f build/web/index.html ]; then
+            echo "::error::export «Web» خروجی نداد ✗✓ (preset/export_presets.cfg و نامِ preset را چک کن)"
+            tail -30 web-export.log
+            exit 1
+          fi
+          echo "--- خروجی:"
+          ls -l build/web | sed 's|^|FILE |'
+          # بایگانی خلیلی: wasm باید فیزیک دوبعدی داشته باشد (جست‌وجوی رشته‌ایِ سریع)
+          if [ -f build/web/index.wasm ]; then
+            if grep -q "godot_physics_2d" build/web/index.wasm 2>/dev/null || \
+               strings -a build/web/index.wasm 2>/dev/null | grep -qm1 "Space2D"; then
+              echo "::notice::wasm شامل آثار فیزیک دوبعدی است ✓"
+            else
+              echo "::warning::wasm از فیزیکِ دوبعدی ساکت است — امکان بیلدِ غیررسمی؟ ✗✓"
+            fi
+            sz=$(stat -c%s build/web/index.wasm)
+            echo "wasm size: $((sz/1024/1024)) MB"
+            limit=$((9*1024*1024))
+            if [ "$sz" -gt "$limit" ]; then
+              echo "::warning::wasm از سقفِ فایلِ Pages (۹MB) بزرگ‌تر است ⇒ commit به site/ نمی‌شود ✗✓ (صفحهٔ site/game.html همین را می‌گوید؛ artifact را بردارید)"
+            fi
+          fi
+
+      - name: "Upload web artifact (۷ روز)"
+        if: ${{ ! inputs.verify_only }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-web-build
+          path: build/web
+          retention-days: 7
+          if-no-files-found: error

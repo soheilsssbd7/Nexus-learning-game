@@ -1423,3 +1423,44 @@ source=risk/branch، «ساخت در CI» یعنی چیزی که روی Pages ا
 باز مانده و گیت، **بازبودنِ کامنت** را می‌پاید (نه بسته‌شدنش را ✓) تا با اولین exportِ واقعی/ویرایشگر
 بسته شود ✓؛ کلیدهایِ حدسیِ `variant/extensions_support` و `progressive_web_app/enabled` را از preset
 **حذف کردم** ✗✓ چون همان خطای ADR-036 (کلیدِ ناموجود که بی‌صدا نادیده گرفته می‌شود) را تکرار می‌کرد ✓✓.
+
+### ADR-069 — پیش‌نمایشِ وبِ فوری بدونِ باینریِ Godot (tools/build_web_preview.py)
+
+**مسئله:** سندباکس به release assetsِ GitHub و آینه‌های Godot دسترسی ندارد (فقط
+github.com / api.github.com / codeload* / npm / pypi باز ✓ و codeload گهگاه قطع می‌شود
+✓)، پس نه `--export-release` ممکن است نه GUTِ محلی — ولی «بازیِ واقعی قابل‌اجرا در
+مرورگر» برای نمایش لازم است.
+
+**راه‌حل (سه قطعه، همهٔ مرزها صریح):**
+۱) قالبِ wasm/js یکسانِ 4.7.2 از پکیجِ npm `@ringozz/godot-web-wasm32@4.7.2-626`
+   (فایل‌های `godot.web.template_release.wasm32.nothreads.*`؛ رشته‌های داخلِ wasm
+   تأیید شد: TextServerAdvanced/ICU برای شکل‌دهیِ فارسی ✓ thorvg ✓ FreeType ✓
+   کامپایلر GDScript ✓ و threads خاموش ⇒ بدونِ COOP/COEP روی هر هاستِ ایستا ✓).
+   **محدودیتِ سندیکا ✗✗:** این بیلد ماژول‌های `regex` و **solverِ فیزیکِ دوبعدی**
+   (GodotPhysics2D) را ندارد (سیل‌های scene حاضر ولی ناکارآمد) ⇒ دو نقطهٔ استفادهٔ
+   RegEx (`LevelLoader.path_for` و `LevelData._matches`) در **نسخهٔ داخل بسته** با
+   تجزیهٔ دستیِ هم‌معنا جایگزین می‌شود (پچ با assert، نه سکتوس؛ ریپو دست‌نخورده ✓) —
+   و برای سطحِ **قابل‌بازی بودنِ کاملِ کش‌ودرگ** باید قالبِ کامل با solverِ فیزیک
+   جایگزین شود (همان که CI با export templates رسمی می‌سازد ✓ `pages.yml inputs.build_web`).
+۲) `index.pck` با فرمت V2 سندِ `core/io/file_access_pack.cpp` دست‌ساز (خود-آزمایی:
+   آفست/اندازه/md5ِ همه ✓). تنها دارایی‌های نیازمندِ ایمپورت = ۲ فونت ttf + ۴ SVG
+   آیکون ⇒ `preview/PreviewBoot.gd` (اولین autoloadِ تزریقی در project.godotِ داخل
+   بسته) فونت را با `FontFile.load_dynamic_font` در زمان اجرا می‌نشاند و
+   `UIKit.icon_texture` فallbackِ `Image.load_svg_from_buffer` می‌گیرد (هر دو API در
+   template‌ها هست ✓ از سورس تأیید شد). کشِ ۳۵ `class_name` هم به
+   `.godot/global_script_class_cache.cfg` تولید و در بسته می‌رود (بدونِ آن global
+   classes در template رِزالو نمی‌شوند ✗✓).
+۳) `index.html` = shell رسمیِ `misc/dist/html/full-size.html` با پوستهٔ RTL/فارسی +
+   کانفیگِ دقیقِ خروجیِ export (`executable/mainPack/fileSizes/...` از سندِ
+   `platform/web/export/export_plugin.cpp` ✓) + `engine_bundle.mjs` = runtime خامِ
+   emscripten + `Engine` wrapperِ رسمی (چهار فایلِ `platform/web/js/engine/`) +
+   bootstrap؛ قاعده‌ی نامِ workletها (`index.audio.worklet.js`) از `config.js`
+   (نقشه‌ی locateFile ✓).
+
+**مرزِ ادعا (همان نسخهٔ خودمان ✓✗):** این «پیش‌نمایشِ محلی» است و جای export رسمیِ CI
+(قالب‌های رسمی + گیتِ حجمِ Pages + artifact) را نمی‌گیرد ✓؛ و جای تأییدِ GUT/CI هم
+نمی‌گیرد — تطابقِ کد با CI همچنان فقط روی Actions سبز می‌شود ✓. تستِ دودِ درون‌موتوری
+`--smoke` (SmokeWeb.gd + Node) اثبات می‌کند بوت/autoload/فونت/45 سطح/MainMenu روی
+**همین فایل‌های بسته‌شده** واقعاً بالا می‌آیند ✓ و حلِ قصدمندِ سطح اول در موتور
+می‌بَرَد ✓ (اثرِ solverِ غایب: چیدمانِ کره با APIِ scene شبیه‌سازی می‌شود، نه با
+input-event لمسی — همان محدودیتی که در بالا صریح شد ✗✓).
