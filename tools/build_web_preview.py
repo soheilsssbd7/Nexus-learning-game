@@ -115,7 +115,355 @@ func _ready() -> void:
 	var theme := ThemeDB.get_project_theme()
 	if theme != null:
 		theme.default_font = medium
+	set_process(true)
+
+
+# قالبِ npm سرورِ پیشرفتهٔ متن ندارد ⇒ فارسی را به ترتیب/شکلِ بصری می‌چینیم تا
+# متصل نشان داده شود (در قالبِ رسمیِ CI این بخش می‌پیچد و کاری نمی‌کند ✓✗).
+const Shaper := preload("res://preview/PersianShaper.gd")
+
+var _shape_acc := 0.0
+
+
+func _process(delta: float) -> void:
+	_shape_acc += delta
+	if _shape_acc < 0.4:
+		return
+	_shape_acc = 0.0
+	_reshape_tree(get_tree().root)
+
+
+func _reshape_tree(node: Node) -> void:
+	if node is Label or node is Button:
+		var c := node as Control
+		var src: String = c.text
+		var shaped: String = Shaper.visual(src)
+		var last: String = str(node.get_meta("sh_vis_last", ""))
+		if src == last:
+			pass  # قبلاً همین متن شکل خورده بود (قبل + به shape برگشتیم)
+		else:
+			if node.get_meta("sh_orig", "") != "" and src == Shaper.visual(str(node.get_meta("sh_orig"))):
+				pass
+			else:
+				node.set_meta("sh_orig", src)
+				var vis := Shaper.visual(src)
+				node.set_meta("sh_vis_last", vis)
+				if vis != src:
+					c.text = vis
+	for child in node.get_children():
+		_reshape_tree(child)
 '''
+
+# ---------------------------------------------------------------------------
+# PersianShaper.gd — فارسی را به ترتیب/شکلِ بصری می‌برد برای TextServerٔ Fallback
+# فقط-بستهٔ-وب: قالبِ npm سرورِ متنِ پیشرفته ندارد ⇒ فارسی حروفِ منفصل+به‌هم‌ریخته
+# می‌شد. پاسخ: join با «فرم‌های ارائهٔ یونیکد» + چینشِ runها به ترتیبِ بصری، با همان
+# فونت و همان رندر. (مسیرِ رسمی = TextServerAdvanced در tpz ✓✗)
+# جدولِ FRIMها: isolated/final/initial/medial از بلوک «Arabic Presentation Forms-B»
+# + کلاس join (D=دوطرفه، R=راست‌جوین). R_JOINERS از ترکیبی‌نامه‌های استاندارد.
+# ---------------------------------------------------------------------------
+_SHAPING_ROWS = """\
+0621,FE80,,,
+0622,FE81,FE82,,
+0623,FE83,FE84,FE83,FE84
+0624,FE85,FE86,,
+0625,FE87,FE88,,
+0626,FE89,FE8A,,
+0672,FE87,FE88,,
+0627,FE8D,FE8E,,
+0628,FE8F,FE90,FE91,FE92
+067E,FB56,FB57,FB58,FB59
+062A,FE95,FE96,FE97,FE98
+062B,FE99,FE9A,FE9B,FE9C
+062C,FE9D,FE9E,FE9F,FEA0
+0686,FB7A,FB7B,FB7C,FB7D
+062D,FEA1,FEA2,FEA3,FEA4
+062E,FEA5,FEA6,FEA7,FEA8
+062F,FEA9,FEAA,,
+0630,FEAB,FEAC,,
+0631,FEAD,FEAE,,
+0632,FEAF,FEB0,,
+0698,FB8A,FB8B,,
+0633,FEB1,FEB2,FEB3,FEB4
+0634,FEB5,FEB6,FEB7,FEB8
+0635,FEB9,FEBA,FEBB,FEBC
+0636,FEBD,FEBE,FEBF,FEC0
+0637,FEC1,FEC2,FEC3,FEC4
+0638,FEC5,FEC6,FEC7,FEC8
+0639,FEC9,FECA,FECB,FECC
+063A,FECD,FECE,FECF,FED0
+0641,FED1,FED2,FED3,FED4
+0642,FED5,FED6,FED7,FED8
+0643,FED9,FEDA,FEDB,FEDC
+06A9,FB8E,FB8F,FB90,FB91
+06AF,FB92,FB93,FB94,FB95
+0644,FEDD,FEDE,FEDF,FEE0
+0645,FEE1,FEE2,FEE3,FEE4
+0646,FEE5,FEE6,FEE7,FEE8
+0647,FEE9,FEEA,FEEB,FEEC
+0648,FEED,FEEE,,
+06CC,FBFC,FBFD,FBFE,FBFF
+0649,FBE8,FBE9,,
+064A,FEF1,FEF2,FEF3,FEF4
+0640,0640,0640,0640,0640
+"""
+
+# حروفِ راست‌جوین (فقط به حرفِ قبل می‌چسبند — به حرفِ بعد نه)
+_R_JOINERS = {0x0621, 0x0622, 0x0623, 0x0624, 0x0625, 0x0626, 0x0627, 0x062F, 0x0630,
+              0x0631, 0x0632, 0x0698, 0x0648, 0x0649}
+
+_PERSIAN_SHAPER_GD = """extends RefCounted
+# PersianShaper — فقط در بستهٔ وب. فارسی را به ترتیب/شکلِ بصری می‌برد (Fallback server).
+# منبع: بازی ترازوی تعادل فارسی‌زبان است و قالبِ npm TextServerAdvanced ندارد.
+
+const FORMS: Dictionary = {
+__FORMS__
+}
+
+const _RTL_START := 0x0600
+const _RTL_END := 0x06FF
+const _ZWNJ := 0x200C
+const _ZERO_WIDTH := 0x200D
+const _TATWEEL := 0x0640
+const _PRESENT_LO := 0xFB50
+const _PRESENT_HI := 0xFEFF
+
+
+static func _is_rtl(cp: int) -> bool:
+	if cp >= 0xFB50 and cp <= 0xFEFC:
+		return true  # فرم‌های ارائه: خودشان RTL‌اند (حروفِ شکل‌یافته)
+	if cp >= _RTL_START and cp <= _RTL_END:
+		return cp != _ZWNJ and cp != _TATWEEL
+	if cp >= 0x0750 and cp <= 0x077F:
+		return true
+	if cp >= 0x08A0 and cp <= 0x08FF:
+		return true
+	if cp >= 0xFB1E and cp <= 0xFB4F:
+		return true
+	if cp in range(0x06F0, 0x06FA):  # ارقام فارسی ۰..۹ — راست‌به‌چپ در متنِ فارسی ✓
+		return true
+	# توجه: ZWNJ/ZWJ عمداً غیر-RTL‌اند تا run جدا کنند و بی‌نمایش خودشان حفظ شوند ✓
+	return false
+
+
+## حرفِ پایهٔ قبل/بعد در run مشخص می‌کند کدام فرم انتخاب شود.
+static func _form_of(cp: int, prev_cp: int, next_cp: int) -> int:
+	if not FORMS.has(cp):
+		return cp
+	var row: Array = FORMS[cp]
+	var joins_prev := false
+	var joins_next := false
+	if prev_cp == _TATWEEL:
+		joins_prev = int(row[1]) != 0
+	elif prev_cp != 0 and FORMS.has(prev_cp):
+		var prow: Array = FORMS[prev_cp]
+		joins_prev = int(prow[4]) == 0 and int(row[1]) != 0
+	if next_cp == _TATWEEL:
+		joins_next = int(row[4]) == 0 and int(row[2]) != 0
+	elif next_cp != 0 and FORMS.has(next_cp):
+		var nrow: Array = FORMS[next_cp]
+		joins_next = int(row[4]) == 0 and int(row[2]) != 0 and int(nrow[1]) != 0
+	if joins_prev and joins_next and int(row[3]) != 0:
+		return int(row[3])   # medial
+	if joins_prev and int(row[1]) != 0:
+		return int(row[1])   # final
+	if joins_next and int(row[2]) != 0:
+		return int(row[2])   # initial
+	return int(row[0])       # isolated
+
+
+
+
+## ریشهٔ run: حروفِ متصل را با فرم‌ها می‌نویسد و ترتیب را برمی‌گرداند.
+static func _process_rtl_run(run_text: String) -> String:
+	# ZWNJ را جداژو می‌کند و انتشار فرم نمی‌دهد
+	var src := run_text.replace(String.chr(_ZWNJ), "")
+	var n := src.length()
+	var cps := PackedInt32Array()
+	cps.resize(n)
+	for i in range(n):
+		cps[i] = src.unicode_at(i)
+	var shaped := PackedInt32Array()
+	shaped.resize(n)
+	for i in range(n):
+		var prev_cp := 0
+		var next_cp := 0
+		if i > 0:
+			prev_cp = cps[i - 1]
+		if i < n - 1:
+			next_cp = cps[i + 1]
+		# ZWNJ غایب است؛ استارتاެ٠“¯prou: prev_cp/next_cp با TATWEEL مثل join دوقطبی می‌روند
+		shaped[i] = _form_of(cps[i], prev_cp, next_cp)
+	var out := ""
+	for i in range(n - 1, -1, -1):
+		out += String.chr(shaped[i])
+	return out
+
+
+## متن را به run تقسیم می‌کند و به ترتیبِ بصری برمی‌گرداند.
+static func visual(text: String) -> String:
+	if text.is_empty():
+		return text
+	var has_rtl := false
+	for i in range(text.length()):
+		if _is_rtl(text.unicode_at(i)):
+			has_rtl = true
+			break
+	if not has_rtl:
+		return text
+	# فاصله در RTL هم جزو run همان side است (Visual join طبیعی)
+	var runs: Array = []
+	var cur := ""
+	var cur_rtl := false
+	for i in range(text.length()):
+		var cp := text.unicode_at(i)
+		var is_rtl_ch := _is_rtl(cp)
+		# فاصله/نقطه‌ویرگول/کاما/دو‌نقطه: در runِ فعلی حفظ می‌مانند (frame inter-line)
+		if cp == 0x20 or cp == 0x2E or cp == 0x3A or cp == 0x2C or cp == 0x061B or cp == 0x060C or cp == 0x061F or cp == 0x0021:
+			cur += String.chr(cp)
+			continue
+		if runs.is_empty() and cur.is_empty():
+			cur_rtl = is_rtl_ch
+			cur = String.chr(cp)
+			continue
+		if is_rtl_ch == cur_rtl:
+			cur += String.chr(cp)
+		else:
+			runs.append([cur, cur_rtl])
+			cur = String.chr(cp)
+			cur_rtl = is_rtl_ch
+	if not cur.is_empty():
+		runs.append([cur, cur_rtl])
+	# چینش بصری: اگر متن از راست شروع شد یا همه‌اش RTL بود، کل runها سروار می‌شوند
+	if bool(runs[0][1]):
+		runs.reverse()
+	var out := ""
+	for r: Array in runs:
+		if bool(r[1]):
+			out += _process_rtl_run(String(r[0]))
+		else:
+			out += String(r[0])
+	return out
+"""
+
+
+def _shaper_content() -> str:
+    """فرم‌ها را از _SHAPING_ROWS می‌سازد و داخل قالبِ GDScript می‌نشتاند."""
+    entries: list[str] = []
+    for raw in _SHAPING_ROWS.strip().splitlines():
+        base, iso, fin, ini, med = [x.strip() for x in raw.split(",")]
+        base_cp = int(base, 16)
+        row = [
+            int(iso, 16) if iso else base_cp,
+            int(fin, 16) if fin else 0,
+            int(ini, 16) if ini else 0,
+            int(med, 16) if med else 0,
+            1 if base_cp in _R_JOINERS else 0,
+        ]
+        entries.append(f"\t0x{base}: [{row[0]}, {row[1]}, {row[2]}, {row[3]}, {row[4]}],")
+    return _PERSIAN_SHAPER_GD.replace("__FORMS__", "\n".join(entries))
+
+
+# --- مرجعِ پایتونیِ همان الگوریتم — فقط برای self-test (smoke probe) ---------------
+def _py_forms() -> dict:
+    forms = {}
+    for raw in _SHAPING_ROWS.strip().splitlines():
+        base, iso, fin, ini, med = [x.strip() for x in raw.split(",")]
+        forms[int(base, 16)] = [
+            int(iso, 16) if iso else int(base, 16),
+            int(fin, 16) if fin else 0,
+            int(ini, 16) if ini else 0,
+            int(med, 16) if med else 0,
+            1 if int(base, 16) in _R_JOINERS else 0,
+        ]
+    return forms
+
+
+def _py_is_rtl(cp: int) -> bool:
+    if 0xFB50 <= cp <= 0xFEFC:
+        return True
+    if 0x0600 <= cp <= 0x06FF:
+        return cp not in (0x200C, 0x0640)
+    if 0x0750 <= cp <= 0x077F or 0x08A0 <= cp <= 0x08FF:
+        return True
+    if 0x06F0 <= cp < 0x06FA:
+        return True
+    return False
+
+
+def _py_form_of(cp, prev_cp, next_cp, forms):
+    if cp not in forms:
+        return cp
+    row = forms[cp]
+    joins_prev = False
+    joins_next = False
+    if prev_cp == 0x0640:
+        joins_prev = row[1] != 0
+    elif prev_cp > 0 and prev_cp in forms:
+        joins_prev = forms[prev_cp][4] == 0 and row[1] != 0
+    if next_cp == 0x0640:
+        joins_next = row[4] == 0 and row[2] != 0
+    elif next_cp > 0 and next_cp in forms:
+        joins_next = row[4] == 0 and row[2] != 0 and forms[next_cp][1] != 0
+    if joins_prev and joins_next and row[3] != 0:
+        return row[3]
+    if joins_prev and row[1] != 0:
+        return row[1]
+    if joins_next and row[2] != 0:
+        return row[2]
+    return row[0]
+
+
+def _py_visual(text: str) -> str:
+    """دقیقاً همان الگوریتمِ PersianShaper.visual به پایتون — برای self-test."""
+    if not text:
+        return text
+    if not any(_py_is_rtl(ord(c)) for c in text):
+        return text
+    forms = _py_forms()
+    neutrals = (0x20, 0x2E, 0x3A, 0x2C, 0x061B, 0x060C, 0x061F, 0x21)
+    runs = []
+    cur = ""
+    cur_rtl = False
+    for c in text:
+        cp = ord(c)
+        is_rtl = _py_is_rtl(cp)
+        if cp in neutrals:
+            cur += c
+            continue
+        if not runs and not cur:
+            cur_rtl = is_rtl
+            cur = c
+            continue
+        if is_rtl == cur_rtl:
+            cur += c
+        else:
+            runs.append([cur, cur_rtl])
+            cur = c
+            cur_rtl = is_rtl
+    if cur:
+        runs.append([cur, cur_rtl])
+    if runs[0][1]:
+        runs.reverse()
+    out = ""
+    for text_run, is_rtl_run in runs:
+        if not is_rtl_run:
+            out += text_run
+            continue
+        src = text_run.replace("‌", "")
+        cps = [ord(c) for c in src]
+        shaped = []
+        for i, cp in enumerate(cps):
+            prev_cp = cps[i - 1] if i > 0 else -1
+            next_cp = cps[i + 1] if i < len(cps) - 1 else -1
+            shaped.append(_py_form_of(cp, prev_cp, next_cp, forms))
+        out += "".join(chr(cp) for cp in reversed(shaped))
+    return out
+
+
+_SHAPER_PROBES = ["سلام دنیا", "ترازو", "نمرهٔ ۱۸۰", "شبكهٔ مهارت‌ها",
+                  "چیدنِ کره‌ها روی کفهٔ راست", "کیفیتِ شکلِ بصری"]
+
 
 # جایگزینیِ دقیقِ بدنهٔ icon_texture — بلوکِ قدیم باید **حتماً** یافت شود (assert)،
 # تا اگر UIKit تغییر کرد، این ابزار بی‌صدایِ ناآگاه نیفتد (قاعدهٔ نوشتاریِ ریپو).
@@ -399,6 +747,9 @@ def apply_preview_transforms(files: dict[str, bytes], with_smoke: bool = False) 
     )
     files[proj_key] = proj.encode("utf-8")
 
+    # ۲ب) شِیپرِ فارسی — فقط-بستهٔ-وب (قالب npm TextServerAdvanced ندارد)
+    files["res://preview/PersianShaper.gd"] = _shaper_content().encode("utf-8")
+
     # ۲ب) پلی‌فیل فیزیک دوبعدی — قبل از اسکنِ کش تا class_name «Area2D»/… ثبت شود
     for poly_path, poly_src in _POLYFILL_FILES.items():
         files[poly_path] = poly_src.encode("utf-8")
@@ -486,6 +837,14 @@ func _run() -> void:
 		_fail("fallback font تهی است — PreviewBoot کار نکرد")
 		return
 	print("[SMOKE] fallback font OK")
+
+	probe_sanity()
+
+	# ۲ب) پروبِ قابلیتِ موتور (گزارش، نه گیت): TextServer/RegEx/HarfBuzz — پلی‌فیلِ
+	# فعلی از این‌ها مستقل است اما اگر قالبِ رسمی آمد، این پروب باید سبز شود.
+	var ts_name: String = TextServerManager.get_primary_interface().get_name()
+	print("[SMOKE][PROBE] text server = ", ts_name)
+	print("[SMOKE][PROBE] RegEx module = ", ClassDB.class_exists("RegEx"),\n		" TextServerAdvanced class = ", ClassDB.class_exists("TextServerAdvanced"))
 
 	# ۳) کشفِ سطح‌ها با حلقهٔ انتقال (script-بوت به autoload دیرتر از UI دست می‌یابد)
 	var ids: Array = []
@@ -600,6 +959,25 @@ func _run() -> void:
 	print("[SMOKE][WIN] ", lid, " won with intended solution")
 	print("[SMOKE][PASS] all checks green")
 	quit(0)
+
+
+func probe_sanity() -> void:
+	var script_ref: GDScript = load("res://preview/PersianShaper.gd") as GDScript
+	if script_ref == null:
+		_fail("PersianShaper.gd لود نشد")
+		return
+	var probes: Array = [["سلام دنیا", "ﺎﯿﻧﺩ ﻡﺎﻠﺳ"], ["ترازو", "ﻭﺯﺍﺮﺗ"], ["نمرهٔ ۱۸۰", "۰۸۱ ٔﻩﺮﻤﻧ"], ["شبكهٔ مهارت‌ها", "ﺎﻫ‌ﺕﺭﺎﻬﻣ ٔﻪﻜﺒﺷ"], ["چیدنِ کره‌ها روی کفهٔ راست", "ﺖﺳﺍﺭ ٔﻪﻔﮐ ﯼﻭﺭ ﺎﻫ‌ﻩﺮﮐ ِﻥﺪﯿﭼ"], ["کیفیتِ شکلِ بصری", "ﯼﺮﺼﺑ ِﻞﮑﺷ ِﺖﯿﻔﯿﮐ"]]
+	for pair: Array in probes:
+		var src_text: String = pair[0]
+		var expected: String = pair[1]
+		var got: String = script_ref.call("visual", src_text)
+		if got != expected:
+			var gb := got.to_utf8_buffer()
+			var eb := expected.to_utf8_buffer()
+			printerr("[SMOKE][DBG] got=", gb.hex_encode(), " exp=", eb.hex_encode())
+			_fail("PersianShaper mismatch on «" + src_text + "»")
+			return
+	print("[SMOKE] PersianShaper probe OK")
 '''
 
 

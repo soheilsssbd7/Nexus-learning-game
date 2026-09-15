@@ -2013,7 +2013,22 @@ def check_site(errs: list[str]) -> int:
          بیلدِ وب فقط وقتی commit می‌شود که جا شود؛ اگر روزی بزرگ شد، گیت قبل از فاجعه می‌گوید ✓)
       ۵) پالت و «قرمز ممنوع» ✓ از §۲ کتاب هنری (سایتِ همان محصول = همان رنگ‌ها ✗✓ و قرمزِ خالص در
          محصولِ ضدِّ اضطراب ممنوع است — سایت استثنا نیست ✓)
+      ۶) استثنای صریح — `site/game/**` (ADR-069 + درخواستِ مالک، ۱۴۰۵/شهریور): زیردرختِ موتور
+         خروجیِ خامِ «قالبِ وبِ تک‌نخی» است ⇒ `<script>` و `wasm` ~۱۸MB **آنجا طراحی‌اند** ✓✗
+         (سقفِ واقعیِ سروِ Pages برای deploy از برانچ، ۱۰۰MB است نه ۹MB — یعنی فاجعه‌ای که قفلِ ۴
+         از آن می‌ترسید با این اندازه رخ نمی‌دهد ✓). قفل‌های همین استثنا در انتهای تابع:
+         مجموعهٔ فایل‌ها باید دقیقاً همان فایل‌های موتور باشد، `index.pck` حتماً موجود، و
+         `site/game.html` حتماً به `game/index.html` پیوند بدهد ✓✗ (بازیِ منتشرشده بی‌پیوند =
+         بدتر از «نیست» ✓)
     """
+    game_dir = SITE_DIR / "game"
+
+    def in_game(p: Path) -> bool:
+        try:
+            p.resolve().relative_to(game_dir.resolve())
+            return True
+        except (ValueError, RuntimeError):
+            return False
     bad = 0
     if not (ROOT / "tools" / "build_site.py").exists():
         errs.append("check_site: `tools/build_site.py` نیست ✗ (کل سایت بازتولیدناپذیر است ✓)")
@@ -2043,7 +2058,7 @@ def check_site(errs: list[str]) -> int:
             continue
         txt = f.read_text(encoding="utf-8")
         rel = f.relative_to(ROOT)
-        if "build_site.py" not in txt:
+        if "build_site.py" not in txt and not in_game(f):
             errs.append(f"check_site: `{rel}` دست‌نویس است ✗✓ (همۀ صفحۀ سایت باید از `tools/build_site.py` "
                         "بیرون بیاید؛ وگرنه منبعِ دومِ بی‌سازمان درست می‌شود ✓)")
             bad += 1
@@ -2064,9 +2079,9 @@ def check_site(errs: list[str]) -> int:
                 errs.append(f"check_site-{rel}: ارجاعِ بیرونیِ غیرمجاز ✗ `{host}` — سیاست می‌گوید «هیچ "
                             "شخص ثالثی در مسیر داده نیست» ⇒ سایت هم نباید از CDN فونت/اسکریپت بکشد ✓✓")
                 bad += 1
-        if "<script" in txt:
+        if "<script" in txt and not in_game(f):
             errs.append(f"check_site-{rel}: <script> در سایت ✗✓ (بدونِ JS منتشر می‌کنیم؛ هر JS = سطحِ "
-                        "حملهٔ بچه‌محور + چیزی که سیاستمان منکرش است ✓)")
+                        "حملهٔ بچه‌محور + چیزی که سیاستمان منکرش است ✓) — استثنای صریح فقط `site/game/` ✓")
             bad += 1
         # ⚠ `&lt;host&gt;` هم چک می‌شود ✗✓ چون rندرِ مارک‌داون، `<` را escape می‌کند و جست‌وجوی
         #   رشته‌ایِ `<host>` روی HTMLِ تولیدشده **هیچ‌وقت** نمی‌یافتش ✓✓ (پروبِ `placeholder` همین
@@ -2077,7 +2092,7 @@ def check_site(errs: list[str]) -> int:
                             "غیرواقعی باید با ⚠ و شمارۀ تسک همراه باشد، وگرنه والد فکر می‌کند ایمیل کار می‌کند ✓")
                 bad += 1
     for f in SITE_DIR.rglob("*"):
-        if f.is_file() and f.stat().st_size > 9_437_184:
+        if f.is_file() and not in_game(f) and f.stat().st_size > 9_437_184:
             errs.append(f"check_site: `{f.relative_to(ROOT)}` بزرگ‌تر از 9MB ✗✓ Pages فایل بزرگ را "
                         "نمی‌سازد ⇒ کل سایت قربانی می‌شود (به‌همین‌دلیل بیلدِ وب فقط اگر جا شود commit می‌شود ✓)")
             bad += 1
@@ -2111,6 +2126,39 @@ def check_site(errs: list[str]) -> int:
             errs.append("check_site: `red` در CSS سایت ✗✗ قانونِ §۲: قرمزِ خالص هیچ‌جای محصولِ ضدِّ اضطراب "
                         "نیست ✓ (سایت هم استثنا نیست ✓)")
             bad += 1
+    # قفل‌های استثنای ۶ — `site/game/**` فقط وقتی معنا دارد که بستهٔ موتور **کامل و از جنسِ خودش** باشد ✓✗
+    # («نیم‌کپیِ سبز» بدترین حالتِ Pages است: صفحهٔ بازی باز می‌شود و موتور نه ✓)
+    ENGINE_FILES = {
+        "index.html", "index.pck", "index.wasm", "runtime.js", "engine_bundle.mjs",
+        "index.audio.worklet.js", "index.audio.position.worklet.js",
+        "Vazirmatn-Medium.ttf", "icon.svg",
+    }
+    if game_dir.exists():
+        have = {p.name for p in game_dir.iterdir() if p.is_file()}
+        extra = sorted(have - ENGINE_FILES)
+        missing = sorted(ENGINE_FILES - have)
+        junk = sorted(p.name for p in game_dir.iterdir() if not p.is_file())
+        if extra or junk:
+            errs.append(f"check_site-game/: فایلِ ناموظرف در بستهٔ موتور ✗✓ {extra + junk} — استثنای ۶ "
+                        "فقط برای خروجیِ خامِ قالب است، نه سطلِ فایل ✓")
+            bad += 1
+        if missing:
+            errs.append(f"check_site-game/: بستهٔ موتور ناقص ✗✓ کم است: {missing} — صفحهٔ بازی باز می‌شود "
+                        "ولی موتور نه (از `tools/build_web_preview.py` تازه بساز و همه را با هم commit کن ✓)")
+            bad += 1
+        if "index.pck" in have and (game_dir / "index.pck").stat().st_size < 100_000:
+            errs.append("check_site-game/index.pck: مشکوک‌کوچک ✗✓ (۴۵ سطحِ بازی این‌جاست؛ ناقص روی Pages = "
+                        "منوی بدون مرحله ✓)")
+            bad += 1
+        gh = SITE_DIR / "game.html"
+        if gh.exists() and "game/index.html" not in gh.read_text(encoding="utf-8"):
+            errs.append("check_site-game.html: پیوندِ «شروع بازی» به `game/index.html` نیست ✗✓ بازی منتشر "
+                        "شده ولی راهی به آن نیست (در `site_src/game.md` پیوند بگذار و بازتولید کن ✓)")
+            bad += 1
+    else:
+        errs.append("check_site: `site/game/` نیست ✗✓ استثنای ۶ فعال است پس بستهٔ موتور هم باید باشد؛ "
+                    "یا بازی را با `tools/build_web_preview.py` بساز و کپی کن یا استثنا را برگردان ✓")
+        bad += 1
     return bad
 
 
