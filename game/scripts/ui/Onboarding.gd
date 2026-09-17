@@ -91,8 +91,16 @@ func _fit_steps() -> void:
 	var frame_width: float = maxf(frame.x, 1.0)
 	var frame_height: float = maxf(frame.y, 1.0)
 	if _background != null and is_instance_valid(_background):
-		_background.position = Vector2((frame_width - 1080.0) * 0.5, 0.0)
-		_background.size = Vector2(1080.0, 1920.0)
+		_background.anchor_left = 0.0
+		_background.anchor_right = 0.0
+		_background.anchor_top = 0.0
+		_background.anchor_bottom = 0.0
+		_background.offset_left = 0.0
+		_background.offset_right = 1080.0
+		_background.offset_top = 0.0
+		_background.offset_bottom = 1920.0
+		_background.grow_horizontal = Control.GROW_DIRECTION_END
+		_background.grow_vertical = Control.GROW_DIRECTION_END
 	for key: Variant in _panels.keys():
 		var panel := _panels[key] as Control
 		if panel == null or not panel.visible:
@@ -108,14 +116,21 @@ func _fit_steps() -> void:
 		# این panel فرزندِ Container نیست؛ اندازه‌ی واقعی را صریحاً روی قاب
 		# portrait می‌گذاریم تا Containerهای داخلی هیچ‌وقت به عرضِ expanded Web
 		# (مثلاً ۲۰۴۰px در headless) کشیده نشوند.
-		panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT,
-			Control.PRESET_MODE_MINSIZE, 0)
-		panel.size = Vector2(panel_width, content_height)
+		panel.anchor_left = 0.0
+		panel.anchor_right = 0.0
+		panel.anchor_top = 0.0
+		panel.anchor_bottom = 0.0
+		panel.grow_horizontal = Control.GROW_DIRECTION_END
+		panel.grow_vertical = Control.GROW_DIRECTION_END
 		panel.scale = Vector2.ONE * fit_scale
 		panel.pivot_offset = Vector2(panel_width * 0.5, 0.0)
 		var rendered_height: float = content_height * fit_scale
 		var top: float = clampf((frame_height - rendered_height) * 0.18, 24.0, 120.0)
-		panel.position = Vector2((frame_width - panel_width) * 0.5, top)
+		var panel_left: float = (minf(frame_width, 1080.0) - panel_width) * 0.5
+		panel.offset_left = panel_left
+		panel.offset_right = panel_left + panel_width
+		panel.offset_top = top
+		panel.offset_bottom = top + content_height
 
 
 func _build_background() -> void:
@@ -123,8 +138,8 @@ func _build_background() -> void:
 	_background.name = "Background"
 	_background.color = Palette.DEEP_INDIGO
 	_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_background.custom_minimum_size = Vector2(1080.0, 1920.0)
-	_background.set_anchors_and_offsets_preset(Control.PRESET_CENTER,
+	_background.custom_minimum_size = Vector2.ZERO
+	_background.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT,
 		Control.PRESET_MODE_MINSIZE, 0)
 	add_child(_background)
 
@@ -135,10 +150,11 @@ func _step_box(step: String, title_key: String) -> VBoxContainer:
 	# panel در قاب portrait مرکز می‌شود؛ هرگز عرض viewport expandedِ Web را
 	# به‌عنوان عرض طراحی نمی‌گیرد و بنابراین childها بیرون از بوم نمی‌روند.
 	box.custom_minimum_size = Vector2(1032.0, 0.0)
-	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP,
+	box.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT,
 		Control.PRESET_MODE_MINSIZE, 0)
+	box.offset_left = UIKit.MARGIN
 	box.offset_top = 120.0
-	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	box.grow_horizontal = Control.GROW_DIRECTION_END
 	if not title_key.is_empty():
 		var title := UIKit.make_label(title_key, UIKit.TITLE_FONT_PX - 8)
 		title.name = "Title"
