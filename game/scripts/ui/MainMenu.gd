@@ -108,8 +108,11 @@ func _build() -> void:
 	box.move_child(tagline, 1)
 	box.move_child(eyebrow, 2)
 	box.move_child(hero, 3)
-	# چیدمان: VBox وسطِ صفحه، با حاشیه‌ی §۷ از لبه‌ها
-	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 0)
+	# چیدمان: VBox تمام‌عرض با حاشیه‌ی §۷ از لبه‌ها.
+	# `PRESET_CENTER_TOP` با offsetهای چپ/راستِ مثبت/منفی، عرض را منفی می‌کرد
+	# (هر دو anchor روی ۰٫۵ می‌ماندند) و childها را خارج از قاب می‌فرستادند.
+	# برای یک Container responsive باید anchorها روی لبه‌های واقعی viewport باشند.
+	box.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE, Control.PRESET_MODE_MINSIZE, 0)
 	box.offset_left = UIKit.MARGIN
 	box.offset_right = -UIKit.MARGIN
 	# پیش از اولین layout هم داخل قاب بماند؛ `_fit_menu` بعد از محاسبه‌ی
