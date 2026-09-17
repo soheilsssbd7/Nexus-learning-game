@@ -88,9 +88,8 @@ func _fit_steps() -> void:
 	var frame_width: float = maxf(frame.x, 1.0)
 	var frame_height: float = maxf(frame.y, 1.0)
 	if _background != null and is_instance_valid(_background):
-		_background.custom_minimum_size = Vector2(1080.0, 1920.0)
-		_background.set_anchors_and_offsets_preset(Control.PRESET_CENTER,
-			Control.PRESET_MODE_MINSIZE, 0)
+		_background.position = Vector2((frame_width - 1080.0) * 0.5, 0.0)
+		_background.size = Vector2(1080.0, 1920.0)
 	for key: Variant in _panels.keys():
 		var panel := _panels[key] as Control
 		if panel == null or not panel.visible:
@@ -98,17 +97,22 @@ func _fit_steps() -> void:
 		var content_size: Vector2 = panel.get_combined_minimum_size()
 		var content_width: float = maxf(content_size.x, 1.0)
 		var content_height: float = maxf(content_size.y, 1.0)
-		var available_width: float = minf(1032.0, maxf(frame_width - 48.0, 1.0))
+		var panel_width: float = minf(1032.0, maxf(frame_width - 48.0, 1.0))
 		var available_height: float = maxf(frame_height - 48.0, 1.0)
 		var fit_scale: float = minf(1.0, minf(
-			available_width / content_width,
+			panel_width / content_width,
 			available_height / content_height))
+		# این panel فرزندِ Container نیست؛ اندازه‌ی واقعی را صریحاً روی قاب
+		# portrait می‌گذاریم تا Containerهای داخلی هیچ‌وقت به عرضِ expanded Web
+		# (مثلاً ۲۰۴۰px در headless) کشیده نشوند.
+		panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT,
+			Control.PRESET_MODE_MINSIZE, 0)
+		panel.size = Vector2(panel_width, content_height)
 		panel.scale = Vector2.ONE * fit_scale
-		panel.pivot_offset = Vector2(panel.size.x * 0.5, 0.0)
+		panel.pivot_offset = Vector2(panel_width * 0.5, 0.0)
 		var rendered_height: float = content_height * fit_scale
 		var top: float = clampf((frame_height - rendered_height) * 0.18, 24.0, 120.0)
-		panel.offset_top = top
-		panel.offset_bottom = top + content_height
+		panel.position = Vector2((frame_width - panel_width) * 0.5, top)
 
 
 func _build_background() -> void:
