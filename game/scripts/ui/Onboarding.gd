@@ -79,6 +79,9 @@ func _ready() -> void:
 		done_button.disabled = true
 	show_step(start_step if _panels.has(start_step) else STEP_AVATAR)
 	UIKit.apply_flow(self)
+	# قاب را همین فریم تثبیت کن؛ تست/دستگاه ممکن است پیش از deferred frame
+	# اندازه‌ی childها را ممیزی کند و نباید یک لحظه با عرض expanded دیده شوند.
+	_fit_steps()
 	get_viewport().size_changed.connect(_fit_steps)
 	call_deferred("_fit_steps")
 
