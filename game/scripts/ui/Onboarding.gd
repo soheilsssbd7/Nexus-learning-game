@@ -54,6 +54,7 @@ var feedback_label: Label = null
 
 var _panels: Dictionary = {}
 var _tutorial_holder: Node2D = null
+var _background: ColorRect = null
 var _won: bool = false
 
 
@@ -84,13 +85,24 @@ func _ready() -> void:
 
 func _fit_steps() -> void:
 	var frame: Vector2 = get_viewport_rect().size
+	var frame_width: float = maxf(frame.x, 1.0)
 	var frame_height: float = maxf(frame.y, 1.0)
+	if _background != null and is_instance_valid(_background):
+		_background.custom_minimum_size = Vector2(1080.0, 1920.0)
+		_background.set_anchors_and_offsets_preset(Control.PRESET_CENTER,
+			Control.PRESET_MODE_MINSIZE, 0)
 	for key: Variant in _panels.keys():
 		var panel := _panels[key] as Control
 		if panel == null or not panel.visible:
 			continue
-		var content_height: float = maxf(panel.get_combined_minimum_size().y, 1.0)
-		var fit_scale: float = minf(1.0, maxf(frame_height - 48.0, 1.0) / content_height)
+		var content_size: Vector2 = panel.get_combined_minimum_size()
+		var content_width: float = maxf(content_size.x, 1.0)
+		var content_height: float = maxf(content_size.y, 1.0)
+		var available_width: float = minf(1032.0, maxf(frame_width - 48.0, 1.0))
+		var available_height: float = maxf(frame_height - 48.0, 1.0)
+		var fit_scale: float = minf(1.0, minf(
+			available_width / content_width,
+			available_height / content_height))
 		panel.scale = Vector2.ONE * fit_scale
 		panel.pivot_offset = Vector2(panel.size.x * 0.5, 0.0)
 		var rendered_height: float = content_height * fit_scale
@@ -100,23 +112,24 @@ func _fit_steps() -> void:
 
 
 func _build_background() -> void:
-	var bg := ColorRect.new()
-	bg.name = "Background"
-	bg.color = Palette.DEEP_INDIGO
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UIKit.anchor_full(bg)
-	add_child(bg)
+	_background = ColorRect.new()
+	_background.name = "Background"
+	_background.color = Palette.DEEP_INDIGO
+	_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_background.custom_minimum_size = Vector2(1080.0, 1920.0)
+	_background.set_anchors_and_offsets_preset(Control.PRESET_CENTER,
+		Control.PRESET_MODE_MINSIZE, 0)
+	add_child(_background)
 
 
 func _step_box(step: String, title_key: String) -> VBoxContainer:
 	var box := UIKit.make_vbox(UIKit.GAP * 0.75)
 	box.name = "Step_" + step
-	# این panel هم مثل MainMenu باید تمام‌عرض باشد؛ center-top همراه با
-	# offsetهای چپ/راستِ صفحه، عرض منفی می‌ساخت و متن/چیپ‌ها را خارج از قاب می‌برد.
-	box.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE,
+	# panel در قاب portrait مرکز می‌شود؛ هرگز عرض viewport expandedِ Web را
+	# به‌عنوان عرض طراحی نمی‌گیرد و بنابراین childها بیرون از بوم نمی‌روند.
+	box.custom_minimum_size = Vector2(1032.0, 0.0)
+	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP,
 		Control.PRESET_MODE_MINSIZE, 0)
-	box.offset_left = UIKit.MARGIN
-	box.offset_right = -UIKit.MARGIN
 	box.offset_top = 120.0
 	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	if not title_key.is_empty():
