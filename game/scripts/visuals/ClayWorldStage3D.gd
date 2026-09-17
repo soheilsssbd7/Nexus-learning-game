@@ -140,11 +140,9 @@ func _build_orbs() -> void:
 
 func _build_clouds() -> void:
 	for i: int in 3:
-		var cloud := _add_sphere("Cloud", Vector3(-3.6 + float(i) * 3.1,
+		_add_sphere("Cloud", Vector3(-3.6 + float(i) * 3.1,
 			3.6 + float(i % 2) * 0.34, -0.9), Vector3(0.95, 0.18, 0.42),
-			Palette.CLOUD_WHITE, 0.01, float(i) * 1.4)
-		if cloud != null:
-			cloud.modulate = Color(1.0, 1.0, 1.0, 0.20)
+			Palette.CLOUD_WHITE.darkened(0.04), 0.01, float(i) * 1.4)
 
 
 func _material(color: Color, wobble: float) -> Material:

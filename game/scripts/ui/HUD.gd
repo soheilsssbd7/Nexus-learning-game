@@ -112,14 +112,14 @@ func _build() -> void:
 	objective.position = OBJECTIVE_AT
 	objective.size = OBJECTIVE_SIZE
 	var objective_flow := UIKit.make_vbox(6.0)
-	var mission := UIKit.make_label("hud.mission", 23, Palette.AELORIA_GOLD, true)
+	var mission := UIKit.make_label("hud.mission", 24, Palette.AELORIA_GOLD, true)
 	mission.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	objective_flow.add_child(mission)
 	concept_label = UIKit.make_raw_label(Loc.t("hud.concept"), 31, Palette.CLOUD_WHITE)
 	concept_label.name = "ConceptLabel"
 	concept_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	objective_flow.add_child(concept_label)
-	var loop := UIKit.make_label("hud.learning_loop", 22, Palette.MUTED_TEXT)
+	var loop := UIKit.make_label("hud.learning_loop", 24, Palette.MUTED_TEXT)
 	loop.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	objective_flow.add_child(loop)
 	objective.add_child(objective_flow)

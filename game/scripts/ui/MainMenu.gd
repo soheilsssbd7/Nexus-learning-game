@@ -78,7 +78,7 @@ func _build() -> void:
 	var chapter := UIKit.make_label("main.chapter", 25, Palette.AELORIA_GOLD, true)
 	chapter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hero_flow.add_child(chapter)
-	hero_flow.add_child(UIKit.make_label("main.safe", 22, Palette.MUTED_TEXT))
+	hero_flow.add_child(UIKit.make_label("main.safe", 24, Palette.MUTED_TEXT))
 	hero.add_child(hero_flow)
 
 	var box := UIKit.make_vbox(UIKit.GAP)
