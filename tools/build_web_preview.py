@@ -735,6 +735,17 @@ def apply_preview_transforms(files: dict[str, bytes], with_smoke: bool = False) 
     ld = files[ld_path].decode("utf-8")
     files[ld_path] = _replace_once(ld, _LD_OLD, _LD_NEW, ld_path).encode("utf-8")
 
+    # ۱ج) در بسته‌ی npm هنوز import cacheِ FontFile نداریم؛ تمِ پروژه اگر به
+    # ExtResource فونت اشاره کند پیش از اجرای PreviewBoot خطای resource loader می‌دهد.
+    # فقط در کپیِ بسته، آن reference را برمی‌داریم تا PreviewBoot همان فونت را با
+    # load_dynamic_font نصب کند؛ build رسمی Godot و فایلِ اصلی دست‌نخورده می‌مانند.
+    theme_path = "res://themes/Nexus.tres"
+    if theme_path in files:
+        theme = files[theme_path].decode("utf-8")
+        theme = re.sub(r'^\[ext_resource type="FontFile".*?\n', "", theme, flags=re.M)
+        theme = theme.replace('default_font = ExtResource("1_medium")\n', "")
+        files[theme_path] = theme.encode("utf-8")
+
     # ۲) PreviewBoot به‌عنوان اولین autoload
     files["res://preview/PreviewBoot.gd"] = PREVIEW_BOOT_GD.encode("utf-8")
     proj_key = "res://project.godot"
