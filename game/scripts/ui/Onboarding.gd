@@ -60,7 +60,12 @@ var _won: bool = false
 func _ready() -> void:
 	if GameState.active_model == null:
 		GameState.bootstrap()
-	custom_minimum_size = Vector2(1080.0, 1920.0)
+	# ریشه باید viewport واقعی را بگیرد؛ minimum-size روی root در Web قاب را
+	# به ۱۹۲۰ پیکسل می‌کشاند و گام آواتار را پایینِ صفحه crop می‌کند.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if size.x < 2.0 or size.y < 2.0:
+		size = Vector2(1080.0, 1920.0)
+	custom_minimum_size = Vector2.ZERO
 	_build_background()
 	_build_avatar_step()
 	if build_tutorial:
@@ -73,6 +78,25 @@ func _ready() -> void:
 		done_button.disabled = true
 	show_step(start_step if _panels.has(start_step) else STEP_AVATAR)
 	UIKit.apply_flow(self)
+	get_viewport().size_changed.connect(_fit_steps)
+	call_deferred("_fit_steps")
+
+
+func _fit_steps() -> void:
+	var frame: Vector2 = get_viewport_rect().size
+	var frame_height: float = maxf(frame.y, 1.0)
+	for key: Variant in _panels.keys():
+		var panel := _panels[key] as Control
+		if panel == null or not panel.visible:
+			continue
+		var content_height: float = maxf(panel.get_combined_minimum_size().y, 1.0)
+		var fit_scale: float = minf(1.0, maxf(frame_height - 48.0, 1.0) / content_height)
+		panel.scale = Vector2.ONE * fit_scale
+		panel.pivot_offset = Vector2(panel.size.x * 0.5, 0.0)
+		var rendered_height: float = content_height * fit_scale
+		var top: float = clampf((frame_height - rendered_height) * 0.18, 24.0, 120.0)
+		panel.offset_top = top
+		panel.offset_bottom = top + content_height
 
 
 func _build_background() -> void:
@@ -87,7 +111,9 @@ func _build_background() -> void:
 func _step_box(step: String, title_key: String) -> VBoxContainer:
 	var box := UIKit.make_vbox(UIKit.GAP * 0.75)
 	box.name = "Step_" + step
-	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP,
+	# این panel هم مثل MainMenu باید تمام‌عرض باشد؛ center-top همراه با
+	# offsetهای چپ/راستِ صفحه، عرض منفی می‌ساخت و متن/چیپ‌ها را خارج از قاب می‌برد.
+	box.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE,
 		Control.PRESET_MODE_MINSIZE, 0)
 	box.offset_left = UIKit.MARGIN
 	box.offset_right = -UIKit.MARGIN
@@ -288,6 +314,7 @@ func show_step(step: String) -> void:
 	step_changed.emit(step)
 	UIKit.retranslate(self)
 	UIKit.apply_flow(self)
+	_fit_steps()
 
 
 ## فقط گامِ فعالِ آموزش با کره‌ها کار می‌کند (`input_pickable` روی Area2D کره).
