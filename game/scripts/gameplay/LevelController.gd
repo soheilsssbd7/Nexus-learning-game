@@ -150,6 +150,14 @@ func _ensure_backdrop() -> void:
 	bd.region = RegionBackdrop.region_for_tier(tier)
 	bd.set_restoration(GameState.tier_restoration(tier), false)
 	add_child(bd)
+	# لایه‌ی جدیدِ خمیری روی پس‌زمینه‌ی قدیمی می‌نشیند؛ منطق و hit-test ترازو را
+	# دست نمی‌زند و اگر asset/renderer شکست بخورد، RegionBackdrop همچنان fallback است.
+	var clay := ClayStage2D.new()
+	clay.name = "ClayStage"
+	clay.region = bd.region
+	clay.restoration = GameState.tier_restoration(tier)
+	clay.animate = not Engine.is_editor_hint()
+	add_child(clay)
 	var sky := get_node_or_null("Sky") as ColorRect
 	if sky != null:
 		sky.visible = false
@@ -158,10 +166,13 @@ func _ensure_backdrop() -> void:
 
 
 func _on_level_completed_backdrop(_level_id: String, _stats: Dictionary) -> void:
+	var restoration: float = GameState.tier_restoration(GameState.current_tier)
 	var bd := get_node_or_null("Backdrop") as RegionBackdrop
-	if bd == null:
-		return
-	bd.set_restoration(GameState.tier_restoration(GameState.current_tier), true)
+	if bd != null:
+		bd.set_restoration(restoration, true)
+	var clay := get_node_or_null("ClayStage") as ClayStage2D
+	if clay != null:
+		clay.restoration = restoration
 ## فاز ۳: LevelLoader این را با داده‌ی JSON صدا می‌زند (قبل یا بعد از add_child).
 func configure(p_config: Dictionary) -> void:
 	config = p_config

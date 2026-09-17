@@ -50,18 +50,36 @@ func _ready() -> void:
 
 
 func _build() -> void:
+	_build_clay_showcase()
 	var bg := ColorRect.new()
 	bg.name = "Background"
-	bg.color = Palette.DEEP_INDIGO
+	# این لایه فقط کنتراستِ متن را نگه می‌دارد؛ ویترینِ سه‌بعدی باید زیر آن دیده شود.
+	bg.color = Color(Palette.DEEP_INDIGO, 0.34)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.z_index = 1
 	UIKit.anchor_full(bg)
 	add_child(bg)
 
-	title_label = UIKit.make_label("main.title", UIKit.TITLE_FONT_PX)
+	var eyebrow := UIKit.make_label("main.eyebrow", UIKit.DIALOG_FONT_PX, Palette.AELORIA_GOLD, true)
+	eyebrow.name = "Eyebrow"
+	eyebrow.modulate.a = 0.95
+	title_label = UIKit.make_label("main.title", UIKit.TITLE_FONT_PX, Palette.CLOUD_WHITE, true)
 	title_label.name = "Title"
 	var tagline := UIKit.make_label("main.tagline", UIKit.DIALOG_FONT_PX, Palette.CLOUD_WHITE)
 	tagline.name = "Tagline"
-	tagline.modulate.a = 0.8
+	tagline.modulate.a = 0.84
+
+	var hero := UIKit.make_panel(0.76, 28.0)
+	hero.name = "HeroCard"
+	hero.custom_minimum_size = Vector2(760.0, 226.0)
+	var hero_flow := UIKit.make_vbox(8.0)
+	hero_flow.add_child(UIKit.make_label("main.hero", 36, Palette.CLOUD_WHITE, true))
+	hero_flow.add_child(UIKit.make_label("main.hero_hint", 25, Palette.MUTED_TEXT))
+	var chapter := UIKit.make_label("main.chapter", 25, Palette.AELORIA_GOLD, true)
+	chapter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hero_flow.add_child(chapter)
+	hero_flow.add_child(UIKit.make_label("main.safe", 22, Palette.MUTED_TEXT))
+	hero.add_child(hero_flow)
 
 	var box := UIKit.make_vbox(UIKit.GAP)
 	box.name = "Buttons"
@@ -73,10 +91,14 @@ func _build() -> void:
 	_add(box, "menu.parents", "cloud")
 	_add(box, "menu.quit", "stone")
 
+	box.add_child(eyebrow)
+	box.add_child(hero)
 	box.add_child(title_label)
 	box.move_child(title_label, 0)
 	box.add_child(tagline)
 	box.move_child(tagline, 1)
+	box.move_child(eyebrow, 2)
+	box.move_child(hero, 3)
 	# چیدمان: VBox وسطِ صفحه، با حاشیه‌ی §۷ از لبه‌ها
 	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 0)
 	box.offset_left = UIKit.MARGIN
@@ -84,6 +106,7 @@ func _build() -> void:
 	box.offset_top = 620.0
 	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	box.grow_vertical = Control.GROW_DIRECTION_BOTH
+	box.z_index = 10
 
 	if show_aria:
 		var packed: PackedScene = load(ARIA_PATH)
@@ -97,6 +120,29 @@ func _build() -> void:
 		else:
 			Log.warn(TAG, "صحنه‌ی Aria بارگذاری نشد — منو بی‌آواتار ساخته می‌شود")
 	UIKit.apply_flow(self)
+
+
+## ویترین سه‌بعدی در یک SubViewport مستقل می‌نشیند تا UI واقعیِ Control روی آن
+## overlay شود و در صورت خاموش‌بودن renderer هم fallbackِ پس‌زمینه‌ی رنگی بماند.
+func _build_clay_showcase() -> void:
+	var host := SubViewportContainer.new()
+	host.name = "ClayShowcase"
+	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.stretch = true
+	host.z_index = 0
+	UIKit.anchor_full(host)
+	var viewport := SubViewport.new()
+	viewport.name = "ClayViewport"
+	viewport.size = Vector2i(1080, 1920)
+	viewport.transparent_bg = false
+	viewport.handle_input_locally = false
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	host.add_child(viewport)
+	var world := ClayWorldStage3D.new()
+	world.name = "ClayWorld"
+	viewport.add_child(world)
+	add_child(host)
+	move_child(host, 0)
 
 
 func _add(box: VBoxContainer, key: String, tone: String) -> Button:

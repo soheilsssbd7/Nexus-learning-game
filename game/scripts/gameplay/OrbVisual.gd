@@ -73,6 +73,12 @@ func _draw() -> void:
 	var center := Vector2.ZERO
 	var body_pts: PackedVector2Array = body_polygon(kind, radius)
 	var alpha: float = body_alpha_for(kind, _body_color().a)
+	# سه لایه‌ی تماس/بدنه/هایلایت، حجم را بدون texture سنگین و بدون تغییر در
+	# geometry برخورد می‌سازد. سایه عمداً زیرِ کره می‌افتد تا «روی خمیر نشسته» خوانده شود.
+	if kind != Kind.BUBBLE:
+		draw_set_transform(Vector2(0.0, radius * 0.40), 0.0, Vector2(1.0, 0.28))
+		draw_circle(Vector2.ZERO, radius * 0.82, Color(0.0, 0.0, 0.0, 0.18))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if kind == Kind.BUBBLE:
 		# پوسته‌ی حباب: دو کمان با دهانه‌ی پایین ✓ (حباب «باز» است؛ کرهٔ پر ✗§۶)
 		var c: Color = _edge_color()
@@ -116,6 +122,12 @@ func _draw() -> void:
 			var sc: Color = oc
 			sc.a = alpha * 0.30
 			draw_line(Vector2.ZERO, p, sc, 1.5, true)
+	if kind != Kind.BUBBLE:
+		# لکه‌ی روشنِ سفال: یک منبع نور بزرگ و نرم، نه خط دورِ تیز.
+		draw_set_transform(Vector2(-radius * 0.24, -radius * 0.28), 0.0,
+			Vector2(0.34, 0.16))
+		draw_circle(Vector2.ZERO, radius, Color(Palette.CLOUD_WHITE, 0.14 + highlight * 0.16))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if radius > 20.0:
 		# هایلایت: یک کمان روشن در ربع بالا-چپ، حس «کریستال»
 		draw_arc(center + Vector2(-radius * 0.22, -radius * 0.24), radius * 0.52, PI * 0.95, PI * 1.85, 20,

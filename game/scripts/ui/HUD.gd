@@ -29,6 +29,8 @@ const PAUSE_AT := Vector2(876.0, 40.0)
 const PAUSE_SIZE := Vector2(148.0, 148.0)
 const PROGRESS_AT := Vector2(372.0, 40.0)
 const PROGRESS_SIZE := Vector2(336.0, 148.0)
+const OBJECTIVE_AT := Vector2(60.0, 430.0)
+const OBJECTIVE_SIZE := Vector2(960.0, 188.0)
 const ARIA_AT := Vector2(940.0, 1240.0)
 const DIALOGUE_SLOT := Rect2(24.0, 1400.0, 1032.0, 260.0)
 const PIP_SIZE := Vector2(44.0, 44.0)
@@ -44,6 +46,7 @@ signal pause_pressed
 var hint_button: Button = null
 var pause_button: Button = null
 var progress_label: Label = null
+var concept_label: Label = null
 var pips: Array[ColorRect] = []
 var _pip_row: HBoxContainer = null
 var _tier_ids: Array[String] = []
@@ -101,6 +104,26 @@ func _build() -> void:
 	pip_row.add_theme_constant_override("separation", 10)
 	row.add_child(pip_row)
 	_pip_row = pip_row
+
+	# کارتِ هدف، حلقه‌ی آموزشی را روی خودِ بازی نگه می‌دارد: کودک می‌داند
+	# الان چه مفهومی را تمرین می‌کند، نه اینکه فقط «یک معما» جلوی او باشد.
+	var objective := UIKit.make_panel(0.74, 22.0)
+	objective.name = "ObjectiveCard"
+	objective.position = OBJECTIVE_AT
+	objective.size = OBJECTIVE_SIZE
+	var objective_flow := UIKit.make_vbox(6.0)
+	var mission := UIKit.make_label("hud.mission", 23, Palette.AELORIA_GOLD, true)
+	mission.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	objective_flow.add_child(mission)
+	concept_label = UIKit.make_raw_label(Loc.t("hud.concept"), 31, Palette.CLOUD_WHITE)
+	concept_label.name = "ConceptLabel"
+	concept_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	objective_flow.add_child(concept_label)
+	var loop := UIKit.make_label("hud.learning_loop", 22, Palette.MUTED_TEXT)
+	loop.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	objective_flow.add_child(loop)
+	objective.add_child(objective_flow)
+	add_child(objective)
 
 
 func _build_aria() -> void:
@@ -205,6 +228,23 @@ func refresh_progress() -> void:
 	progress_label.text = "%s %s" % [Loc.t("hud.level"),
 		Loc.digits("%d/%d" % [maxi(_current_index + 1, 1), total])]
 	_pips_for()
+	_refresh_objective()
+
+
+func _refresh_objective() -> void:
+	if concept_label == null:
+		return
+	var tags_raw: Variant = controller.config.get("concept_tags", []) if controller != null else []
+	if not (tags_raw is Array) or (tags_raw as Array).is_empty():
+		concept_label.text = Loc.t("hud.concept")
+		return
+	var tags: Array = tags_raw as Array
+	var names: Array[String] = []
+	for tag: Variant in tags.slice(0, 2):
+		var translated: String = Loc.t("skill." + str(tag))
+		if translated != "skill." + str(tag):
+			names.append(translated)
+	concept_label.text = " · ".join(names) if not names.is_empty() else Loc.t("hud.concept")
 
 
 func _pips_for() -> void:

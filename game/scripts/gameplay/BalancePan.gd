@@ -128,10 +128,16 @@ func _draw() -> void:
 	var fill: Color = Palette.WARM_CORAL if heavy else Palette.SOFT_TEAL
 	# طناب‌ها
 	var rope := Color(Palette.CLOUD_WHITE.r, Palette.CLOUD_WHITE.g, Palette.CLOUD_WHITE.b, 0.55)
-	draw_line(Vector2.ZERO, dish + Vector2(-pan_radius * 0.82, -8.0), rope, 3.0)
-	draw_line(Vector2.ZERO, dish + Vector2(pan_radius * 0.82, -8.0), rope, 3.0)
-	draw_line(Vector2.ZERO, dish, rope, 2.0)
-	# کاسه
-	draw_arc(dish, pan_radius, 0.06 * TAU, 0.94 * TAU, 40, fill, 12.0)
-	draw_line(dish + Vector2(-pan_radius * 0.92, 0.0), dish + Vector2(pan_radius * 0.92, 0.0),
-		fill.lightened(0.18), 5.0)
+	draw_line(Vector2.ZERO, dish + Vector2(-pan_radius * 0.82, -8.0), rope, 4.0, true)
+	draw_line(Vector2.ZERO, dish + Vector2(pan_radius * 0.82, -8.0), rope, 4.0, true)
+	draw_line(Vector2.ZERO, dish, rope, 3.0, true)
+	# سایه‌ی تماس + کفِ سفالیِ کاسه: پرشدنِ نرم، بعد لبه‌ی ضخیم.
+	draw_set_transform(dish + Vector2(0.0, 18.0), 0.0, Vector2(1.0, 0.22))
+	draw_circle(Vector2.ZERO, pan_radius * 0.86, Color(0.0, 0.0, 0.0, 0.18))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw_set_transform(dish, 0.0, Vector2(1.0, 0.42))
+	draw_circle(Vector2.ZERO, pan_radius * 0.95, Color(fill, 0.42))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw_arc(dish, pan_radius, 0.06 * TAU, 0.94 * TAU, 40, fill, 16.0, true)
+	draw_line(dish + Vector2(-pan_radius * 0.92, -4.0), dish + Vector2(pan_radius * 0.92, -4.0),
+		Color(Palette.CLOUD_WHITE, 0.56), 5.0, true)

@@ -1138,7 +1138,7 @@ CLASS_REGISTRY: set[str] = {
 	"LevelController", "LevelData", "LevelResultBar", "LiveAIProvider", "Loc", "MainMenu",
 	"MasteryChart", "NegativeOrb", "Onboarding", "OrbVisual", "Palette", "ParentDashboard",
 	"ParentGate", "PauseMenu", "PlayerAvatarPreview", "PlayerModel", "RegionBackdrop", "SettingsMenu",
-	"SettingsStore", "SkillRating", "UIKit", "WeightOrb", "WorldMap",
+	"SettingsStore", "SkillRating", "UIKit", "WeightOrb", "WorldMap", "ClayStage2D", "ClayWorldStage3D",
 }
 
 

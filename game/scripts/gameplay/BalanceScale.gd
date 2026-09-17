@@ -228,10 +228,17 @@ func resync_geometry() -> void:
 # --------------------------------------------------------------------------
 func _draw() -> void:
 	var base_y: float = -pivot_offset.y
-	# پایه از سنگ Stone Grey (§۶ سند هنری)
-	draw_rect(Rect2(-64.0, base_y - 22.0, 128.0, 22.0), Palette.STONE_GREY, true)
-	draw_line(Vector2(0.0, base_y), pivot_offset, Palette.STONE_GREY.lightened(0.15), 14.0)
-	# بازو از «نور جامد»
+	# پایه‌ی سفالی با سایه‌ی تماس و دو لایه‌ی حجم؛ hit-test همچنان همان قبلی است.
+	draw_set_transform(Vector2(0.0, base_y + 12.0), 0.0, Vector2(1.0, 0.28))
+	draw_circle(Vector2.ZERO, 86.0, Color(0.0, 0.0, 0.0, 0.18))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw_rect(Rect2(-72.0, base_y - 24.0, 144.0, 26.0), Palette.STONE_GREY.darkened(0.12), true)
+	draw_line(Vector2(-58.0, base_y - 17.0), Vector2(58.0, base_y - 17.0),
+		Palette.CLOUD_WHITE, 4.0, true)
+	draw_line(Vector2(0.0, base_y), pivot_offset, Palette.STONE_GREY.lightened(0.15), 18.0, true)
+	draw_line(Vector2(-4.0, base_y), pivot_offset + Vector2(-4.0, 0.0),
+		Palette.STONE_GREY.darkened(0.16), 7.0, true)
+	# بازو از «خمیرِ نورانی»؛ خطوطِ دوگانه حجم را می‌خوانا می‌کنند.
 	var angle: float = 0.0
 	if beam != null:
 		angle = deg_to_rad(beam.rotation_degrees)
@@ -241,6 +248,10 @@ func _draw() -> void:
 	var heavy_right: bool = right_weight() > left_weight()
 	var beam_color: Color = Palette.AELORIA_GOLD if is_balanced(0.001) else (
 		Palette.WARM_CORAL if heavy_right else Palette.SOFT_TEAL)
-	draw_line(a, b, beam_color, 9.0)
-	draw_circle(pivot_offset, 13.0, Palette.CLOUD_WHITE)
-	draw_circle(pivot_offset, 22.0, Color(Palette.CLOUD_WHITE.r, Palette.CLOUD_WHITE.g, Palette.CLOUD_WHITE.b, 0.22))
+	draw_line(a + Vector2(0.0, 8.0), b + Vector2(0.0, 8.0), beam_color.darkened(0.20), 16.0, true)
+	draw_line(a, b, beam_color, 10.0, true)
+	draw_line(a + Vector2(0.0, -4.0), b + Vector2(0.0, -4.0),
+		Color(Palette.CLOUD_WHITE, 0.34), 3.0, true)
+	draw_circle(pivot_offset, 25.0, Color(0.0, 0.0, 0.0, 0.16))
+	draw_circle(pivot_offset, 16.0, Palette.CLOUD_WHITE)
+	draw_circle(pivot_offset, 9.0, beam_color)
