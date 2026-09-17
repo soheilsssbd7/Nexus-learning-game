@@ -1093,7 +1093,9 @@ INDEX_HTML = """<!DOCTYPE html>
 \tfont-weight: 400 700;
 \tfont-display: swap;
 }
-html, body, #canvas {
+html, body {
+\twidth: 100%;
+\theight: 100%;
 \tmargin: 0;
 \tpadding: 0;
 \tborder: 0;
@@ -1104,9 +1106,19 @@ body {
 \toverflow: hidden;
 \ttouch-action: none;
 \tfont-family: 'Vazirmatn', 'Noto Sans', Tahoma, sans-serif;
+\tdisplay: flex;
+\talign-items: center;
+\tjustify-content: center;
 }
 #canvas {
 \tdisplay: block;
+\t/* بازی portrait است؛ در iframe landscape باید contain شود، نه اینکه
+\t   با عرض کامل کشیده شود و نیمه‌ی پایینِ Controlها crop شود. */
+\twidth: min(100vw, 56.25vh) !important;
+\theight: min(100vh, 177.7777778vw) !important;
+\tmax-width: 100vw;
+\tmax-height: 100vh;
+\taspect-ratio: 9 / 16;
 }
 #canvas:focus {
 \toutline: none;
