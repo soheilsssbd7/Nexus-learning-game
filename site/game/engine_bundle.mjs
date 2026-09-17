@@ -911,7 +911,7 @@ if (typeof window !== 'undefined') {
 // ---------------------------------------------------------------------------
 // bootstrap (اقتباسِ shell رسمی misc/dist/html/full-size.html با متنِ فارسی)
 // ---------------------------------------------------------------------------
-const GODOT_CONFIG = {"canvasResizePolicy": 1, "experimentalVK": false, "focusCanvas": true, "gdextensionLibs": [], "executable": "index", "mainPack": "index.pck", "args": [], "fileSizes": {"index.wasm": 17688798, "index.pck": 906051}, "ensureCrossOriginIsolationHeaders": false, "godotPoolSize": 0, "emscriptenPoolSize": 0};
+const GODOT_CONFIG = {"canvasResizePolicy": 1, "experimentalVK": false, "focusCanvas": true, "gdextensionLibs": [], "executable": "index", "mainPack": "index.pck", "args": [], "fileSizes": {"index.wasm": 17688798, "index.pck": 907395}, "ensureCrossOriginIsolationHeaders": false, "godotPoolSize": 0, "emscriptenPoolSize": 0};
 const engine = new Engine(GODOT_CONFIG);
 // threads خاموش (قالبِ nothreads) ⇒ هیچ هدر COOP/COEP لازم نیست.
 (function () {

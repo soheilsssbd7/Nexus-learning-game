@@ -36,6 +36,7 @@ signal quit_requested
 var buttons: Array[Button] = []
 var primary_button: Button = null
 var title_label: Label = null
+var menu_box: VBoxContainer = null
 
 
 func _ready() -> void:
@@ -44,8 +45,15 @@ func _ready() -> void:
 	SettingsStore.apply_at_boot()
 	if GameState.active_model == null:
 		GameState.bootstrap()
+	# ریشه باید واقعاً viewport را بگیرد؛ فقط custom_minimum_size برای Control ریشه
+	# کافی نیست و در Web/Android ممکن است تمام UI را بیرون از قاب بسازد.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if size.x < 2.0 or size.y < 2.0:
+		size = Vector2(1080.0, 1920.0)
 	custom_minimum_size = Vector2(1080.0, 1920.0)
 	_build()
+	get_viewport().size_changed.connect(_fit_menu)
+	call_deferred("_fit_menu")
 	refresh()
 
 
@@ -83,6 +91,7 @@ func _build() -> void:
 
 	var box := UIKit.make_vbox(UIKit.GAP)
 	box.name = "Buttons"
+	menu_box = box
 	box.add_theme_constant_override("separation", int(UIKit.GAP * 1.5))
 	add_child(box)
 
@@ -103,7 +112,9 @@ func _build() -> void:
 	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 0)
 	box.offset_left = UIKit.MARGIN
 	box.offset_right = -UIKit.MARGIN
-	box.offset_top = 620.0
+	# پیش از اولین layout هم داخل قاب بماند؛ `_fit_menu` بعد از محاسبه‌ی
+	# minimum-size مقدار نهایی را برای viewportهای کوچک‌تر تنظیم می‌کند.
+	box.offset_top = 260.0
 	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	box.grow_vertical = Control.GROW_DIRECTION_BOTH
 	box.z_index = 10
@@ -120,6 +131,18 @@ func _build() -> void:
 		else:
 			Log.warn(TAG, "صحنه‌ی Aria بارگذاری نشد — منو بی‌آواتار ساخته می‌شود")
 	UIKit.apply_flow(self)
+
+
+func _fit_menu() -> void:
+	if menu_box == null or not is_instance_valid(menu_box):
+		return
+	var viewport_height: float = maxf(get_viewport_rect().size.y, 1920.0)
+	var content_height: float = maxf(menu_box.get_combined_minimum_size().y, 1.0)
+	# عنوان، کارت قهرمان و چهار دکمه باید در قاب portrait جا شوند؛ قبل از این
+	# اصلاح، top=620 با HeroCard باعث می‌شد نیمه‌ی دکمه‌ها بیرونِ صفحه بروند.
+	var top: float = minf(260.0, maxf(132.0, viewport_height - content_height - 72.0))
+	menu_box.offset_top = top
+	menu_box.offset_bottom = top + content_height
 
 
 ## ویترین سه‌بعدی در یک SubViewport مستقل می‌نشیند تا UI واقعیِ Control روی آن
