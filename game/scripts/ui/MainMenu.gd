@@ -37,6 +37,7 @@ var buttons: Array[Button] = []
 var primary_button: Button = null
 var title_label: Label = null
 var menu_box: VBoxContainer = null
+var clay_backdrop: ClayStage2D = null
 
 
 func _ready() -> void:
@@ -49,8 +50,11 @@ func _ready() -> void:
 	# کافی نیست و در Web/Android ممکن است تمام UI را بیرون از قاب بسازد.
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	if size.x < 2.0 or size.y < 2.0:
+		# فقط برای instanceهای تست که هنوز parent/viewport به آن‌ها اندازه نداده است.
+		# روی دستگاه واقعی نباید minimum-size ریشه viewport را بزرگ‌تر کند؛ این همان
+		# چیزی است که در Web می‌توانست قابِ ۱۰۸۰×۱۹۲۰ را به بیرون از canvas ببرد.
 		size = Vector2(1080.0, 1920.0)
-	custom_minimum_size = Vector2(1080.0, 1920.0)
+	custom_minimum_size = Vector2.ZERO
 	_build()
 	get_viewport().size_changed.connect(_fit_menu)
 	call_deferred("_fit_menu")
@@ -139,18 +143,39 @@ func _build() -> void:
 func _fit_menu() -> void:
 	if menu_box == null or not is_instance_valid(menu_box):
 		return
-	var viewport_height: float = maxf(get_viewport_rect().size.y, 1920.0)
+	var frame: Vector2 = get_viewport_rect().size
+	var viewport_height: float = maxf(frame.y, 1.0)
+	var viewport_width: float = maxf(frame.x, 1.0)
 	var content_height: float = maxf(menu_box.get_combined_minimum_size().y, 1.0)
-	# عنوان، کارت قهرمان و چهار دکمه باید در قاب portrait جا شوند؛ قبل از این
-	# اصلاح، top=620 با HeroCard باعث می‌شد نیمه‌ی دکمه‌ها بیرونِ صفحه بروند.
-	var top: float = minf(260.0, maxf(132.0, viewport_height - content_height - 72.0))
+	# اولویت با قاب واقعی است، نه minimum-size طراحی. اگر preview در پنجره‌ی
+	# کوتاه/افقی باز شد، کل منو proportionally داخل همان قاب می‌نشیند و crop نمی‌شود.
+	var available_height: float = maxf(viewport_height - 48.0, 1.0)
+	var fit_scale: float = minf(1.0, available_height / content_height)
+	menu_box.scale = Vector2.ONE * fit_scale
+	menu_box.pivot_offset = Vector2(menu_box.size.x * 0.5, 0.0)
+	var rendered_height: float = content_height * fit_scale
+	var top: float = clampf((viewport_height - rendered_height) * 0.5, 24.0, 260.0)
 	menu_box.offset_top = top
 	menu_box.offset_bottom = top + content_height
 
+	if clay_backdrop != null and is_instance_valid(clay_backdrop):
+		var backdrop_scale: float = minf(viewport_width / 1080.0, viewport_height / 1920.0)
+		backdrop_scale = maxf(backdrop_scale, 0.01)
+		clay_backdrop.scale = Vector2.ONE * backdrop_scale
+		clay_backdrop.position = Vector2(
+			(viewport_width - 1080.0 * backdrop_scale) * 0.5,
+			(viewport_height - 1920.0 * backdrop_scale) * 0.5)
+
 
 ## ویترین سه‌بعدی در یک SubViewport مستقل می‌نشیند تا UI واقعیِ Control روی آن
-## overlay شود و در صورت خاموش‌بودن renderer هم fallbackِ پس‌زمینه‌ی رنگی بماند.
+## overlay شود. ClayStage2D همان قاب/پالت را به‌عنوان fallbackِ قطعی نگه می‌دارد؛
+## بنابراین روی Web/renderer محدود هم صفحه‌ی آغاز بدون art خالی نمی‌شود.
 func _build_clay_showcase() -> void:
+	clay_backdrop = ClayStage2D.new()
+	clay_backdrop.name = "ClayBackdropArt"
+	clay_backdrop.z_index = -1
+	add_child(clay_backdrop)
+
 	var host := SubViewportContainer.new()
 	host.name = "ClayShowcase"
 	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -160,7 +185,9 @@ func _build_clay_showcase() -> void:
 	var viewport := SubViewport.new()
 	viewport.name = "ClayViewport"
 	viewport.size = Vector2i(1080, 1920)
-	viewport.transparent_bg = false
+	# شفافیت عمداً روشن است: اگر 3D در WebGL/renderer محدود نشد،
+	# ClayBackdropArt از زیرِ آن دیده می‌شود؛ اگر شد، آبجکت‌های 3D روی آن می‌نشینند.
+	viewport.transparent_bg = true
 	viewport.handle_input_locally = false
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	host.add_child(viewport)
@@ -168,7 +195,7 @@ func _build_clay_showcase() -> void:
 	world.name = "ClayWorld"
 	viewport.add_child(world)
 	add_child(host)
-	move_child(host, 0)
+	move_child(host, 1)
 
 
 func _add(box: VBoxContainer, key: String, tone: String) -> Button:

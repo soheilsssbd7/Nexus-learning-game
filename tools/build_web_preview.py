@@ -756,6 +756,26 @@ def apply_preview_transforms(files: dict[str, bytes], with_smoke: bool = False) 
     proj = proj.replace(
         anchor, anchor + 'PreviewBoot="*res://preview/PreviewBoot.gd"\n', 1
     )
+    # این artifact یک خروجی Web است، نه تنظیمات native: پنجره‌ی Pages/preview
+    # معمولاً landscape است، پس باید portrait را کامل contain کند، نه اینکه با
+    # `expand` ارتفاع منوی native را crop کند. Compatibility هم باید پیش از
+    # راه‌اندازی renderer در project.godot باشد؛ set_setting در PreviewBoot برای
+    # انتخاب renderer دیر است و باعث می‌شد 3D در Web بی‌صدا ناپدید شود.
+    proj = proj.replace(
+        'window/stretch/aspect="expand"',
+        'window/stretch/aspect="keep"',
+        1,
+    )
+    proj = proj.replace(
+        'renderer/rendering_method="mobile"',
+        'renderer/rendering_method="gl_compatibility"',
+        1,
+    )
+    proj = proj.replace(
+        'renderer/rendering_method.mobile="mobile"',
+        'renderer/rendering_method.web="gl_compatibility"',
+        1,
+    )
     files[proj_key] = proj.encode("utf-8")
 
     # ۲ب) شِیپرِ فارسی — فقط-بستهٔ-وب (قالب npm TextServerAdvanced ندارد)
